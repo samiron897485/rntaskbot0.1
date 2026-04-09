@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: telegram-earning-bot
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm install -g pnpm@10.26.1 && pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: ADMIN_IDS
+        sync: false

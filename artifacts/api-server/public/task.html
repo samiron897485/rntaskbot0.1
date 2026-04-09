@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Complete Task - L1 Earning System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+    .mobile-block {
+      display: none; position: fixed; inset: 0; background: #0f172a;
+      flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 30px; z-index: 9999;
+    }
+    .mobile-block.show { display: flex; }
+    .mobile-block-icon { font-size: 4rem; margin-bottom: 20px; }
+    .mobile-block h2 { font-size: 1.4rem; color: #ff5050; margin-bottom: 10px; }
+    .mobile-block p { color: #94a3b8; font-size: 0.9rem; line-height: 1.6; }
+
+    .floating-timer {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(15, 20, 40, 0.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 2px solid #00d4aa;
+      padding: 10px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .floating-timer .brand { font-size: 0.95rem; font-weight: 700; color: #00d4aa; white-space: nowrap; }
+    .floating-timer .timer-display { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: center; }
+
+    .timer-ring { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
+    .timer-ring svg { transform: rotate(-90deg); width: 52px; height: 52px; }
+    .timer-ring .bg-c { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 5; }
+    .timer-ring .prog-c {
+      fill: none; stroke: #555; stroke-width: 5;
+      stroke-linecap: round; stroke-dasharray: 138; stroke-dashoffset: 138;
+      transition: stroke-dashoffset 0.5s linear, stroke 0.3s;
+    }
+    .timer-ring .timer-num { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 0.65rem; font-weight: bold; color: #888; white-space: nowrap; }
+    .timer-hms { font-size: 1.6rem; font-weight: 800; color: #888; letter-spacing: 2px; font-family: monospace; }
+
+    .status-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+    .status-pill.waiting  { background: rgba(100,100,100,0.2); color: #aaa; border: 1px solid #555; }
+    .status-pill.active   { background: rgba(0,212,170,0.2); color: #00d4aa; border: 1px solid #00d4aa; }
+    .status-pill.paused   { background: rgba(255,165,0,0.2); color: #ffa500; border: 1px solid #ffa500; }
+    .status-pill.done     { background: rgba(0,212,170,0.2); color: #00d4aa; border: 1px solid #00d4aa; }
+
+    .page-body {
+      position: fixed; top: 72px; left: 0; right: 0; bottom: 0;
+      overflow-y: auto; display: flex; flex-direction: column; align-items: center;
+    }
+
+    .container { width: 100%; max-width: 520px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+    .task-link-box {
+      padding: 18px; background: rgba(255,255,255,0.06);
+      border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .task-link-box h3 { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .task-link { color: #00d4aa; word-break: break-all; font-size: 0.9rem; text-decoration: none; }
+
+    .open-link-btn {
+      display: block; width: 100%; margin-top: 14px; padding: 16px;
+      background: linear-gradient(135deg, #00d4aa, #00a07c);
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 1.1rem; font-weight: 700; cursor: pointer;
+      text-align: center; transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.5px;
+    }
+    .open-link-btn:hover:not(:disabled) { opacity: 0.9; transform: scale(1.01); }
+    .open-link-btn:disabled { background: linear-gradient(135deg, #2a5a50, #1a4038); color: rgba(255,255,255,0.5); cursor: not-allowed; }
+
+    .browser-tip {
+      margin-top: 8px; font-size: 0.78rem; color: rgba(255,255,255,0.4); text-align: center;
+    }
+
+    .claim-btn {
+      display: none; width: 100%; padding: 16px;
+      background: linear-gradient(135deg, #ffd700, #ffa500);
+      color: #000; border: none; border-radius: 10px;
+      font-size: 1.1rem; font-weight: 800; cursor: pointer;
+      text-align: center; transition: opacity 0.2s, transform 0.1s;
+      animation: pulse-gold 1.5s ease-in-out infinite;
+    }
+    .claim-btn.show { display: block; }
+    .claim-btn:hover { opacity: 0.9; transform: scale(1.01); animation: none; }
+    @keyframes pulse-gold {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(255,215,0,0); }
+    }
+
+    .info-box {
+      padding: 14px 16px;
+      background: rgba(0,100,255,0.08);
+      border: 1px solid rgba(0,150,255,0.3);
+      border-radius: 10px; font-size: 0.88rem; color: #80b8ff; text-align: center; line-height: 1.6;
+    }
+
+    .warn-box {
+      padding: 14px 16px;
+      background: rgba(255,165,0,0.1);
+      border: 1px solid rgba(255,165,0,0.4);
+      border-radius: 10px; font-size: 0.88rem; color: #ffa500; text-align: center; line-height: 1.6;
+      display: none;
+    }
+    .warn-box.show { display: block; }
+
+    .success-box {
+      display: none; padding: 28px;
+      background: rgba(0,212,170,0.15); border: 2px solid #00d4aa;
+      border-radius: 12px; text-align: center;
+    }
+    .success-box.show { display: block; }
+    .success-icon { font-size: 3.5rem; margin-bottom: 12px; }
+    .success-box h2 { font-size: 1.4rem; color: #00d4aa; margin-bottom: 10px; }
+    .coin-badge {
+      display: inline-block; padding: 6px 20px;
+      background: linear-gradient(135deg, #ffd700, #ffa500);
+      color: #000; border-radius: 20px; font-weight: bold; font-size: 1.1rem; margin-top: 10px;
+    }
+
+    .error-box {
+      display: none; padding: 18px;
+      background: rgba(255,80,80,0.1); border: 1px solid rgba(255,80,80,0.4);
+      border-radius: 12px; text-align: center; color: #ff8080;
+    }
+    .error-box.show { display: block; }
+
+    .progress-bar-wrap { background: rgba(255,255,255,0.08); border-radius: 8px; height: 8px; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #00d4aa, #ffd700); width: 0%; transition: width 0.5s linear; }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-block" id="mobileBlock">
+    <div class="mobile-block-icon">📱</div>
+    <h2>Only for Mobile Users</h2>
+    <p>This page is only accessible from real mobile devices.<br>Please open on your smartphone.</p>
+  </div>
+
+  <div class="floating-timer" id="floatingTimer">
+    <div class="brand">🎯 L1 Earn</div>
+    <div class="timer-display">
+      <div class="timer-ring">
+        <svg viewBox="0 0 52 52">
+          <circle class="bg-c" cx="26" cy="26" r="22" />
+          <circle class="prog-c" id="progressCircle" cx="26" cy="26" r="22" />
+        </svg>
+        <div class="timer-num" id="timerPercent">–</div>
+      </div>
+      <div class="timer-hms" id="timerHMS">–:––:––</div>
+    </div>
+    <div class="status-pill waiting" id="statusPill">⏳ Waiting</div>
+  </div>
+
+  <div class="page-body">
+    <div class="container">
+
+      <div class="task-link-box" id="taskLinkBox">
+        <h3>📰 News Task</h3>
+        <div id="taskLinkText">Loading...</div>
+        <button id="openLinkBtn" class="open-link-btn" disabled>📰 Open News Page</button>
+        <div class="browser-tip">⚠️ Will open in your default browser</div>
+      </div>
+
+      <div class="info-box" id="infoBox">
+        ⚡ Click <strong>"Open News Page"</strong> to start.<br>
+        Stay on that page until the timer completes.<br>
+        Return here and press <strong>Claim Reward</strong>.
+      </div>
+
+      <div class="progress-bar-wrap" id="progressBarWrap" style="display:none">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <div class="warn-box" id="warnBox"></div>
+
+      <button class="claim-btn" id="claimBtn">🎁 Claim Reward</button>
+
+      <div class="success-box" id="successBox">
+        <div class="success-icon">🎉</div>
+        <h2>Task Complete!</h2>
+        <p>You have successfully completed the task.</p>
+        <div class="coin-badge" id="coinBadge">+1 Coin Earned! 💰</div>
+      </div>
+
+      <div class="error-box" id="errorBox">
+        <p id="errorText">⚠️ Something went wrong.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ── Mobile Detection ──────────────────────────────────────────────────────
+    function isMobileDevice() {
+      const ua = navigator.userAgent || '';
+      const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      const isMobileUA = /Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+      const isTablet = /iPad/i.test(ua) || (/Android/i.test(ua) && !/Mobile/i.test(ua));
+      const isDesktop = !hasTouch;
+      return isMobileUA && !isTablet && !isDesktop;
+    }
+
+    if (!isMobileDevice()) {
+      document.getElementById('mobileBlock').classList.add('show');
+    }
+
+    // ── External Browser Helper ───────────────────────────────────────────────
+    function openInDefaultBrowser(url) {
+      const ua = navigator.userAgent || '';
+      const isAndroid = /Android/i.test(ua);
+      if (isAndroid) {
+        // Android intent URL forces Chrome / default browser instead of in-app WebView
+        const host = url.replace(/^https?:\/\//, '');
+        const scheme = url.startsWith('https') ? 'https' : 'http';
+        const intentUrl = `intent://${host}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+        const a = document.createElement('a');
+        a.href = intentUrl;
+        a.click();
+      } else {
+        // iOS and others — window.open with _blank works best
+        window.open(url, '_blank');
+      }
+    }
+
+    // ── Web Audio API ─────────────────────────────────────────────────────────
+    let audioCtx = null;
+    function ensureAudioCtx() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    // Bell ringing sound — rich harmonics + long sustain
+    function playBellRing() {
+      try {
+        ensureAudioCtx();
+        const bellFreqs = [880, 1320, 1760, 2200];
+        const strikes = 3;
+        for (let s = 0; s < strikes; s++) {
+          const delay = s * 0.55;
+          bellFreqs.forEach((freq, hi) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = hi === 0 ? 'sine' : 'sine';
+            osc.frequency.value = freq;
+            const t0 = audioCtx.currentTime + delay;
+            const vol = hi === 0 ? 0.5 : 0.18 / (hi + 1);
+            gain.gain.setValueAtTime(0, t0);
+            gain.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t0 + 1.2);
+            osc.start(t0);
+            osc.stop(t0 + 1.3);
+          });
+        }
+        if (navigator.vibrate) navigator.vibrate([150, 80, 150, 80, 150]);
+      } catch(e) {}
+    }
+
+    // Coin reward fanfare sound — ascending happy tones
+    function playRewardSound() {
+      try {
+        ensureAudioCtx();
+        const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+        notes.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          const t0 = audioCtx.currentTime + i * 0.13;
+          gain.gain.setValueAtTime(0, t0);
+          gain.gain.linearRampToValueAtTime(0.4, t0 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.4);
+          osc.start(t0);
+          osc.stop(t0 + 0.5);
+        });
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      } catch(e) {}
+    }
+
+    document.addEventListener('click', () => { ensureAudioCtx(); }, { once: true });
+
+    // ── State ──────────────────────────────────────────────────────────────────
+    const CIRCUMFERENCE = 2 * Math.PI * 22;
+    const params  = new URLSearchParams(window.location.search);
+    const taskId  = params.get('taskId');
+    const userId  = params.get('userId');
+
+    const progressCircle = document.getElementById('progressCircle');
+    const timerHMS       = document.getElementById('timerHMS');
+    const timerPercent   = document.getElementById('timerPercent');
+    const statusPill     = document.getElementById('statusPill');
+    const successBox     = document.getElementById('successBox');
+    const errorBox       = document.getElementById('errorBox');
+    const errorText      = document.getElementById('errorText');
+    const taskLinkText   = document.getElementById('taskLinkText');
+    const openLinkBtn    = document.getElementById('openLinkBtn');
+    const coinBadge      = document.getElementById('coinBadge');
+    const infoBox        = document.getElementById('infoBox');
+    const warnBox        = document.getElementById('warnBox');
+    const claimBtn       = document.getElementById('claimBtn');
+    const progressBarWrap= document.getElementById('progressBarWrap');
+    const progressBar    = document.getElementById('progressBar');
+
+    progressCircle.style.strokeDasharray  = CIRCUMFERENCE;
+    progressCircle.style.strokeDashoffset = CIRCUMFERENCE;
+
+    let TOTAL_TIME       = 20;
+    let timeAccumulated  = 0;
+    let hiddenAt         = null;
+    let taskOpened       = false;
+    let claimReady       = false;
+    let completed        = false;
+    let taskLink         = '';
+    let tickInterval     = null;
+
+    // ── Display helpers ──────────────────────────────────────────────────────
+    function formatHMS(secs) {
+      secs = Math.max(0, Math.round(secs));
+      const h = Math.floor(secs / 3600);
+      const m = Math.floor((secs % 3600) / 60);
+      const s = secs % 60;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function updateDisplay() {
+      const displayed = Math.min(timeAccumulated, TOTAL_TIME);
+      const fraction  = displayed / TOTAL_TIME;
+      const remaining = Math.max(0, TOTAL_TIME - timeAccumulated);
+      timerHMS.textContent = formatHMS(remaining);
+      progressCircle.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
+      timerPercent.textContent = Math.round(fraction * 100) + '%';
+      progressBar.style.width = (fraction * 100) + '%';
+
+      if (fraction > 0.66) {
+        progressCircle.style.stroke = '#00d4aa';
+        timerHMS.style.color        = '#00d4aa';
+        timerPercent.style.color    = '#00d4aa';
+      } else if (fraction > 0.33) {
+        progressCircle.style.stroke = '#ffa500';
+        timerHMS.style.color        = '#ffa500';
+        timerPercent.style.color    = '#ffa500';
+      } else {
+        progressCircle.style.stroke = '#ff5050';
+        timerHMS.style.color        = '#ff5050';
+        timerPercent.style.color    = '#ff5050';
+      }
+    }
+
+    function setStatus(state) {
+      statusPill.className = 'status-pill ' + state;
+      const labels = { waiting: '⏳ Waiting', active: '⏳ Active', paused: '⏸️ Paused', done: '✅ Done!' };
+      statusPill.textContent = labels[state] || state;
+    }
+
+    // ── Tick every second while hidden ────────────────────────────────────────
+    function startTick() {
+      if (tickInterval) return;
+      tickInterval = setInterval(() => {
+        if (!document.hidden) { stopTick(); return; }
+        if (claimReady || completed) { stopTick(); return; }
+        timeAccumulated += 1;
+        updateDisplay();
+        if (timeAccumulated >= TOTAL_TIME) {
+          stopTick();
+          claimReady = true;
+          playBellRing();
+        }
+      }, 1000);
+    }
+
+    function stopTick() {
+      if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
+    }
+
+    // ── Visibility / focus events ─────────────────────────────────────────────
+    function onPageHidden() {
+      if (!taskOpened || claimReady || completed) return;
+      hiddenAt = Date.now();
+      setStatus('active');
+      progressBarWrap.style.display = 'block';
+      startTick();
+    }
+
+    let cancelSent = false;
+    async function sendCancelTask() {
+      if (cancelSent || completed || !taskId || !userId) return;
+      cancelSent = true;
+      try {
+        await fetch('/api/cancel-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId, userId }),
+        });
+      } catch(e) {}
+    }
+
+    function onPageVisible() {
+      if (!taskOpened) return;
+      stopTick();
+      if (hiddenAt !== null) {
+        hiddenAt = null;
+      }
+      if (claimReady) {
+        setStatus('done');
+        claimBtn.classList.add('show');
+        warnBox.classList.remove('show');
+        infoBox.style.display = 'none';
+      } else if (timeAccumulated > 0) {
+        // User returned early — cancel task
+        sendCancelTask();
+        setStatus('waiting');
+        infoBox.style.display = 'none';
+        warnBox.classList.remove('show');
+        progressBarWrap.style.display = 'none';
+        claimBtn.classList.remove('show');
+        errorText.textContent = '❌ Task Cancelled\nYou returned before completing the required time.';
+        errorBox.classList.add('show');
+        openLinkBtn.disabled = false;
+        openLinkBtn.textContent = '🔄 Retry Task';
+        taskOpened = false;
+        timeAccumulated = 0;
+        cancelSent = false;
+        updateDisplay();
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) onPageHidden();
+      else onPageVisible();
+    });
+
+    window.addEventListener('blur', () => { if (document.hidden) return; onPageHidden(); });
+    window.addEventListener('focus', () => { if (!document.hidden) onPageVisible(); });
+    window.addEventListener('pagehide', () => { onPageHidden(); });
+
+    // ── Open Link button ──────────────────────────────────────────────────────
+    openLinkBtn.addEventListener('click', () => {
+      if (openLinkBtn.disabled || completed || !taskLink) return;
+      ensureAudioCtx();
+      taskOpened = true;
+      openLinkBtn.disabled = true;
+      openLinkBtn.textContent = '✅ Opened — Stay on the news page!';
+      infoBox.innerHTML = '⏳ Stay on the news page. Timer runs while you are there.<br>Return here and press <strong>Claim Reward</strong> when done.';
+      progressBarWrap.style.display = 'block';
+      openInDefaultBrowser(taskLink);
+    });
+
+    // ── Claim button ──────────────────────────────────────────────────────────
+    claimBtn.addEventListener('click', async () => {
+      if (completed || !claimReady) return;
+      playRewardSound();
+      claimBtn.disabled = true;
+      claimBtn.textContent = '⏳ Claiming...';
+      await completeTask();
+    });
+
+    // ── VPN/WebRTC leak detection ─────────────────────────────────────────────
+    async function detectVpn() {
+      return new Promise((resolve) => {
+        try {
+          const RTCPeer = window.RTCPeerConnection || window.webkitRTCPeerConnection;
+          if (!RTCPeer) { resolve(false); return; }
+          const pc = new RTCPeer({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+          const localIps = new Set();
+          let resolved = false;
+          pc.createDataChannel('');
+          pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => { resolve(false); });
+          pc.onicecandidate = (e) => {
+            if (!e || !e.candidate || !e.candidate.candidate) {
+              if (!resolved) { resolved = true; resolve(false); }
+              return;
+            }
+            const match = /([0-9]{1,3}\.){3}[0-9]{1,3}/.exec(e.candidate.candidate);
+            if (match) localIps.add(match[0]);
+          };
+          setTimeout(() => {
+            if (resolved) return;
+            resolved = true;
+            pc.close();
+            // If multiple IPs detected — possible VPN tunnel IP leaking
+            resolve(localIps.size > 2);
+          }, 2000);
+        } catch(e) {
+          resolve(false);
+        }
+      });
+    }
+
+    // ── Task completion ───────────────────────────────────────────────────────
+    async function completeTask() {
+      if (completed) return;
+      completed = true;
+      stopTick();
+      setStatus('done');
+
+      let hasVpnHeaders = false;
+      try { hasVpnHeaders = await detectVpn(); } catch(e) {}
+
+      try {
+        const res  = await fetch('/api/complete-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ taskId, userId, hasVpnHeaders }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          claimBtn.classList.remove('show');
+          infoBox.style.display = 'none';
+          warnBox.classList.remove('show');
+          progressBarWrap.style.display = 'none';
+          successBox.classList.add('show');
+          coinBadge.textContent = `Total Coins: ${data.coins} 💰`;
+          timerHMS.textContent = '00:00:00';
+        } else {
+          completed = false;
+          claimBtn.disabled = false;
+          claimBtn.textContent = '🎁 Claim Reward';
+          showError(data.message || 'Failed to complete task.');
+        }
+      } catch (e) {
+        completed = false;
+        claimBtn.disabled = false;
+        claimBtn.textContent = '🎁 Claim Reward';
+        showError('Failed to reach server. Please try again.');
+      }
+    }
+
+    function showError(msg) {
+      errorText.textContent = '⚠️ ' + msg;
+      errorBox.classList.add('show');
+    }
+
+    // ── Load config & task ────────────────────────────────────────────────────
+    async function loadConfig() {
+      try {
+        const res  = await fetch('/api/config');
+        const data = await res.json();
+        if (data.success && data.taskDuration) TOTAL_TIME = data.taskDuration;
+      } catch(e) {}
+    }
+
+    async function loadTask() {
+      if (!taskId) { showError('Task ID not found.'); return; }
+      try {
+        const res  = await fetch(`/api/task/${taskId}`);
+        const data = await res.json();
+        if (data.success && data.task) {
+          taskLink = data.task.link;
+          taskLinkText.innerHTML = `<a class="task-link" href="${taskLink}" target="_blank">${taskLink}</a>`;
+          openLinkBtn.disabled = false;
+          updateDisplay();
+        } else {
+          taskLinkText.textContent = 'Task not found';
+          showError('This task is no longer available.');
+        }
+      } catch(e) {
+        taskLinkText.textContent = 'Failed to load';
+        showError('Could not load task. Please try again.');
+      }
+    }
+
+    async function init() {
+      await loadConfig();
+      await loadTask();
+    }
+
+    init();
+  </script>
+
+</body>
+</html>

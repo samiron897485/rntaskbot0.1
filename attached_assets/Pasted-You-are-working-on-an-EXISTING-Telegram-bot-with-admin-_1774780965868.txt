@@ -1,0 +1,162 @@
+You are working on an EXISTING Telegram bot with admin panel.
+
+IMPORTANT:
+
+- DO NOT break existing features
+- ONLY add and FIX the following
+- Keep structure same
+- Reply in Bengali
+
+---
+
+🔥 FEATURE 1: USER ID VIEW (USER PANEL)
+
+Add a new button in user menu:
+
+Button: "My ID"
+
+When clicked:
+
+- Show ONLY that user's Telegram ID
+
+Example:
+"Your User ID: 123456789"
+
+---
+
+🔥 FEATURE 2: ADMIN USER COIN CONTROL
+
+Admin Panel:
+Button: "Manage User Wallet"
+
+Flow:
+
+1. Enter User ID
+
+2. Show current coin balance
+
+3. Show options:
+   → Add Coins
+   → Deduct Coins
+
+4. Admin enters:
+   
+   - amount
+   - reason
+
+5. Confirm → apply changes
+
+6. Send notification to that user
+
+---
+
+🔥 FEATURE 3: BULK COIN CONTROL
+
+Button: "Bulk Wallet Control"
+
+Flow:
+
+1. Show options:
+   → Add Coins to ALL Users
+   → Deduct Coins from ALL Users
+
+2. Admin enters:
+   
+   - amount
+   - reason
+
+3. Confirm (Are you sure?)
+
+4. Apply to all users
+
+5. Send notification to all users
+
+---
+
+🔥 FEATURE 4: FORCE ADMIN LANGUAGE = ENGLISH
+
+- Admin panel MUST always use English
+- Ignore user language setting for admin
+- Force language = "en"
+
+Example:
+if (isAdmin(user)) {
+lang = "en";
+}
+
+- Remove any Bengali text from admin panel
+
+---
+
+🔥 FEATURE 5: BAN / UNBAN SYSTEM (NEW)
+
+Add new admin feature:
+
+Button: "User Control"
+
+Inside it:
+
+Options:
+→ Ban User
+→ Unban User
+
+---
+
+BAN FLOW:
+
+1. Admin clicks "Ban User"
+2. Enter User ID
+3. Confirm ban
+
+ACTION:
+
+- Mark user as banned in database
+
+EFFECT:
+
+- Banned user cannot:
+  → Start bot
+  → Access tasks
+  → Use any feature
+
+- If banned user tries:
+  Show message:
+  "Your account has been banned. Contact support."
+
+---
+
+UNBAN FLOW:
+
+1. Admin clicks "Unban User"
+2. Enter User ID
+3. Confirm
+
+ACTION:
+
+- Remove ban status
+
+EFFECT:
+
+- User can use bot again normally
+
+---
+
+STORE:
+
+- Add field: user.isBanned = true/false
+
+---
+
+🔥 FEATURE 6: UI RULES
+
+- Everything must be button-based
+- No coding/manual editing required
+- Use editMessage (no chat flood)
+- Show confirmation messages
+
+---
+
+FINAL OUTPUT:
+
+- Show updated files
+- Explain in Bengali

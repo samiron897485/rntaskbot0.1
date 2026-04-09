@@ -1,0 +1,214 @@
+You are working on an EXISTING Telegram bot + tracking system project.
+
+IMPORTANT RULES:
+
+- DO NOT break existing working features
+- DO NOT rewrite full project
+- ONLY update or add missing features listed below
+- Keep existing structure intact
+- Reply in Bengali language
+- Use clean modular code
+
+---
+
+🔧 REQUIRED FEATURE UPDATES
+
+1. CLEAR HISTORY + RESTART
+
+- When user clicks "Clear History":
+  → Show button: "Restart Bot"
+- When clicked:
+  → Reset user session
+  → Show welcome message again
+
+---
+
+2. NO CHAT FLOOD (VERY IMPORTANT)
+
+- Do NOT send new messages for every action
+- Use:
+  → editMessageText
+  → editMessageReplyMarkup
+- When user goes back:
+  → Update same message (no new message)
+- Goal: chat should NOT grow
+
+---
+
+3. TASK COMPLETE BUTTON FIX
+
+- After task complete:
+  REMOVE "Balance" button
+  ADD:
+  → Main Menu
+  → Next Task
+
+---
+
+4. AUTO DELETE OLD MESSAGES
+
+- Before sending new message:
+  → delete previous bot message
+- Maintain:
+  user.lastMessageId
+- Apply in:
+  - task start
+  - task complete
+  - next task
+  - navigation
+
+---
+
+5. REFERRAL SYSTEM (ADVANCED)
+
+Add full referral system:
+
+- Each user has referral code
+- Referral link:
+  https://t.me/your_bot?start=ref_CODE
+
+ADMIN PANEL CONTROL:
+
+- Enable/Disable referral system
+- Set:
+  → referral bonus (on signup)
+  → per task commission
+  → lifetime commission ON/OFF
+
+USER FEATURES:
+
+- Show:
+  → total referrals
+  → total earnings from referrals
+
+---
+
+6. TASK MANAGEMENT (ADMIN)
+
+- Auto remove expired tasks from:
+  → admin panel
+  → user task list
+
+- Admin can:
+  → delete any task manually
+  → if deleted → remove from all users instantly
+
+---
+
+7. HELP SYSTEM
+
+- Admin sets:
+  → support link (Telegram profile or bot)
+
+- User clicks "Help":
+  → open that link
+
+---
+
+8. TIME FORMAT
+
+- Show task expiry time in:
+  HH:MM:SS format
+
+---
+
+9. FLOATING TIMER (TRACKING PAGE)
+
+- Timer must be FIXED (sticky UI)
+- Even on scroll → always visible
+
+ADMIN CONTROL:
+
+- Set:
+  → task duration (like 20 sec)
+  → expiry duration (like 12 hours)
+
+---
+
+10. MULTI LANGUAGE (ADMIN + USER)
+
+DEFAULT:
+
+- English
+
+USER:
+
+- Can switch language anytime
+
+ADMIN PANEL:
+
+- Language switch option
+
+---
+
+11. TASK COUNTER (USER)
+
+Show in bot:
+
+- Total tasks available
+- Completed tasks
+
+REAL-TIME UPDATE:
+
+- On skip / expire → update count instantly
+
+---
+
+12. WITHDRAW SYSTEM (ADMIN CONTROL)
+
+Admin sets:
+
+- Minimum withdrawal coins
+- Coin → money rate
+- Withdrawal options (UPI / etc.)
+
+USER SEES:
+
+- conversion rate
+- minimum withdrawal
+- available options
+
+---
+
+13. BOT PROFILE CONTROL
+
+Admin can:
+
+- Change bot profile photo
+
+---
+
+14. PERSISTENT MENU BUTTON (VERY IMPORTANT)
+
+- Always show a button near input field:
+  → "Main Menu"
+
+- When clicked:
+  → Open main menu anytime
+
+---
+
+15. SMART UPDATE CONDITION
+
+- Detect existing features
+- ONLY update missing or incomplete parts
+- DO NOT duplicate logic
+- DO NOT break working APIs
+
+---
+
+16. CLEAN CODE STRUCTURE
+
+- Separate:
+  - referral logic
+  - admin config
+  - user state
+  - task system
+
+---
+
+FINAL OUTPUT:
+
+- Updated code only
+- Mention what files changed
+- Bengali explanation

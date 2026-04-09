@@ -1,0 +1,287 @@
+You are working on an EXISTING Telegram bot with tracking page and admin panel.
+
+IMPORTANT:
+
+- DO NOT break any existing working features
+- DO NOT remove anything already implemented
+- DO NOT redesign UI
+- ONLY add/update the features below
+- Modify ONLY where absolutely necessary
+- Keep all current logic intact
+- Keep sound system (task complete sound) unchanged
+- Bot language MUST be 100% English everywhere
+
+---
+
+🔥 FEATURE 1: REAL-TIME FRAUD DETECTION + ERROR MESSAGES
+
+Implement detection:
+
+1. VPN / Proxy
+2. Same Device Multi Account
+3. Same Network (WiFi) Multiple Users
+4. Exact Timing Pattern (soft check)
+5. Session Break
+
+---
+
+🔴 RULE:
+
+If detected → instantly BLOCK task and show message:
+
+VPN:
+"❌ VPN Detected
+Please disable VPN or Proxy and try again."
+
+Device Multi Account:
+"❌ Multiple Accounts Detected
+Another account is already active on this device."
+
+Same Network:
+"❌ Too Many Users on Same Network
+Please use a different network."
+
+---
+
+---
+
+🔥 FEATURE 2: SPAM MONITOR FIX (IMPORTANT)
+
+Update existing "Spam Monitor" button logic:
+
+It must show:
+
+- User ID
+- Risk Score
+- Reason:
+  - VPN
+  - Multi-account
+  - Same network
+  - Fast return
+  - Suspicious pattern
+
+Add filtering:
+
+→ Show only High Risk Users
+→ Show All Flagged Users
+
+Make it dynamic and accurate (not static)
+
+---
+
+---
+
+🔥 FEATURE 3: ADMIN VIEW BANNED & SUSPICIOUS USERS
+
+Add buttons in admin panel:
+
+1. "Banned Users List"
+2. "Suspicious Users"
+
+When clicked:
+
+- Show list with:
+  - User ID
+  - Status (Banned / Flagged)
+  - Reason
+  - Risk Score
+
+---
+
+---
+
+🔥 FEATURE 4: FIX BANNED USER BUTTON ISSUE
+
+Problem: "My ID" not working when banned
+
+---
+
+✅ FIX:
+
+When user.isBanned === true:
+
+ALWAYS show message:
+
+"❌ Your account has been banned. Contact support."
+
+Below show TWO buttons:
+
+1. "My ID"
+2. "Contact Support"
+
+---
+
+✔ My ID:
+
+- MUST return actual Telegram user ID
+
+✔ Contact Support:
+
+- Must open admin-defined support link
+
+---
+
+🔁 APPLY THIS EVERYWHERE:
+
+- /start
+- menu
+- any button click
+- after ban notification
+
+---
+
+🚫 BLOCK ACCESS:
+
+When banned:
+
+❌ Task
+❌ Referral
+❌ Coupon
+❌ Withdraw
+
+✔ ONLY allow:
+
+- My ID
+- Contact Support
+- Policy
+
+---
+
+---
+
+🔥 FEATURE 5: DUPLICATE TASK LINK BLOCK
+
+When admin adds task:
+
+IF link already exists:
+
+Show error:
+
+"❌ Duplicate Link
+This task already exists. Please add a new link."
+
+DO NOT save duplicate
+
+---
+
+---
+
+🔥 FEATURE 6: POLICY SYSTEM
+
+Admin Panel:
+
+Button: "Set Policy"
+
+Flow:
+
+- Admin enters policy text
+- Save/update policy
+- Send confirmation:
+  "✅ Policy updated successfully"
+
+---
+
+User Panel:
+
+Button: "Policy"
+
+- Show saved policy text
+
+✔ Must work even if user is banned
+
+---
+
+---
+
+🔥 FEATURE 7: REFERRAL BONUS CONDITION SYSTEM
+
+Add admin setting:
+
+Button: "Referral Task Requirement"
+
+Flow:
+
+- Admin inputs number (X)
+
+Logic:
+
+IF X = 0:
+→ Bonus instantly after join
+
+IF X > 0:
+→ Bonus after referred user completes X tasks
+
+---
+
+✔ Commission remains separate (no change)
+✔ Commission must NOT send notifications
+✔ Only show in history
+
+---
+
+---
+
+🔥 FEATURE 8: WITHDRAW SUPPORT (KEEP EXISTING)
+
+No change, just ensure:
+
+- Admin settings still working
+- Confirmation messages shown
+
+---
+
+---
+
+🔥 FEATURE 9: FREE COUPON SYSTEM (KEEP EXISTING)
+
+No break
+
+---
+
+---
+
+🔥 FEATURE 10: LANGUAGE RULE (STRICT)
+
+- Entire bot must be English
+- Remove any Bengali text
+- Ignore user language selection
+- Force English globally
+
+---
+
+---
+
+🔥 FEATURE 11: TASK CANCEL (EARLY RETURN)
+
+If user returns before time:
+
+Tracking page:
+
+"❌ Task Cancelled
+You returned before completing the required time."
+
+Bot message:
+
+"❌ Task Cancelled
+No coins added."
+
+✔ Task stays available
+✔ User can retry
+
+---
+
+---
+
+🔥 FINAL RULE
+
+- Do NOT touch working task system
+- Do NOT remove tracking logic
+- Do NOT remove sound system
+- Only enhance & fix
+
+---
+
+FINAL OUTPUT:
+
+- Show only updated sections/files
+- Keep explanation short

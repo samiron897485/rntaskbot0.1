@@ -1,0 +1,202 @@
+You are working on an EXISTING Telegram bot with fraud detection, admin panel, and tracking system.
+
+IMPORTANT RULES (STRICT):
+
+- DO NOT break or modify any existing working features
+- DO NOT redesign anything
+- DO NOT change current architecture
+- ONLY implement the updates below
+- Modify ONLY where absolutely necessary
+- Keep all existing logic intact (tasks, tracking, sound, admin panel, etc.)
+- All bot language MUST remain English
+- Reply in Bengali
+
+---
+
+🔥 FEATURE 1: SMART COOLDOWN SYSTEM (FIX FALSE DETECTION)
+
+Problem:
+Users who stop using old accounts still get flagged.
+
+Fix:
+
+1. Add "inactive account ignore" logic:
+
+- If another account from same device/IP is inactive for more than 12 hours
+→ IGNORE that account completely
+
+Example:
+if (other_account.last_active > 12 hours ago) → ignore
+
+---
+
+2. Add COOLDOWN instead of instant block:
+
+When suspicious activity detected:
+
+- DO NOT instantly ban
+- Apply temporary restriction
+
+Cooldown rules:
+
+- 40–69 score → 12 hours cooldown
+- 70–89 score → 24 hours cooldown
+- 90+ score → auto ban
+
+---
+
+3. Show user message:
+
+"⚠️ Suspicious Activity Detected
+
+Multiple accounts detected on same device or network.
+
+Please wait 12 hours before trying again.
+
+After that, you can continue normally."
+
+---
+
+4. After cooldown ends:
+
+- Auto reset flag
+- User can continue normally
+
+---
+
+🔥 FEATURE 2: REAL-TIME USER FRAUD ALERT SYSTEM
+
+CURRENT:
+Only admin gets fraud alerts.
+
+UPDATE:
+
+Send alert to BOTH:
+✔ Admin panel (keep existing)
+✔ User chat (NEW)
+
+---
+
+When suspicious activity happens:
+
+Send message to USER:
+
+🚨 Security Warning!
+
+⚠️ Suspicious activity detected on your account.
+
+Reason:
+{dynamic reason based on detection}
+
+📊 Risk Score: {score}%
+
+❗ If you continue this activity, your account may be restricted or banned.
+
+Please use only ONE account per device and avoid VPN or shared networks.
+
+---
+
+Dynamic Reasons:
+
+- VPN → "VPN/Proxy detected"
+- Device → "Multiple accounts on same device"
+- IP → "Multiple accounts on same network"
+- Timing → "Unusual activity pattern detected"
+- Session → "Invalid session behavior detected"
+
+---
+
+Alert rules:
+
+- Send alert EVERY time suspicious activity detected
+- BUT limit spam:
+  → Max 1 alert per 2 minutes per user
+
+---
+
+🔥 FEATURE 3: RISK SCORE SYSTEM
+
+Ensure user has:
+
+user.riskScore
+
+Add scoring:
+
+- VPN detected → +30
+- Same device multi account → +40
+- Same IP/WiFi → +25
+- Exact timing → +15
+- Session break → +10
+
+---
+
+🔥 FEATURE 4: ADMIN ALERT (ENHANCED)
+
+Keep existing admin fraud alert system BUT include:
+
+- User ID
+- Risk Score (%)
+- Reasons list
+- Action taken (Warning / Cooldown / Ban)
+
+Example:
+
+🚨 Fraud Detection Alert
+
+User ID: 123456789
+Risk Score: 65%
+
+Reasons:
+- Same device multi account
+- Same IP usage
+
+Action: 12h Cooldown Applied
+
+---
+
+🔥 FEATURE 5: COOLDOWN + ALERT INTEGRATION
+
+When cooldown applied:
+
+Send user message:
+
+"⚠️ Temporary Restriction Applied
+
+Due to suspicious activity, your account is temporarily restricted.
+
+Please wait 12 hours before trying again."
+
+---
+
+🔥 FEATURE 6: INTEGRATION POINTS
+
+Apply fraud detection checks ONLY in these places:
+
+- When user clicks Start Task
+- When tracking page verifies return
+- On /start command
+- On referral activity
+
+DO NOT modify other parts
+
+---
+
+🔥 FEATURE 7: SAFETY RULE
+
+DO NOT:
+
+- Touch task system
+- Touch tracking page logic
+- Touch sound system
+- Touch admin panel UI (except adding alert info)
+- Touch database structure unless required
+
+ONLY extend fraud detection logic
+
+---
+
+FINAL OUTPUT REQUIREMENTS:
+
+- Show ONLY updated sections/files
+- Clearly explain what changed (in Bengali)
+- Keep code minimal and clean

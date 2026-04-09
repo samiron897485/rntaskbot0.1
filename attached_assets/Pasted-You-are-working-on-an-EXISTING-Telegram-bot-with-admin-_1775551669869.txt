@@ -1,0 +1,211 @@
+You are working on an EXISTING Telegram bot with admin panel, fraud detection system, coupon system, and withdrawal system.
+
+IMPORTANT RULES (STRICT):
+
+- DO NOT break or modify any existing working features
+- DO NOT redesign anything
+- DO NOT change current architecture
+- ONLY implement the updates below
+- Modify ONLY where absolutely necessary
+- Keep all existing logic intact (tasks, tracking, sound, referral, etc.)
+- All bot language MUST remain English
+- Reply in Bengali
+
+---
+
+🔥 UPDATE 1: MULTI-ACCOUNT DETECTION (24 HOURS FIX)
+
+Currently:
+Inactive account ignore = 12 hours
+
+UPDATE:
+
+Change it to:
+
+if (other_account.last_active > 24 hours ago) → ignore
+
+Meaning:
+- Only ACTIVE accounts within last 24 hours will be considered
+- Older accounts must be ignored
+
+DO NOT change any other fraud logic
+
+---
+
+🔥 UPDATE 2: COUPON CLAIM ELIGIBILITY SYSTEM
+
+Add validation BEFORE coupon claim:
+
+Admin Panel MUST have new settings:
+
+Button: "Coupon Eligibility Settings"
+
+Flow:
+
+1. Admin clicks button
+2. Enter Time Window (in hours)
+3. Enter Minimum Task Count
+4. Save values
+5. Show confirmation message
+
+---
+
+Store:
+
+couponEligibility = {
+  hours: number,
+  tasks: number
+}
+
+---
+
+USER SIDE VALIDATION:
+
+When user tries to claim coupon:
+
+Check:
+
+- Tasks completed within last {hours}
+- Count must be ≥ {tasks}
+
+---
+
+IF FAILED:
+
+Show:
+
+❌ Coupon Claim Failed
+
+You have not completed minimum {tasks} tasks in the last {hours} hours.
+
+Please complete required tasks to claim this coupon.
+
+---
+
+IF PASSED:
+
+✔ Allow claim normally
+
+---
+
+SPECIAL CASE:
+
+If:
+
+hours = 0 AND tasks = 0
+
+→ Disable validation (ALLOW ALL users)
+
+---
+
+🔥 UPDATE 3: WITHDRAWAL ELIGIBILITY SYSTEM
+
+Same logic as coupon, apply BEFORE withdrawal request
+
+---
+
+Admin Panel:
+
+Button: "Withdrawal Eligibility Settings"
+
+Flow:
+
+1. Click button
+2. Enter Time Window (hours)
+3. Enter Minimum Tasks
+4. Save
+5. Show confirmation
+
+---
+
+Store:
+
+withdrawEligibility = {
+  hours: number,
+  tasks: number
+}
+
+---
+
+USER VALIDATION:
+
+Before withdrawal:
+
+Check:
+
+- Tasks completed in last {hours}
+- Must be ≥ {tasks}
+
+---
+
+IF FAILED:
+
+❌ Withdrawal Blocked
+
+You have not completed minimum {tasks} tasks in the last {hours} hours.
+
+Please complete required tasks before requesting withdrawal.
+
+---
+
+IF PASSED:
+
+✔ Allow withdrawal
+
+---
+
+SPECIAL CASE:
+
+If:
+
+hours = 0 AND tasks = 0
+
+→ Disable restriction
+
+---
+
+🔥 UPDATE 4: TASK COUNT LOGIC (IMPORTANT)
+
+To support above features:
+
+Ensure system tracks:
+
+- task completion timestamp
+- user task history with time
+
+Filter:
+
+tasks within last X hours
+
+---
+
+🔥 UPDATE 5: ADMIN PANEL RULES
+
+- Must be button-based
+- Input → Save → Confirmation message
+- No manual coding required
+
+---
+
+🔥 UPDATE 6: SAFETY RULE
+
+DO NOT:
+
+- Touch task flow
+- Touch tracking system
+- Touch sound system
+- Touch referral logic
+- Touch fraud scoring system
+
+ONLY:
+
+✔ Add validation layer for coupon & withdrawal
+✔ Update inactive account time to 24h
+
+---
+
+FINAL OUTPUT:
+
+- Show ONLY updated sections/files
+- Explain changes in Bengali
+- Keep code minimal and clean

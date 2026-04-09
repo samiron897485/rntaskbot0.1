@@ -1,0 +1,296 @@
+You are working on an EXISTING Telegram bot with tracking system, referral, withdraw, coupon, and admin panel.
+
+IMPORTANT:
+
+- DO NOT break or modify any existing working features
+- DO NOT redesign anything
+- ONLY implement the updates below
+- Keep current architecture unchanged
+- Only modify where absolutely necessary
+- Bot language MUST remain English
+- Reply explanation in Bengali
+
+---
+
+🔥 UI FIX – WITHDRAW OPTIONS (COMPACT FORMAT)
+
+Update withdraw amount buttons UI:
+
+- Format must be short and fully visible
+- Example format:
+
+7 🪙 = ₹1  
+35 🪙 = ₹5  
+105 🪙 = ₹15  
+
+- Ensure all buttons fit properly in one view (no cut-off issue)
+
+---
+
+💬 CHAT FLOW FIX (IMPORTANT)
+
+Fix message flow issue:
+
+- Currently messages EDIT in same position → NOT allowed
+- Change to SEND NEW MESSAGE for each step
+
+Apply to:
+
+✔ Withdraw process  
+✔ Input steps (name, UPI, number etc.)  
+✔ Final submission message  
+
+Result:
+
+- Each step must appear as NEW message (chat-style flow)
+- Final message "Withdrawal Request Submitted" must appear at BOTTOM
+
+---
+
+🗓 DAILY CHECK-IN SYSTEM
+
+Add new user feature:
+
+Button: "Check In"
+
+Rules:
+
+1. User can check-in once per day (IST timezone, reset at 12:00 AM)
+
+2. Admin configurable:
+   
+   - Daily reward coins
+   - Minimum tasks required (same day)
+
+3. Logic:
+   
+   IF requiredTasks = 0 → allow check-in directly  
+   ELSE:
+      - Check today's completed tasks
+      - If less → show error
+
+4. Error message (short format):
+
+"You need X tasks today. Completed: Y"
+
+5. Success message:
+
+"Check-in successful! +X coins added"
+
+---
+
+🎟 COUPON & 💸 WITHDRAW – TASK REQUIREMENT IMPROVEMENT
+
+Update existing logic:
+
+When user fails requirement:
+
+Show:
+
+"You completed Y tasks. Need X tasks"
+
+Apply to:
+
+✔ Coupon Claim  
+✔ Withdraw  
+
+(Admin already sets time + task requirement → use that)
+
+---
+
+🔁 DUPLICATE TASK LINK FIX (CRITICAL BUG)
+
+Fix admin task creation:
+
+- Before inserting new task:
+  
+  CHECK:
+  IF link already exists in database
+  
+- If exists:
+  
+  ❌ Reject
+  Show:
+  "This link is already added"
+
+- Ensure strict uniqueness
+
+---
+
+👥 REFERRAL COUNT BUG FIX
+
+Problem:
+
+User referral count > total users
+
+Fix logic:
+
+- Only count VALID referred users
+- Each user must be counted ONCE
+- Ensure:
+
+referrals <= total users
+
+Check:
+
+- No duplicate referral entries
+- No self-referral
+- No fake increments
+
+---
+
+📊 WITHDRAW QUEUE – ADD NEW DATA
+
+In admin withdraw request view, ADD:
+
+✔ Last Withdraw Time  
+✔ Current Withdraw Time  
+✔ Tasks Completed Between These Two Withdraws  
+
+Format:
+
+"Tasks Since Last Withdraw: X"
+
+---
+
+⚡ DATABASE OPTIMIZATION (NEON DB – REDUCE CU)
+
+Apply optimizations:
+
+1. Reduce unnecessary queries
+   - Use SELECT specific fields only
+   - Avoid SELECT *
+
+2. Use caching where possible:
+   - user data
+   - settings
+
+3. Batch updates instead of multiple writes
+
+4. Add indexes:
+   - userId
+   - referralId
+   - createdAt
+
+5. Avoid repeated writes on:
+   - timer updates
+   - tracking events
+
+6. Use debounce/throttle for frequent operations
+
+---
+
+🚫 MULTI-ACCOUNT DETECTION UPDATE
+
+Update logic:
+
+OLD:
+ignore if last_active > 12h
+
+NEW:
+ignore if last_active > 24h
+
+Also show message to user:
+
+"Multiple accounts detected. Please wait 24 hours and try again."
+
+---
+
+⚠️ FRAUD ALERT MESSAGE TO USER (AUTO)
+
+When suspicious activity detected:
+
+Send message to user ALSO (not only admin)
+
+Example:
+
+🚨 Fraud Alert!
+
+⚠️ Suspicious activity detected  
+Score: XX%
+
+If you continue, your account may be suspended.
+
+---
+
+🧠 SPAM MONITOR IMPROVEMENT
+
+Fix "Spam Monitor" button:
+
+- Show list of suspicious users
+- Include:
+
+  - User ID
+  - Score %
+  - Reason (VPN / Multi account / IP)
+
+- Sort by highest risk
+
+---
+
+🚫 BANNED USER UI FIX (IMPORTANT)
+
+Fix My ID button issue:
+
+- Even if banned → My ID must work
+
+Add buttons ALWAYS:
+
+🔘 Contact Support  
+🔘 My ID  
+
+Apply on:
+
+✔ /start  
+✔ menu  
+✔ any action  
+
+BLOCK all other features
+
+---
+
+📜 POLICY SYSTEM
+
+Admin Panel:
+
+Button: "Set Policy"
+
+- Admin inputs text
+- Save in DB
+- Can update anytime
+
+User Panel:
+
+Button: "Policy"
+
+- Show saved policy
+- Must work even if user is banned
+
+---
+
+🎯 REFERRAL BONUS CONDITION
+
+Admin sets:
+
+"Tasks required before referral bonus"
+
+Logic:
+
+IF = 0 → instant bonus  
+ELSE → wait until referred user completes X tasks  
+
+---
+
+⚠️ FINAL INSTRUCTION
+
+- DO NOT miss any update
+- DO NOT change existing logic unnecessarily
+- DO NOT remove any feature
+- Only add or fix where required
+
+---
+
+FINAL OUTPUT:
+
+1. Show ONLY updated code sections  
+2. Clearly explain what was changed (in Bengali)

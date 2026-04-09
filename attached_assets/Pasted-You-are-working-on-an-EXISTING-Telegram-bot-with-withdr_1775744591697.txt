@@ -1,0 +1,140 @@
+You are working on an EXISTING Telegram bot with withdraw system and admin panel.
+
+IMPORTANT:
+
+- DO NOT break or modify any existing working features
+- DO NOT redesign anything
+- ONLY implement the updates below
+- Keep current architecture unchanged
+- Only modify where absolutely necessary
+- Bot language MUST remain English
+- Reply explanation in Bengali
+
+---
+
+💸 UPDATE 1: REMOVE WHATSAPP FIELD FROM WITHDRAW
+
+- Completely remove WhatsApp input from user withdraw flow
+- Do NOT ask for WhatsApp anywhere
+- Remove WhatsApp from admin withdraw request message
+- Keep only:
+  ✔ Name
+  ✔ Payment details (UPI / Account)
+
+---
+
+🛑 UPDATE 2: REJECT WITH REASON
+
+Flow:
+
+1. Admin clicks ❌ Reject  
+2. Bot asks: "Enter reject reason:"  
+3. Admin inputs text  
+4. Save reason (and optional note)  
+5. Send message to user:
+
+"Your withdrawal request has been rejected.
+
+Reason: <reason>
+
+Note: <optional_note>"
+
+---
+
+📑 UPDATE 3: WITHDRAW QUEUE NAVIGATION SYSTEM (NEW)
+
+Current issue:
+- All withdraw requests shown at once → confusing
+
+NEW SYSTEM:
+
+1. When admin clicks "Withdraw Queue":
+
+✔ Show ONLY ONE request at a time
+
+✔ Show header:
+
+"Pending Requests: X"
+
+(where X = total pending withdraw requests)
+
+---
+
+📌 REQUEST VIEW FORMAT:
+
+- Show full withdraw details (same as now)
+
+- Add 3 buttons:
+
+✅ Approve  
+❌ Reject  
+⏭ Skip  
+
+---
+
+🔁 BUTTON BEHAVIOR:
+
+✅ Approve:
+- Approve current request
+- Remove from pending list
+- Move to next request automatically
+
+❌ Reject:
+- Trigger "Reject with reason" flow
+- After rejection → move to next request
+
+⏭ Skip:
+
+- DO NOT approve/reject
+- DO NOT remove from database
+- Keep status = pending
+
+✔ Only move to NEXT request in UI
+
+✔ Skipped request must remain in queue
+
+✔ Admin can review it later again
+
+---
+
+🔄 NAVIGATION RULES:
+
+- Maintain an ordered list (FIFO or by time)
+
+- Keep track of current index/session
+
+- When reaching last request:
+
+✔ Show message:
+
+"No more pending requests"
+
+---
+
+⚠️ IMPORTANT LOGIC:
+
+- Skip must NOT delete or modify request
+- Only navigation change
+- Data must remain safe
+
+---
+
+💾 DATABASE:
+
+No deletion on skip  
+Only status changes on approve/reject  
+
+---
+
+⚠️ FINAL INSTRUCTION
+
+- DO NOT change any other feature
+- DO NOT redesign UI
+- ONLY apply these updates
+
+---
+
+FINAL OUTPUT:
+
+1. Show ONLY updated code sections  
+2. Explain changes in Bengali

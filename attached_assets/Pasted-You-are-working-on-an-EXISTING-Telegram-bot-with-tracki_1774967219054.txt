@@ -1,0 +1,280 @@
+You are working on an EXISTING Telegram bot with tracking page and admin panel.
+
+IMPORTANT:
+
+- DO NOT break or modify any existing working features
+- DO NOT redesign anything
+- ONLY implement the updates below
+- Keep current architecture unchanged
+- Only modify where absolutely necessary
+- Reply in Bengali
+- VERY IMPORTANT: Do NOT skip any feature. Implement ALL updates carefully.
+
+---
+
+🔥 REQUIRED FLOW (MUST MATCH EXACTLY)
+
+User → Bot
+↓
+Start Task
+↓
+Tracking Page Open
+↓
+Click Open News
+↓
+News Page (new tab)
+↓
+User stays there
+↓
+Timer runs (ONLY when tracking page is hidden)
+↓
+User returns
+↓
+Time verified
+↓
+Claim Reward
+↓
+Coins Added
+
+---
+
+🔐 ANTI-CHEAT SYSTEM (STRICT)
+
+Implement all conditions:
+
+1. Timer Behavior:
+
+- Timer MUST start ONLY when tracking page becomes hidden
+- Timer MUST pause when:
+  ✔ tracking page becomes visible
+  ✔ app minimized
+  ✔ user switches app
+  ✔ phone screen turns OFF
+
+2. Detection methods:
+
+- document.visibilitychange
+- window blur/focus
+- pagehide event
+
+3. Fast Return Protection:
+
+- If user returns before required time → INVALID
+- Show message: "Task not completed properly"
+
+4. Claim Lock:
+
+- Claim button must remain LOCKED until valid time completed
+- Only unlock after successful verification
+
+---
+
+🔊 SOUND NOTIFICATION (NEW FEATURE)
+
+Add a sound alert when timer completes:
+
+✔ Play “ding ding” sound (2 times)
+✔ Use Web Audio API (auto-generated sound, no file)
+✔ Only after user interaction
+✔ Works on mobile
+✔ Optional: navigator.vibrate
+
+---
+
+📱 MOBILE-ONLY RESTRICTION
+
+- Allow ONLY real mobile devices
+- Block desktop / tablet / desktop mode
+
+If blocked → show:
+
+"Only for Mobile User"
+
+---
+
+🧾 TRACKING PAGE UI
+
+Initial:
+
+❌ Timer OFF
+🔘 Open News Page
+
+Instruction:
+
+"Open the page, scroll up and down and stay there few seconds then come back to claim Reward"
+
+---
+
+📊 ADMIN PANEL – USER ANALYTICS
+
+Add button: "User Analytics"
+
+Show:
+
+- Total Tasks Completed
+- Total Referral Completed
+- Total Withdraw Count
+- Total Withdraw Amount
+- Total Accepted Withdraw
+- Total Rejected Withdraw
+- Join Date
+
+---
+
+🚫 BAN USER UI
+
+If banned:
+
+Message:
+"Your account has been banned. Contact support."
+
+Buttons:
+🔘 Contact Support
+🔘 My ID
+
+Apply on:
+✔ /start
+✔ menu
+✔ any action
+
+---
+
+==============================
+🆕 NEW UPDATE SECTION (VERY IMPORTANT)
+
+🔥 FEATURE 1: REFERRAL COMMISSION SYSTEM FIX
+
+Implement:
+
+1. Referral commission = ONLY LEVEL 1
+
+✔ User A refers User B
+✔ User B completes task → A gets commission
+❌ If B refers C → A should NOT get anything
+
+2. Commission Rules:
+
+✔ Add coins silently
+❌ DO NOT send notification
+
+3. History:
+
+✔ Store in earning history
+✔ Mark as: "Referral Commission"
+
+---
+
+🔥 FEATURE 2: WITHDRAW COOLDOWN SYSTEM
+
+Add admin-controlled withdrawal limit:
+
+Admin Panel:
+
+Button: "Set Withdraw Cooldown"
+
+Flow:
+
+1. Admin clicks
+2. Enter hours (example: 12)
+3. Save setting
+
+User side:
+
+✔ After withdrawal → store timestamp
+✔ Block next withdrawal until cooldown passed
+
+If blocked show:
+
+"You can request withdrawal after X hours"
+
+✔ Must be dynamic (admin can update anytime)
+
+---
+
+🔥 FEATURE 3: FREE COUPON + COUPON CODE SYSTEM
+
+PART A: FREE COUPON BUTTON
+
+User Panel:
+
+Button: "Free Coupon"
+
+Action:
+
+✔ Open Telegram group/channel link
+✔ Link comes from admin panel
+
+Admin Panel:
+
+Button: "Set Coupon Link"
+
+✔ Admin inputs Telegram link
+✔ Can update anytime
+
+---
+
+PART B: COUPON CODE SYSTEM
+
+Admin Panel:
+
+Button: "Create Coupon Code"
+
+Flow:
+
+1. Enter coupon code
+2. Enter max users (example: 5 users)
+3. Enter reward coins
+
+System:
+
+✔ Store:
+
+- code
+- max limit
+- used count
+
+---
+
+User Panel:
+
+Button: "Claim Coupon"
+
+Flow:
+
+1. Ask for coupon code
+2. Validate:
+
+✔ If valid AND limit not reached → SUCCESS
+✔ Add coins
+✔ Increase used count
+
+❌ If limit reached → show:
+"Coupon expired or fully claimed"
+
+❌ If invalid → show:
+"Invalid coupon code"
+
+---
+
+==============================
+⚙️ ADMIN PANEL RULES
+
+- All features must be button-based
+- No coding/manual editing
+- Input → process → result
+- Show confirmation after every action
+
+---
+
+⚠️ UPDATE RESTRICTION
+
+- DO NOT break anything
+- DO NOT remove anything
+- ONLY add required logic
+
+---
+
+FINAL OUTPUT:
+
+- Show only updated sections/files
+- Explain changes in Bengali
