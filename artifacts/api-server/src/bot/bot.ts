@@ -979,8 +979,8 @@ export function initBot(token: string, baseUrl: string): void {
       } else if (result.message === "not_enough_tasks") {
         const completed = result.coinsAdded ?? 0;
         msgText =
-          `❌ *Check-in not available*\n\n` +
-          `To check in today, you must complete *${required} tasks* today.\n\n` +
+          `❌ Not checked in!\n\n` +
+          `To check in today, you must complete ${required} tasks today.\n\n` +
           `📊 Your progress: ${completed} / ${required}\n\n` +
           `Complete the remaining tasks and try again.`;
       } else {
@@ -1092,8 +1092,8 @@ export function initBot(token: string, baseUrl: string): void {
         const newMsgId = await sendOrEdit(
           chatId,
           userId,
-          `❌ *Withdrawal not allowed*\n\n` +
-          `You must complete at least *${wdEligibility.requiredTasks} tasks* within the last *${wdEligibility.requiredHours} hours*.\n\n` +
+          `❌ Not eligible!\n\n` +
+          `You must complete at least ${wdEligibility.requiredTasks} tasks within the last ${wdEligibility.requiredHours} hours.\n\n` +
           `📊 Your progress: ${completedCount} / ${wdEligibility.requiredTasks}\n\n` +
           `Please complete the required tasks and try again.`,
           { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] } }
@@ -2104,8 +2104,8 @@ export function initBot(token: string, baseUrl: string): void {
           ? countTasksInWindow(userId, reqHours)
           : countTasksCompletedTodayIST(userId);
         replyText =
-          `❌ *Coupon claim not available*\n\n` +
-          `To claim this coupon, you must complete *${result.requiredTasks} tasks* within the last *${reqHours} hours*.\n\n` +
+          `❌ Not claimed!\n\n` +
+          `To claim this coupon, you must complete ${result.requiredTasks} tasks within the last ${reqHours} hours.\n\n` +
           `📊 Your progress: ${completedCount} / ${result.requiredTasks}\n\n` +
           `Complete the remaining tasks and try again.`;
       } else if (result.message === "invalid") {
