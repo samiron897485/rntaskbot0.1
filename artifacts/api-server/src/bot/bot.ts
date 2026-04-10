@@ -1090,17 +1090,13 @@ export function initBot(token: string, baseUrl: string): void {
         const completedCount = wdEligibility.requiredHours > 0
           ? countTasksInWindow(userId, wdEligibility.requiredHours)
           : countTasksCompletedTodayIST(userId);
-        const remaining = wdEligibility.requiredTasks - completedCount;
         const newMsgId = await sendOrEdit(
           chatId,
           userId,
-          `❌ *Withdrawal Not Available Yet*\n\n` +
-          `To withdraw, you need to complete at least *${wdEligibility.requiredTasks} tasks* within the last *${wdEligibility.requiredHours} hours*.\n\n` +
-          `📊 Your progress:\n` +
-          `✅ Completed: *${completedCount} tasks*\n` +
-          `🎯 Required: *${wdEligibility.requiredTasks} tasks*\n` +
-          `⏳ Still needed: *${remaining} more task${remaining !== 1 ? "s" : ""}*\n\n` +
-          `👉 Complete more tasks and try again.`,
+          `❌ *Withdrawal not allowed*\n\n` +
+          `You must complete at least *${wdEligibility.requiredTasks} tasks* within the last *${wdEligibility.requiredHours} hours*.\n\n` +
+          `📊 Your progress: ${completedCount} / ${wdEligibility.requiredTasks}\n\n` +
+          `Please complete the required tasks and try again.`,
           { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] } }
         );
         if (newMsgId) updateUser(userId, { lastMessageId: newMsgId });
@@ -2108,16 +2104,11 @@ export function initBot(token: string, baseUrl: string): void {
         const completedCount = reqHours > 0
           ? countTasksInWindow(userId, reqHours)
           : countTasksCompletedTodayIST(userId);
-        const remaining = (result.requiredTasks || 0) - completedCount;
-        const windowText = reqHours > 0 ? ` within the last *${reqHours} hours*` : " today";
         replyText =
-          `❌ *Coupon Not Available Yet*\n\n` +
-          `This coupon requires you to complete at least *${result.requiredTasks} tasks*${windowText}.\n\n` +
-          `📊 Your progress:\n` +
-          `✅ Completed: *${completedCount} tasks*\n` +
-          `🎯 Required: *${result.requiredTasks} tasks*\n` +
-          `⏳ Still needed: *${remaining} more task${remaining !== 1 ? "s" : ""}*\n\n` +
-          `👉 Complete more tasks and try claiming again.`;
+          `❌ *Coupon claim not available*\n\n` +
+          `To claim this coupon, you must complete *${result.requiredTasks} tasks* within the last *${reqHours} hours*.\n\n` +
+          `📊 Your progress: ${completedCount} / ${result.requiredTasks}\n\n` +
+          `Complete the remaining tasks and try again.`;
       } else if (result.message === "invalid") {
         replyText = txt.coupon_invalid;
       } else if (result.message === "expired") {
