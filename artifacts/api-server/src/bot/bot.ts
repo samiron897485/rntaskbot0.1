@@ -764,10 +764,13 @@ export function sendTaskCompletion(userId: string, coins: number): void {
 export function initBot(token: string, baseUrl: string): void {
   BASE_URL = baseUrl;
 
-  // First clear any existing webhook to avoid polling conflicts
+  // First clear any existing webhook, then start polling after a short delay
+  // The delay allows any previously running instance (e.g. old Render deploy) to stop first
   bot = new TelegramBot(token, { polling: false });
   bot.deleteWebHook().catch(() => {}).finally(() => {
-    bot!.startPolling({ restart: true }).catch(() => {});
+    setTimeout(() => {
+      bot!.startPolling({ restart: false }).catch(() => {});
+    }, 8000);
   });
 
   logger.info("Telegram bot started");
@@ -2812,16 +2815,32 @@ export function initBot(token: string, baseUrl: string): void {
   });
 
   bot.on("polling_error", (err) => {
-    logger.error({ err: err.message }, "Bot polling error — restarting in 5s");
-    setTimeout(() => {
-      if (bot) {
-        bot.stopPolling().catch(() => {}).finally(() => {
-          bot!.startPolling({ restart: true }).catch((e) =>
-            logger.error({ e: e.message }, "Failed to restart polling")
-          );
-        });
-      }
-    }, 5000);
+    const is409 = err.message?.includes("409") || (err as { code?: string }).code === "ETELEGRAM";
+    if (is409) {
+      // 409 Conflict means another instance is still running (e.g. old Render deploy).
+      // Wait 30s to let it die, then retry.
+      logger.warn({ err: err.message }, "Bot polling conflict (409) — waiting 30s for old instance to stop");
+      setTimeout(() => {
+        if (bot) {
+          bot.stopPolling().catch(() => {}).finally(() => {
+            bot!.startPolling({ restart: false }).catch((e) =>
+              logger.error({ e: e.message }, "Failed to restart polling after 409")
+            );
+          });
+        }
+      }, 30000);
+    } else {
+      logger.error({ err: err.message }, "Bot polling error — restarting in 5s");
+      setTimeout(() => {
+        if (bot) {
+          bot.stopPolling().catch(() => {}).finally(() => {
+            bot!.startPolling({ restart: false }).catch((e) =>
+              logger.error({ e: e.message }, "Failed to restart polling")
+            );
+          });
+        }
+      }, 5000);
+    }
   });
 
   bot.on("error", (err) => {

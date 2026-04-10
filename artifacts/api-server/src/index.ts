@@ -1,6 +1,6 @@
 import app from "./app.js";
 import { logger } from "./lib/logger.js";
-import { initBot } from "./bot/bot.js";
+import { initBot, bot } from "./bot/bot.js";
 import { initDb, loadAllData } from "./db/persistence.js";
 import { populateFromDb } from "./db/mockDb.js";
 
@@ -11,6 +11,20 @@ process.on("unhandledRejection", (reason) => {
 process.on("uncaughtException", (err) => {
   logger.warn({ err }, "Uncaught exception — bot error ignored");
 });
+
+// Graceful shutdown: stop polling immediately so the next deploy's instance
+// can start polling without a 409 Conflict.
+function gracefulShutdown(signal: string) {
+  logger.info({ signal }, "Received shutdown signal — stopping bot polling");
+  if (bot) {
+    bot.stopPolling().catch(() => {}).finally(() => process.exit(0));
+    setTimeout(() => process.exit(0), 3000);
+  } else {
+    process.exit(0);
+  }
+}
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 const rawPort = process.env["PORT"];
 
