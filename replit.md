@@ -99,7 +99,22 @@ PORT=5000                        # Set in Replit env (shared)
 DATABASE_URL=...                 # Auto-set by Replit PostgreSQL
 TELEGRAM_BOT_TOKEN=...           # Secret: Telegram bot token from @BotFather
 ADMIN_IDS=123456789,987654321    # Secret: comma-separated Telegram user IDs
+ADMIN_TOKEN=...                  # Secret: token required to access admin panel (optional — falls back to ADMIN_IDS)
 ```
+
+## Admin Panel Access
+
+The admin panel is protected. Access it at:
+
+```
+https://your-domain.com/admin?token=YOUR_TOKEN
+```
+
+Where `YOUR_TOKEN` is either:
+- The `ADMIN_TOKEN` secret (if set) — recommended for production
+- Or your Telegram user ID (from `ADMIN_IDS` / hardcoded admin IDs) as a fallback
+
+All `/api/admin/*` routes also require the token via `x-admin-token` header or `token` query param.
 
 ## Replit Setup
 

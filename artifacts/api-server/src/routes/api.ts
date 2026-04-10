@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { adminAuthMiddleware } from "../middleware/adminAuth.js";
 import {
   getUser,
   getTaskById,
@@ -53,11 +54,11 @@ router.get("/config", (_req: Request, res: Response) => {
   });
 });
 
-router.get("/admin/config", (_req: Request, res: Response) => {
+router.get("/admin/config", adminAuthMiddleware, (_req: Request, res: Response) => {
   res.json({ success: true, config: getAdminConfig() });
 });
 
-router.post("/admin/config", (req: Request, res: Response) => {
+router.post("/admin/config", adminAuthMiddleware, (req: Request, res: Response) => {
   const data = req.body;
   const allowed = [
     "minWithdraw", "coinToMoneyRate", "taskDuration", "taskExpiry",
@@ -377,7 +378,7 @@ router.get("/current-task/:userId", (req: Request, res: Response) => {
   res.json({ success: true, task, user });
 });
 
-router.post("/add-task", (req: Request, res: Response) => {
+router.post("/add-task", adminAuthMiddleware, (req: Request, res: Response) => {
   const { link } = req.body as { link: string };
   if (!link || !link.startsWith("http")) {
     res.status(400).json({ success: false, message: "Please provide a valid URL" });
@@ -392,7 +393,7 @@ router.post("/add-task", (req: Request, res: Response) => {
   res.json({ success: true, task });
 });
 
-router.get("/admin/users", (_req: Request, res: Response) => {
+router.get("/admin/users", adminAuthMiddleware, (_req: Request, res: Response) => {
   const allUsers = getAllUsers();
   const users = Object.entries(allUsers)
     .map(([id, u]) => ({ id, ...u }))
@@ -402,7 +403,7 @@ router.get("/admin/users", (_req: Request, res: Response) => {
   res.json({ success: true, users, count: users.length, totalCoins, totalCompleted });
 });
 
-router.get("/admin/user-analytics/:userId", (req: Request, res: Response) => {
+router.get("/admin/user-analytics/:userId", adminAuthMiddleware, (req: Request, res: Response) => {
   const { userId } = req.params;
   const allUsers = getAllUsers();
   if (!allUsers[userId]) {
@@ -413,12 +414,12 @@ router.get("/admin/user-analytics/:userId", (req: Request, res: Response) => {
   res.json({ success: true, analytics });
 });
 
-router.get("/admin/withdrawals", (_req: Request, res: Response) => {
+router.get("/admin/withdrawals", adminAuthMiddleware, (_req: Request, res: Response) => {
   const withdrawals = getWithdrawals();
   res.json({ success: true, withdrawals });
 });
 
-router.post("/admin/delete-task", (req: Request, res: Response) => {
+router.post("/admin/delete-task", adminAuthMiddleware, (req: Request, res: Response) => {
   const { taskId } = req.body as { taskId: string };
   if (!taskId) {
     res.status(400).json({ success: false, message: "taskId is required" });
@@ -433,7 +434,7 @@ router.post("/admin/delete-task", (req: Request, res: Response) => {
   res.json({ success: true, message: "Task deleted successfully" });
 });
 
-router.post("/admin/process-withdrawal", async (req: Request, res: Response) => {
+router.post("/admin/process-withdrawal", adminAuthMiddleware, async (req: Request, res: Response) => {
   const { withdrawalId, action } = req.body as { withdrawalId: string; action: "approve" | "reject" };
   if (!withdrawalId || !action) {
     res.status(400).json({ success: false, message: "withdrawalId and action are required" });
@@ -464,7 +465,7 @@ router.post("/admin/process-withdrawal", async (req: Request, res: Response) => 
   res.json({ success: true, message: `Withdrawal ${status}` });
 });
 
-router.post("/admin/wallet", async (req: Request, res: Response) => {
+router.post("/admin/wallet", adminAuthMiddleware, async (req: Request, res: Response) => {
   const { targetUserId, action, amount, reason } = req.body as {
     targetUserId: string;
     action: "add" | "deduct";
@@ -511,7 +512,7 @@ router.post("/admin/wallet", async (req: Request, res: Response) => {
   res.json({ success: true, prevCoins, newCoins, targetUserId });
 });
 
-router.post("/admin/broadcast", async (req: Request, res: Response) => {
+router.post("/admin/broadcast", adminAuthMiddleware, async (req: Request, res: Response) => {
   const { message } = req.body as { message: string };
   if (!message) {
     res.status(400).json({ success: false, message: "Message is required" });
@@ -534,7 +535,7 @@ router.post("/admin/broadcast", async (req: Request, res: Response) => {
   res.json({ success: true, sent, total: userIds.length });
 });
 
-router.post("/admin/coupon/create", (req: Request, res: Response) => {
+router.post("/admin/coupon/create", adminAuthMiddleware, (req: Request, res: Response) => {
   const { code, maxUsers, rewardCoins } = req.body as {
     code: string;
     maxUsers: number;
@@ -548,7 +549,7 @@ router.post("/admin/coupon/create", (req: Request, res: Response) => {
   res.json({ success: true, coupon });
 });
 
-router.get("/admin/coupons", (_req: Request, res: Response) => {
+router.get("/admin/coupons", adminAuthMiddleware, (_req: Request, res: Response) => {
   res.json({ success: true, coupons: getCouponCodes() });
 });
 
@@ -568,11 +569,11 @@ router.get("/withdraw-cooldown/:userId", (req: Request, res: Response) => {
   res.json({ success: true, ...result });
 });
 
-router.get("/admin/policy", (_req: Request, res: Response) => {
+router.get("/admin/policy", adminAuthMiddleware, (_req: Request, res: Response) => {
   res.json({ success: true, policy: getPolicy() });
 });
 
-router.post("/admin/policy", (req: Request, res: Response) => {
+router.post("/admin/policy", adminAuthMiddleware, (req: Request, res: Response) => {
   const { policy } = req.body as { policy: string };
   if (typeof policy !== "string") {
     res.status(400).json({ success: false, message: "policy text is required" });
@@ -586,7 +587,7 @@ router.get("/policy", (_req: Request, res: Response) => {
   res.json({ success: true, policy: getPolicy() });
 });
 
-router.get("/admin/banned-users", (_req: Request, res: Response) => {
+router.get("/admin/banned-users", adminAuthMiddleware, (_req: Request, res: Response) => {
   const banned = getBannedUsers().map(({ userId, data }) => ({
     userId,
     coins: data.coins,
@@ -597,7 +598,7 @@ router.get("/admin/banned-users", (_req: Request, res: Response) => {
   res.json({ success: true, banned, count: banned.length });
 });
 
-router.get("/admin/suspicious-users", (_req: Request, res: Response) => {
+router.get("/admin/suspicious-users", adminAuthMiddleware, (_req: Request, res: Response) => {
   const flags = getSpamFlags().map((f) => ({
     userId: f.userId,
     types: f.types,
@@ -609,7 +610,7 @@ router.get("/admin/suspicious-users", (_req: Request, res: Response) => {
   res.json({ success: true, flags, count: flags.length });
 });
 
-router.post("/admin/ban-user", (req: Request, res: Response) => {
+router.post("/admin/ban-user", adminAuthMiddleware, (req: Request, res: Response) => {
   const { userId, reason } = req.body as { userId: string; reason?: string };
   if (!userId) {
     res.status(400).json({ success: false, message: "userId is required" });

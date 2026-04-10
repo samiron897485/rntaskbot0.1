@@ -4,6 +4,7 @@ import path from "path";
 import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
+import { adminAuthMiddleware } from "./middleware/adminAuth.js";
 
 const app: Express = express();
 
@@ -35,11 +36,25 @@ const artifactRoot = path.resolve(
   ".."
 );
 const publicDir = path.join(artifactRoot, "public");
-app.use("/public", express.static(publicDir));
 
-app.get("/", (_req, res) => {
-  res.redirect("/public/admin.html");
+app.get("/", (req, res) => {
+  const token = (req.query["token"] as string | undefined) || "";
+  if (token) {
+    res.redirect(`/admin?token=${encodeURIComponent(token)}`);
+  } else {
+    res.redirect("/admin");
+  }
 });
+
+app.get("/admin", adminAuthMiddleware, (_req, res) => {
+  res.sendFile(path.join(publicDir, "admin.html"));
+});
+
+app.get("/public/admin.html", adminAuthMiddleware, (_req, res) => {
+  res.sendFile(path.join(publicDir, "admin.html"));
+});
+
+app.use("/public", express.static(publicDir, { index: false }));
 
 app.get("/task", (_req, res) => {
   res.sendFile(path.join(publicDir, "task.html"));

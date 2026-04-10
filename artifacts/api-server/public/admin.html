@@ -291,6 +291,16 @@
 </div>
 
 <script>
+  const ADMIN_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
+  if (!ADMIN_TOKEN) {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#ff4444;font-family:sans-serif;font-size:1.1rem;">403 Access Denied</div>';
+    throw new Error('No admin token');
+  }
+  function apiFetch(url, options) {
+    options = options || {};
+    const headers = Object.assign({ 'x-admin-token': ADMIN_TOKEN }, options.headers || {});
+    return globalThis.fetch(url, Object.assign({}, options, { headers }));
+  }
   const translations = {
     en: {
       tab_stats: '📊 Stats',
@@ -513,7 +523,7 @@
   let _coinRate = 10;
   async function getCoinRate() {
     try {
-      const r = await fetch('/api/admin/config');
+      const r = await apiFetch('/api/admin/config');
       const d = await r.json();
       if (d.success) _coinRate = d.config.coinToMoneyRate || 10;
     } catch(e) {}
@@ -523,9 +533,9 @@
   async function loadStats() {
     try {
       const [tasksRes, usersRes, wdRes] = await Promise.all([
-        fetch('/api/tasks'),
-        fetch('/api/admin/users'),
-        fetch('/api/admin/withdrawals'),
+        apiFetch('/api/tasks'),
+        apiFetch('/api/admin/users'),
+        apiFetch('/api/admin/withdrawals'),
       ]);
       const tasks = await tasksRes.json();
       const users = await usersRes.json();
@@ -568,7 +578,7 @@
     const res = document.getElementById('addTaskResult');
     if (!url.startsWith('http')) { showResult(res, 'error', L('invalid_url')); return; }
     try {
-      const r = await fetch('/api/add-task', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ link: url }) });
+      const r = await apiFetch('/api/add-task', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ link: url }) });
       const d = await r.json();
       if (d.success) {
         showResult(res, 'success', L('task_added', d.task.id));
@@ -582,7 +592,7 @@
     const el = document.getElementById('taskTable');
     el.innerHTML = `<div class="empty">${L('loading')}</div>`;
     try {
-      const r = await fetch('/api/tasks');
+      const r = await apiFetch('/api/tasks');
       const d = await r.json();
       if (!d.tasks || d.tasks.length === 0) { el.innerHTML = `<div class="empty">${L('no_tasks')}</div>`; return; }
       el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_link')}</th><th>${L('th_expires')}</th><th>${L('th_action')}</th></tr></thead><tbody>
@@ -606,7 +616,7 @@
   async function deleteTask(id) {
     if (!confirm(L('delete_confirm', id))) return;
     try {
-      const r = await fetch('/api/admin/delete-task', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ taskId: id }) });
+      const r = await apiFetch('/api/admin/delete-task', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ taskId: id }) });
       const d = await r.json();
       if (d.success) loadTasks();
       else alert(d.message);
@@ -617,7 +627,7 @@
     const el = document.getElementById('userTable');
     el.innerHTML = `<div class="empty">${L('loading')}</div>`;
     try {
-      const r = await fetch('/api/admin/users');
+      const r = await apiFetch('/api/admin/users');
       const d = await r.json();
       if (!d.users || d.users.length === 0) { el.innerHTML = `<div class="empty">${L('no_users')}</div>`; return; }
       el.innerHTML = `<table><thead><tr><th>${L('th_user_id')}</th><th>${L('th_coins')}</th><th>${L('th_done')}</th><th>${L('th_skip')}</th><th>${L('th_referrals')}</th><th>${L('th_lang')}</th></tr></thead><tbody>
@@ -638,7 +648,7 @@
     const res = document.getElementById('userResult');
     if (!id) { showResult(res, 'error', L('enter_user_id')); return; }
     try {
-      const r = await fetch(`/api/user/${id}`);
+      const r = await apiFetch(`/api/user/${id}`);
       const d = await r.json();
       if (d.success) {
         const u = d.user;
@@ -652,7 +662,7 @@
     el.innerHTML = `<div class="empty">${L('loading')}</div>`;
     try {
       const rate = await getCoinRate();
-      const r = await fetch('/api/admin/withdrawals');
+      const r = await apiFetch('/api/admin/withdrawals');
       const d = await r.json();
       if (!d.withdrawals || d.withdrawals.length === 0) { el.innerHTML = `<div class="empty">${L('no_withdrawals')}</div>`; return; }
       el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_user')}</th><th>${L('th_amount')}</th><th>${L('th_inr')}</th><th>${L('th_whatsapp')}</th><th>${L('th_status')}</th><th>${L('th_action')}</th></tr></thead><tbody>
@@ -676,7 +686,7 @@
 
   async function processWithdrawal(id, action) {
     try {
-      const r = await fetch('/api/admin/process-withdrawal', {
+      const r = await apiFetch('/api/admin/process-withdrawal', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ withdrawalId: id, action })
@@ -692,7 +702,7 @@
     const res = document.getElementById('broadcastResult');
     if (!msg) { showResult(res, 'error', L('write_message')); return; }
     try {
-      const r = await fetch('/api/admin/broadcast', {
+      const r = await apiFetch('/api/admin/broadcast', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ message: msg })
@@ -707,7 +717,7 @@
 
   async function loadSettings() {
     try {
-      const r = await fetch('/api/admin/config');
+      const r = await apiFetch('/api/admin/config');
       const d = await r.json();
       if (!d.success) return;
       const cfg = d.config;
@@ -749,7 +759,7 @@
     const resultElId = resultMap[keys[0]] || 'taskSettingsResult';
     const res = document.getElementById(resultElId);
     try {
-      const r = await fetch('/api/admin/config', {
+      const r = await apiFetch('/api/admin/config', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify(payload)
@@ -768,7 +778,7 @@
     const card = document.getElementById('walletActionCard');
     if (!id) { showResult(res, 'error', L('enter_user_id')); return; }
     try {
-      const r = await fetch(`/api/user/${id}`);
+      const r = await apiFetch(`/api/user/${id}`);
       const d = await r.json();
       if (d.success) {
         const u = d.user;
@@ -796,7 +806,7 @@
     if (!amount || amount <= 0) { showResult(res, 'error', '❌ ' + L('wallet_amount_label')); return; }
     if (!reason) { showResult(res, 'error', '❌ ' + L('wallet_reason_label')); return; }
     try {
-      const r = await fetch('/api/admin/wallet', {
+      const r = await apiFetch('/api/admin/wallet', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ targetUserId: _walletTargetId, action, amount, reason })
@@ -825,7 +835,7 @@
     const res = document.getElementById('analyticsResult');
     if (!uid) { showResult(res, 'error', 'User ID প্রয়োজন।'); return; }
     try {
-      const r = await fetch(`/api/admin/user-analytics/${uid}`);
+      const r = await apiFetch(`/api/admin/user-analytics/${uid}`);
       const d = await r.json();
       if (d.success) {
         res.className = 'result';
@@ -859,7 +869,7 @@
     if (isNaN(maxUsers) || maxUsers < 1) { showResult(res, 'error', 'Max users কমপক্ষে 1 হতে হবে।'); return; }
     if (isNaN(rewardCoins) || rewardCoins < 1) { showResult(res, 'error', 'Reward coins কমপক্ষে 1 হতে হবে।'); return; }
     try {
-      const r = await fetch('/api/admin/coupon/create', {
+      const r = await apiFetch('/api/admin/coupon/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, maxUsers, rewardCoins })
@@ -879,7 +889,7 @@
 
   async function loadCoupons() {
     try {
-      const r = await fetch('/api/admin/coupons');
+      const r = await apiFetch('/api/admin/coupons');
       const d = await r.json();
       const el = document.getElementById('couponList');
       if (!d.success || d.coupons.length === 0) {
