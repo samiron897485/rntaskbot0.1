@@ -456,10 +456,18 @@ async function notifyAdminsAboutSpam(userId: string, types: string[], reasons: s
 
 async function showMainMenu(chatId: number, userId: string) {
   const txt = t(userId);
-  const msgId = await sendOrEdit(chatId, userId, txt.main_menu, {
+  const user = getUser(userId);
+
+  // Delete the old menu message so the new one always appears at the bottom
+  if (user.lastMessageId) {
+    bot!.deleteMessage(chatId, user.lastMessageId).catch(() => {});
+    updateUser(userId, { lastMessageId: undefined });
+  }
+
+  const msg = await bot!.sendMessage(chatId, txt.main_menu, {
     reply_markup: mainMenuKeyboard(userId),
   });
-  if (msgId) updateUser(userId, { lastMessageId: msgId });
+  updateUser(userId, { lastMessageId: msg.message_id });
 }
 
 async function showAdminMenu(chatId: number) {
@@ -879,9 +887,6 @@ export function initBot(token: string, baseUrl: string): void {
   bot.onText(/\/menu/, async (msg) => {
     const userId = String(msg.from?.id);
     const chatId = msg.chat.id;
-    await bot!.sendMessage(chatId, t(userId).main_menu, {
-      reply_markup: persistentMenuKeyboard(userId),
-    });
     await showMainMenu(chatId, userId);
   });
 
