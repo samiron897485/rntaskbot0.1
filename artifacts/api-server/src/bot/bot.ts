@@ -975,15 +975,11 @@ export function initBot(token: string, baseUrl: string): void {
           `👉 Come back tomorrow to claim your reward.`;
       } else if (result.message === "not_enough_tasks") {
         const completed = result.coinsAdded ?? 0;
-        const stillNeeded = required - completed;
         msgText =
-          `📅 *Daily Check-In*\n\n` +
-          `❌ You haven't completed enough tasks to check in today.\n\n` +
-          `📊 Your progress:\n` +
-          `✅ Completed today: *${completed} task${completed !== 1 ? "s" : ""}*\n` +
-          `🎯 Required: *${required} task${required !== 1 ? "s" : ""}*\n` +
-          `⏳ Still needed: *${stillNeeded} more task${stillNeeded !== 1 ? "s" : ""}*\n\n` +
-          `👉 Complete more tasks and check in again.`;
+          `❌ *Check-in not available*\n\n` +
+          `To check in today, you must complete *${required} tasks* today.\n\n` +
+          `📊 Your progress: ${completed} / ${required}\n\n` +
+          `Complete the remaining tasks and try again.`;
       } else {
         msgText =
           `📅 *Daily Check-In Successful!*\n\n` +
