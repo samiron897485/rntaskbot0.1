@@ -68,6 +68,7 @@ import {
   performCheckIn,
   countTasksCompletedTodayIST,
   getTasksCompletedBetween,
+  countTasksInWindow,
 } from "../db/mockDb.js";
 import { logger } from "../lib/logger.js";
 
@@ -967,11 +968,27 @@ export function initBot(token: string, baseUrl: string): void {
       const result = performCheckIn(userId);
       let msgText = "";
       if (result.message === "already_checked_in") {
-        msgText = `📅 *Daily Check-In*\n\n✅ Already checked in today!\n\nCome back tomorrow (IST 12:00 AM reset).`;
+        msgText =
+          `📅 *Daily Check-In*\n\n` +
+          `✅ You have already checked in today!\n\n` +
+          `🕛 Reset happens at 12:00 AM IST every day.\n` +
+          `👉 Come back tomorrow to claim your reward.`;
       } else if (result.message === "not_enough_tasks") {
-        msgText = `📅 *Daily Check-In*\n\n❌ You need ${required} tasks today. Completed: ${result.coinsAdded}.`;
+        const completed = result.coinsAdded ?? 0;
+        const stillNeeded = required - completed;
+        msgText =
+          `📅 *Daily Check-In*\n\n` +
+          `❌ You haven't completed enough tasks to check in today.\n\n` +
+          `📊 Your progress:\n` +
+          `✅ Completed today: *${completed} task${completed !== 1 ? "s" : ""}*\n` +
+          `🎯 Required: *${required} task${required !== 1 ? "s" : ""}*\n` +
+          `⏳ Still needed: *${stillNeeded} more task${stillNeeded !== 1 ? "s" : ""}*\n\n` +
+          `👉 Complete more tasks and check in again.`;
       } else {
-        msgText = `✅ Check-in successful! +${result.coinsAdded} coins added`;
+        msgText =
+          `📅 *Daily Check-In Successful!*\n\n` +
+          `🎉 You earned *+${result.coinsAdded} coin${(result.coinsAdded ?? 0) !== 1 ? "s" : ""}* for today's check-in!\n\n` +
+          `🕛 Next check-in available tomorrow at 12:00 AM IST.`;
       }
       await bot!.sendMessage(chatId, msgText, {
         parse_mode: "Markdown",
@@ -1070,12 +1087,21 @@ export function initBot(token: string, baseUrl: string): void {
 
       const wdEligibility = checkWithdrawEligibility(userId);
       if (!wdEligibility.allowed) {
-        const completedCount = countTasksCompletedTodayIST(userId);
+        const completedCount = wdEligibility.requiredHours > 0
+          ? countTasksInWindow(userId, wdEligibility.requiredHours)
+          : countTasksCompletedTodayIST(userId);
+        const remaining = wdEligibility.requiredTasks - completedCount;
         const newMsgId = await sendOrEdit(
           chatId,
           userId,
-          `❌ Withdrawal not allowed\n\nYou completed ${completedCount} tasks. Need ${wdEligibility.requiredTasks} tasks.`,
-          { reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] } }
+          `❌ *Withdrawal Not Available Yet*\n\n` +
+          `To withdraw, you need to complete at least *${wdEligibility.requiredTasks} tasks* within the last *${wdEligibility.requiredHours} hours*.\n\n` +
+          `📊 Your progress:\n` +
+          `✅ Completed: *${completedCount} tasks*\n` +
+          `🎯 Required: *${wdEligibility.requiredTasks} tasks*\n` +
+          `⏳ Still needed: *${remaining} more task${remaining !== 1 ? "s" : ""}*\n\n` +
+          `👉 Complete more tasks and try again.`,
+          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] } }
         );
         if (newMsgId) updateUser(userId, { lastMessageId: newMsgId });
         return;
@@ -1088,8 +1114,8 @@ export function initBot(token: string, baseUrl: string): void {
         if (newMsgId) updateUser(userId, { lastMessageId: newMsgId });
         return;
       }
-      const options = (cfg.withdrawOptions || [10, 50, 100, 200]).filter((o) => o <= user.coins && o >= cfg.minWithdraw);
-      if (options.length === 0) {
+      const allOptions = (cfg.withdrawOptions || [10, 50, 100, 200]).filter((o) => o >= cfg.minWithdraw);
+      if (allOptions.length === 0) {
         const newMsgId = await sendOrEdit(chatId, userId, txt.withdraw_insufficient(user.coins, cfg.minWithdraw), {
           reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] },
         });
@@ -1098,19 +1124,25 @@ export function initBot(token: string, baseUrl: string): void {
       }
       const optRows: { text: string; callback_data: string }[][] = [];
       const rowSize = 3;
-      for (let i = 0; i < options.length; i += rowSize) {
+      for (let i = 0; i < allOptions.length; i += rowSize) {
         optRows.push(
-          options.slice(i, i + rowSize).map((o) => ({
-            text: `${o} 🪙 = ₹${Math.round(o / cfg.coinToMoneyRate)}`,
-            callback_data: `withdraw_opt_${o}`,
-          }))
+          allOptions.slice(i, i + rowSize).map((o) => {
+            const canAfford = o <= user.coins;
+            return {
+              text: canAfford
+                ? `${o} 🪙 = ₹${Math.round(o / cfg.coinToMoneyRate)}`
+                : `${o} 🪙 = ₹${Math.round(o / cfg.coinToMoneyRate)} ✗`,
+              callback_data: `withdraw_opt_${o}`,
+            };
+          })
         );
       }
       optRows.push([{ text: txt.cancel_btn, callback_data: "withdraw_cancel" }]);
       const msg =
         `💸 *Withdraw*\n\n` +
-        `Your balance: *${user.coins} 🪙*\n\n` +
-        `Select an amount to withdraw:`;
+        `Your balance: *${user.coins} 🪙*\n` +
+        `Min withdrawal: *${cfg.minWithdraw} 🪙*\n\n` +
+        `Select an amount to withdraw:\n_(Options marked ✗ require more coins)_`;
       const newMsgId = await sendOrEdit(chatId, userId, msg, {
         parse_mode: "Markdown",
         reply_markup: { inline_keyboard: optRows },
@@ -1124,8 +1156,23 @@ export function initBot(token: string, baseUrl: string): void {
       const user = getUser(userId);
       const txt = t(userId);
       const cfg = getAdminConfig();
-      if (isNaN(amount) || amount < cfg.minWithdraw || amount > user.coins) {
-        await bot!.sendMessage(chatId, "❌ Invalid amount. Please try again.");
+      if (isNaN(amount) || amount < cfg.minWithdraw) {
+        await bot!.sendMessage(chatId,
+          `❌ *Invalid Withdrawal Amount*\n\n` +
+          `The selected amount (${amount} 🪙) is below the minimum withdrawal of ${cfg.minWithdraw} 🪙.\n\n` +
+          `Please go back and choose a valid option.`,
+          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_withdraw" }]] } }
+        );
+        return;
+      }
+      if (amount > user.coins) {
+        await bot!.sendMessage(chatId,
+          `❌ *Insufficient Balance*\n\n` +
+          `You selected a withdrawal of *${amount} 🪙*, but your current balance is only *${user.coins} 🪙*.\n\n` +
+          `You need *${amount - user.coins} more coins* to use this option.\n\n` +
+          `👉 Please choose an option within your available balance.`,
+          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_withdraw" }]] } }
+        );
         return;
       }
       setPendingWithdraw(userId, "name", { amount });
@@ -2057,8 +2104,20 @@ export function initBot(token: string, baseUrl: string): void {
       if (result.success) {
         replyText = txt.coupon_success(result.coins!);
       } else if (result.message === "not_eligible") {
-        const completedCount = countTasksCompletedTodayIST(userId);
-        replyText = `❌ Coupon Claim Failed\n\nYou completed ${completedCount} tasks. Need ${result.requiredTasks} tasks.`;
+        const reqHours = result.requiredHours || 0;
+        const completedCount = reqHours > 0
+          ? countTasksInWindow(userId, reqHours)
+          : countTasksCompletedTodayIST(userId);
+        const remaining = (result.requiredTasks || 0) - completedCount;
+        const windowText = reqHours > 0 ? ` within the last *${reqHours} hours*` : " today";
+        replyText =
+          `❌ *Coupon Not Available Yet*\n\n` +
+          `This coupon requires you to complete at least *${result.requiredTasks} tasks*${windowText}.\n\n` +
+          `📊 Your progress:\n` +
+          `✅ Completed: *${completedCount} tasks*\n` +
+          `🎯 Required: *${result.requiredTasks} tasks*\n` +
+          `⏳ Still needed: *${remaining} more task${remaining !== 1 ? "s" : ""}*\n\n` +
+          `👉 Complete more tasks and try claiming again.`;
       } else if (result.message === "invalid") {
         replyText = txt.coupon_invalid;
       } else if (result.message === "expired") {
