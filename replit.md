@@ -118,7 +118,7 @@ All `/api/admin/*` routes also require the token via `x-admin-token` header or `
 
 ## Replit Setup
 
-- **Workflow**: "Start application" — runs `cd artifacts/api-server && PORT=5000 pnpm run dev` on port 5000 (webview)
+- **Workflow**: "Start application" — runs `pnpm --filter @workspace/api-server run dev` on port 5000 (webview)
 - **Database**: Replit PostgreSQL provisioned; schema pushed via Drizzle (`lib/db`)
 - **Deployment**: VM target (always-running for Telegram bot)
 
