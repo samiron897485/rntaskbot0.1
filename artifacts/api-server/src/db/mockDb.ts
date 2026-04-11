@@ -33,6 +33,7 @@ import {
   saveTaskTimestamps,
   saveSpamFlag,
   removeSpamFlag,
+  deleteWithdrawalFromDb,
 } from "./persistence.js";
 
 export const adminConfig: AdminConfig = {
@@ -260,6 +261,14 @@ export function updateWithdrawal(id: string, status: WithdrawalRequest["status"]
 
 export function getWithdrawalById(id: string): WithdrawalRequest | undefined {
   return withdrawals.find((w) => w.id === id);
+}
+
+export function deleteWithdrawalById(id: string): boolean {
+  const idx = withdrawals.findIndex((w) => w.id === id);
+  if (idx === -1) return false;
+  withdrawals.splice(idx, 1);
+  deleteWithdrawalFromDb(id);
+  return true;
 }
 
 export function getUserWithdrawals(userId: string): WithdrawalRequest[] {

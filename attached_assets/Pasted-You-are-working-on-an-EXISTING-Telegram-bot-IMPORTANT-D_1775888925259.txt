@@ -1,0 +1,260 @@
+You are working on an EXISTING Telegram bot.
+
+IMPORTANT:
+
+- DO NOT break existing features
+- DO NOT remove any working system
+- ONLY fix bugs, improve UI, and extend features safely
+- Use existing database and structure
+- Bot language MUST remain English
+- Explain changes in Bengali
+
+---
+
+🎯 PART 1: WITHDRAW UI CLEANUP
+
+REMOVE:
+
+- Text: "(Options marked ✗ require more coins)"
+- Remove all ✗ symbols from withdraw option buttons
+
+Buttons should be clean like:
+
+8 🪙 = ₹1  
+40 🪙 = ₹5  
+120 🪙 = ₹15  
+
+(No ❌ or ✗ mark on buttons)
+
+---
+
+🎯 PART 2: INSUFFICIENT BALANCE MESSAGE UPDATE
+
+REPLACE WITH:
+
+"❌ Insufficient Balance
+
+You selected a withdrawal of {selected} coins, but your current balance is only {balance} coins.
+
+You need {remaining} more coins to use this option.
+
+👉 Please choose an option within your available balance."
+
+RULE:
+
+- Use "coins" (text) here
+- DO NOT use 🪙 emoji in this message
+
+---
+
+🎯 PART 3: WITHDRAW SCREEN FORMAT
+
+💸 Withdraw
+
+Your balance: {balance} 🪙  
+Min withdrawal: {min} 🪙  
+
+Select an amount to withdraw:
+
+---
+
+🎯 PART 4: WITHDRAW SUCCESS MESSAGE UPDATE
+
+REPLACE WITH:
+
+"✅ Withdrawal Request Submitted
+
+💰 Amount: {coins} coins (₹{amount})
+
+⏳ Your request will be reviewed and approved within 24 hours.
+
+Please wait for approval."
+
+---
+
+🎯 PART 5: ADD "TO BIN" SYSTEM
+
+In Withdraw Queue:
+
+Add button:
+
+📦 To Bin
+
+WHEN CLICKED:
+
+- Move request → wdrl_bin
+- Remove from pending list
+- DO NOT delete from database
+
+---
+
+🎯 PART 6: CREATE "WDRL BIN" SECTION
+
+Admin panel → Add button:
+
+🗂 Wdrl Bin
+
+WHEN OPENED:
+
+- Show ONLY ONE request at a time
+- Show total count:
+
+"📂 Bin Requests: {current}/{total}"
+
+---
+
+🎯 PART 7: BIN NAVIGATION BUTTONS
+
+Add buttons:
+
+⬅️ Previous  
+➡️ Next  
+♻️ Restore  
+🗑 Delete  
+
+---
+
+🎯 PART 8: BUTTON FUNCTIONS
+
+✅ Restore:
+- Move back to pending
+- Remove from bin
+
+➡️ Next:
+- Show next request
+
+⬅️ Previous:
+- Show previous request
+
+---
+
+🎯 PART 9: DELETE FUNCTION (PERMANENT)
+
+WHEN CLICK "Delete":
+
+Show confirmation:
+
+"⚠️ Are you sure you want to permanently delete this request?
+
+This action cannot be undone."
+
+Buttons:
+
+✔ Yes, Delete  
+❌ Cancel  
+
+IF CONFIRMED:
+
+- Delete from database permanently
+- Show:
+
+"✅ Withdrawal request deleted permanently"
+
+- Auto show next request
+
+IF CANCEL:
+
+- Stay on same request
+
+---
+
+🎯 PART 10: EMPTY BIN CASE
+
+IF no requests:
+
+Show:
+
+"📂 No more requests in bin"
+
+---
+
+🎯 PART 11: REFERRAL BUG FIX (VERY IMPORTANT)
+
+FIX referral counting issues WITHOUT breaking existing referral system.
+
+---
+
+🔒 RULE 1: PREVENT DUPLICATE REFERRAL COUNT
+
+Before adding referral:
+
+IF user is already referred:
+→ DO NOT count again
+
+---
+
+🔒 RULE 2: ONE USER = ONE REFERRAL
+
+Each user can only be counted once as a referral.
+
+Use database check:
+
+IF referral record already exists:
+→ skip insertion
+
+---
+
+🔒 RULE 3: PREVENT SELF REFERRAL
+
+IF:
+
+user_id == referrer_id  
+→ BLOCK referral
+
+---
+
+🔒 RULE 4: PREVENT MULTIPLE COUNT ON /start
+
+Ensure referral logic runs ONLY ONCE:
+
+- Only when user joins FIRST TIME
+- NOT on every /start command
+
+---
+
+🔒 RULE 5: FIX REFERRAL COUNT DISPLAY
+
+DO NOT use manual increment like:
+
+referral_count += 1
+
+INSTEAD:
+
+Fetch real count from database:
+
+COUNT users WHERE referred_by = referrer_id
+
+---
+
+🔒 RULE 6: HANDLE MULTI-ACCOUNT ABUSE
+
+IF same device / IP creates multiple accounts:
+
+→ DO NOT count those as valid referrals
+
+(Use existing anti-fraud system if available)
+
+---
+
+🔒 RULE 7: DATA CONSISTENCY FIX
+
+If current referral counts are incorrect:
+
+- Recalculate from database
+- Sync real values
+
+---
+
+🎯 RULES:
+
+- DO NOT break existing referral reward system
+- DO NOT remove referral feature
+- ONLY fix incorrect counting & abuse issues
+- Keep system accurate and fair
+
+---
+
+FINAL OUTPUT:
+
+1. Show only updated parts
+2. Explain changes in Bengali

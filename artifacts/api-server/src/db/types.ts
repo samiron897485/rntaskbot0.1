@@ -35,7 +35,7 @@ export interface WithdrawalRequest {
   whatsapp?: string;
   accountName: string;
   qrFileId: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "bin";
   createdAt: Date;
   rejectReason?: string;
 }

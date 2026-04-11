@@ -197,6 +197,12 @@ export function saveWithdrawal(wr: WithdrawalRequest): void {
   });
 }
 
+export function deleteWithdrawalFromDb(id: string): void {
+  save(async () => {
+    await db!.delete(withdrawalsStore).where(eq(withdrawalsStore.id, id));
+  });
+}
+
 export function saveCoupon(coupon: CouponCode): void {
   save(async () => {
     await db!.insert(couponsStore).values({ code: coupon.code, data: coupon as never })

@@ -69,6 +69,7 @@ import {
   countTasksCompletedTodayIST,
   getTasksCompletedBetween,
   countTasksInWindow,
+  deleteWithdrawalById,
 } from "../db/mockDb.js";
 import { logger } from "../lib/logger.js";
 
@@ -116,8 +117,8 @@ const T = {
     withdraw_invalid_amount: "❌ Please enter a valid number.",
     withdraw_invalid_name: "❌ Please enter a valid name:",
     withdraw_invalid_qr: "❌ Please send an image file (QR code photo):",
-    withdraw_success: (amount: number, name: string) =>
-      `✅ Withdrawal request submitted!\n\n💰 Amount: ${amount} coins\n👤 Name: ${name}\n\n⏳ You'll receive payment after approval.`,
+    withdraw_success: (amount: number, inrAmount: number) =>
+      `✅ Withdrawal Request Submitted\n\n💰 Amount: ${amount} coins (₹${inrAmount})\n\n⏳ Your request will be reviewed and approved within 24 hours.\n\nPlease wait for approval.`,
     withdraw_rejected_reason: (reason: string) =>
       `❌ Your withdrawal request has been rejected.\n\nReason: ${reason}`,
     no_history: "📜 No withdrawal history.",
@@ -196,8 +197,8 @@ const T = {
     withdraw_invalid_amount: "❌ Please enter a valid number.",
     withdraw_invalid_name: "❌ Please enter a valid name:",
     withdraw_invalid_qr: "❌ Please send an image file (QR code photo):",
-    withdraw_success: (amount: number, name: string) =>
-      `✅ Withdrawal request submitted!\n\n💰 Amount: ${amount} coins\n👤 Name: ${name}\n\n⏳ You'll receive payment after approval.`,
+    withdraw_success: (amount: number, inrAmount: number) =>
+      `✅ Withdrawal Request Submitted\n\n💰 Amount: ${amount} coins (₹${inrAmount})\n\n⏳ Your request will be reviewed and approved within 24 hours.\n\nPlease wait for approval.`,
     withdraw_rejected_reason: (reason: string) =>
       `❌ Your withdrawal request has been rejected.\n\nReason: ${reason}`,
     no_history: "📜 No withdrawal history.",
@@ -325,6 +326,9 @@ function adminMenuKeyboard() {
       ],
       [
         { text: "💸 Withdraw Queue", callback_data: "admin_withdrawqueue" },
+        { text: "🗂 Wdrl Bin", callback_data: "admin_wdrl_bin" },
+      ],
+      [
         { text: "📊 Stats", callback_data: "admin_stats" },
       ],
       [
@@ -641,6 +645,9 @@ const pendingMsgUser: Record<string, MsgUserState> = {};
 interface AdminQueueSession { ids: string[]; index: number; }
 const adminQueueSession: Record<string, AdminQueueSession> = {};
 
+interface AdminBinSession { ids: string[]; index: number; }
+const adminBinSession: Record<string, AdminBinSession> = {};
+
 interface PendingRejectInput { wdId: string; }
 const pendingRejectInput: Record<string, PendingRejectInput> = {};
 
@@ -706,6 +713,9 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
         { text: "❌ Reject", callback_data: `admin_reject_${wr.id}` },
         { text: "⏭ Skip", callback_data: `admin_skip_${wr.id}` },
       ],
+      [
+        { text: "📦 To Bin", callback_data: `admin_tobin_${wr.id}` },
+      ],
     ],
   };
 
@@ -719,6 +729,70 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
     });
   } else {
     await bot.sendMessage(chatId, wdText, { parse_mode: "Markdown", reply_markup: wdKeyboard }).catch(() => {});
+  }
+}
+
+async function showBinItem(chatId: number, adminId: string): Promise<void> {
+  if (!bot) return;
+  const session = adminBinSession[adminId];
+  if (!session) return;
+
+  // Filter out any that were restored/deleted
+  const allBin = getWithdrawals("bin");
+  const validIds = session.ids.filter((id) => allBin.some((w) => w.id === id));
+  session.ids = validIds;
+
+  if (session.index < 0) session.index = 0;
+  if (session.index >= session.ids.length) session.index = Math.max(0, session.ids.length - 1);
+
+  if (session.ids.length === 0) {
+    delete adminBinSession[adminId];
+    await bot.sendMessage(chatId, "📂 No more requests in bin", {
+      reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] },
+    });
+    return;
+  }
+
+  const wr = getWithdrawalById(session.ids[session.index])!;
+  const cfg = getAdminConfig();
+  const inrAmount = (wr.amount / cfg.coinToMoneyRate).toFixed(2);
+  const currentWdTime = new Date(wr.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+  const total = session.ids.length;
+  const current = session.index + 1;
+
+  const binText =
+    `📂 Bin Requests: ${current}/${total}\n\n` +
+    `🆔 \`${escMd(wr.id)}\`\n` +
+    `👤 Name: ${escMd(wr.userName)}\n` +
+    `🔢 User ID: \`${escMd(wr.userId)}\`\n` +
+    `💰 Amount: ${wr.amount} coins (₹${inrAmount} INR)\n` +
+    `🏷️ Account: ${escMd(wr.accountName)}\n` +
+    `🕑 Date: ${escMd(currentWdTime)}`;
+
+  const binKeyboard = {
+    inline_keyboard: [
+      [
+        { text: "⬅️ Previous", callback_data: "admin_bin_prev" },
+        { text: "➡️ Next", callback_data: "admin_bin_next" },
+      ],
+      [
+        { text: "♻️ Restore", callback_data: `admin_bin_restore_${wr.id}` },
+        { text: "🗑 Delete", callback_data: `admin_bin_delete_${wr.id}` },
+      ],
+      [{ text: "🔙 Back", callback_data: "admin_back" }],
+    ],
+  };
+
+  if (wr.qrFileId) {
+    await bot.sendPhoto(chatId, wr.qrFileId, {
+      caption: binText,
+      parse_mode: "Markdown",
+      reply_markup: binKeyboard,
+    }).catch(async () => {
+      await bot!.sendMessage(chatId, binText, { parse_mode: "Markdown", reply_markup: binKeyboard }).catch(() => {});
+    });
+  } else {
+    await bot.sendMessage(chatId, binText, { parse_mode: "Markdown", reply_markup: binKeyboard }).catch(() => {});
   }
 }
 
@@ -831,8 +905,9 @@ export function initBot(token: string, baseUrl: string): void {
         const referredUser = getUser(userId);
         if (!referredUser.referredBy) {
           updateUser(userId, { referredBy: referrerId });
-          const referrer = getUser(referrerId);
-          const newTotalReferrals = referrer.totalReferrals + 1;
+          // Count actual referrals from DB to prevent duplicate/inflated counts
+          const actualReferrals = Object.values(getAllUsers()).filter((u) => u.referredBy === referrerId).length;
+          const newTotalReferrals = actualReferrals;
           updateUser(referrerId, { totalReferrals: newTotalReferrals });
 
           // Give instant bonus only if no task requirement
@@ -1126,25 +1201,19 @@ export function initBot(token: string, baseUrl: string): void {
       const rowSize = 3;
       for (let i = 0; i < allOptions.length; i += rowSize) {
         optRows.push(
-          allOptions.slice(i, i + rowSize).map((o) => {
-            const canAfford = o <= user.coins;
-            return {
-              text: canAfford
-                ? `${o} 🪙 = ₹${Math.round(o / cfg.coinToMoneyRate)}`
-                : `${o} 🪙 = ₹${Math.round(o / cfg.coinToMoneyRate)} ✗`,
-              callback_data: `withdraw_opt_${o}`,
-            };
-          })
+          allOptions.slice(i, i + rowSize).map((o) => ({
+            text: `${o} 🪙 = ₹${Math.round(o / cfg.coinToMoneyRate)}`,
+            callback_data: `withdraw_opt_${o}`,
+          }))
         );
       }
       optRows.push([{ text: txt.cancel_btn, callback_data: "withdraw_cancel" }]);
       const msg =
-        `💸 *Withdraw*\n\n` +
-        `Your balance: *${user.coins} 🪙*\n` +
-        `Min withdrawal: *${cfg.minWithdraw} 🪙*\n\n` +
-        `Select an amount to withdraw:\n_(Options marked ✗ require more coins)_`;
+        `💸 Withdraw\n\n` +
+        `Your balance: ${user.coins} 🪙\n` +
+        `Min withdrawal: ${cfg.minWithdraw} 🪙\n\n` +
+        `Select an amount to withdraw:`;
       const newMsgId = await sendOrEdit(chatId, userId, msg, {
-        parse_mode: "Markdown",
         reply_markup: { inline_keyboard: optRows },
       });
       if (newMsgId) updateUser(userId, { lastMessageId: newMsgId });
@@ -1167,11 +1236,11 @@ export function initBot(token: string, baseUrl: string): void {
       }
       if (amount > user.coins) {
         await bot!.sendMessage(chatId,
-          `❌ *Insufficient Balance*\n\n` +
-          `You selected a withdrawal of *${amount} 🪙*, but your current balance is only *${user.coins} 🪙*.\n\n` +
-          `You need *${amount - user.coins} more coins* to use this option.\n\n` +
+          `❌ Insufficient Balance\n\n` +
+          `You selected a withdrawal of ${amount} coins, but your current balance is only ${user.coins} coins.\n\n` +
+          `You need ${amount - user.coins} more coins to use this option.\n\n` +
           `👉 Please choose an option within your available balance.`,
-          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_withdraw" }]] } }
+          { reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_withdraw" }]] } }
         );
         return;
       }
@@ -1392,6 +1461,99 @@ export function initBot(token: string, baseUrl: string): void {
         parse_mode: "Markdown",
         reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "admin_cancel" }]] },
       });
+      return;
+    }
+
+    if (data.startsWith("admin_tobin_")) {
+      if (!isAdmin(userId)) return;
+      const wdId = data.replace("admin_tobin_", "");
+      const wr = getWithdrawalById(wdId);
+      if (!wr) return;
+      updateWithdrawal(wdId, "bin");
+      await bot!.sendMessage(chatId, `📦 Moved to bin.`);
+      const session = adminQueueSession[userId];
+      if (session) {
+        session.index++;
+        await showQueueItem(chatId, userId);
+      }
+      return;
+    }
+
+    if (data === "admin_wdrl_bin") {
+      if (!isAdmin(userId)) return;
+      const binItems = getWithdrawals("bin");
+      if (binItems.length === 0) {
+        await bot!.sendMessage(chatId, "📂 No more requests in bin", {
+          reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] },
+        });
+        return;
+      }
+      const sortedIds = binItems
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map((w) => w.id);
+      adminBinSession[userId] = { ids: sortedIds, index: 0 };
+      await showBinItem(chatId, userId);
+      return;
+    }
+
+    if (data === "admin_bin_prev") {
+      if (!isAdmin(userId)) return;
+      const session = adminBinSession[userId];
+      if (session) session.index = Math.max(0, session.index - 1);
+      await showBinItem(chatId, userId);
+      return;
+    }
+
+    if (data === "admin_bin_next") {
+      if (!isAdmin(userId)) return;
+      const session = adminBinSession[userId];
+      if (session && session.index < session.ids.length - 1) session.index++;
+      await showBinItem(chatId, userId);
+      return;
+    }
+
+    if (data.startsWith("admin_bin_restore_")) {
+      if (!isAdmin(userId)) return;
+      const wdId = data.replace("admin_bin_restore_", "");
+      const wr = getWithdrawalById(wdId);
+      if (!wr) return;
+      updateWithdrawal(wdId, "pending");
+      await bot!.sendMessage(chatId, `♻️ Restored to pending queue.`);
+      await showBinItem(chatId, userId);
+      return;
+    }
+
+    if (data.startsWith("admin_bin_delete_confirm_")) {
+      if (!isAdmin(userId)) return;
+      const wdId = data.replace("admin_bin_delete_confirm_", "");
+      deleteWithdrawalById(wdId);
+      await bot!.sendMessage(chatId, `✅ Withdrawal request deleted permanently`);
+      await showBinItem(chatId, userId);
+      return;
+    }
+
+    if (data.startsWith("admin_bin_delete_") && !data.startsWith("admin_bin_delete_confirm_")) {
+      if (!isAdmin(userId)) return;
+      const wdId = data.replace("admin_bin_delete_", "");
+      await bot!.sendMessage(chatId,
+        `⚠️ Are you sure you want to permanently delete this request?\n\nThis action cannot be undone.`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "✔ Yes, Delete", callback_data: `admin_bin_delete_confirm_${wdId}` },
+                { text: "❌ Cancel", callback_data: "admin_bin_delete_cancel" },
+              ],
+            ],
+          },
+        }
+      );
+      return;
+    }
+
+    if (data === "admin_bin_delete_cancel") {
+      if (!isAdmin(userId)) return;
+      await showBinItem(chatId, userId);
       return;
     }
 
@@ -2790,13 +2952,13 @@ export function initBot(token: string, baseUrl: string): void {
     const wr = addWithdrawal(userId, userName, amount, accountName, qrFileId);
     clearPendingWithdraw(userId);
 
-    const successMsg = await bot!.sendMessage(chatId, txt.withdraw_success(amount, accountName), {
+    const cfg = getAdminConfig();
+    const inrAmount = Math.round((amount / cfg.coinToMoneyRate) * 100) / 100;
+
+    const successMsg = await bot!.sendMessage(chatId, txt.withdraw_success(amount, inrAmount), {
       reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] },
     });
     updateUser(userId, { lastMessageId: successMsg.message_id });
-
-    const cfg = getAdminConfig();
-    const inrAmount = Math.round((amount / cfg.coinToMoneyRate) * 100) / 100;
     const userAfter = getUser(userId);
 
     const adminCaption =
