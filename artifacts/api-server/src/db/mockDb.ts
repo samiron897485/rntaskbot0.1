@@ -309,14 +309,11 @@ export function getUserAnalytics(userId: string): {
 } {
   const user = getUser(userId);
   const userWithdrawals = getUserWithdrawals(userId);
-  const referralEarnings = (user.earningHistory || [])
-    .filter((h) => h.reason.includes("Referral"))
-    .reduce((sum, h) => sum + h.amount, 0);
 
   return {
     totalTasksCompleted: user.completedTasks.length,
     totalReferredUsers: user.totalReferrals || 0,
-    totalReferralEarnings: referralEarnings,
+    totalReferralEarnings: user.referralEarnings || 0,
     totalWithdrawCount: userWithdrawals.length,
     totalWithdrawAmount: userWithdrawals.reduce((s, w) => s + w.amount, 0),
     totalAcceptedWithdraw: userWithdrawals.filter((w) => w.status === "approved").length,
