@@ -606,14 +606,20 @@ async function showWithdrawHistory(chatId: number, userId: string) {
 
   let text = txt.no_history;
   if (all.length > 0) {
+    const cfg = getAdminConfig();
     const lines = all
       .slice(-10)
       .reverse()
       .map((w) => {
-        const statusEmoji = w.status === "approved" ? "✅" : w.status === "rejected" ? "❌" : "⏳";
-        return `${statusEmoji} ${w.amount} coins | ${w.accountName}`;
+        const statusLine =
+          w.status === "approved" ? "✅ Approved" :
+          w.status === "rejected" ? "❌ Rejected" :
+          "🕒 Pending";
+        const inrAmount = Math.round(w.amount / cfg.coinToMoneyRate);
+        const date = new Date(w.createdAt).toLocaleDateString("en-CA"); // YYYY-MM-DD
+        return `${statusLine}\n💰 ${w.amount} coins (₹${inrAmount})\n📅 ${date}`;
       })
-      .join("\n");
+      .join("\n\n---\n\n");
     text = `${txt.history_title}\n\n${lines}`;
   }
 
