@@ -705,7 +705,7 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
     `🏷️ Account: ${escMd(wr.accountName)}\n\n` +
     `📊 *User Stats:*\n` +
     `✅ Tasks: ${analytics.totalTasksCompleted}\n` +
-    `👥 Referrals: ${analytics.totalReferralCompleted}\n` +
+    `👥 Referred: ${analytics.totalReferredUsers} | 💎 Ref Earnings: ${analytics.totalReferralEarnings} coins\n` +
     `🪙 Balance: ${wrUser.coins} coins\n` +
     `✔️ Accepted: ${analytics.totalAcceptedWithdraw} | ❌ Rejected: ${analytics.totalRejectedWithdraw}\n\n` +
     `🕐 Last Withdraw: ${escMd(lastWdTime)}\n` +
@@ -2409,7 +2409,8 @@ export function initBot(token: string, baseUrl: string): void {
         chatId,
         `📊 *User Analytics*\n\n🔢 User ID: \`${targetId}\`\n\n` +
         `✅ Total Tasks Completed: ${analytics.totalTasksCompleted}\n` +
-        `👥 Total Referral Completed: ${analytics.totalReferralCompleted}\n` +
+        `👥 Total Users Referred: ${analytics.totalReferredUsers}\n` +
+        `💎 Total Referral Earnings: ${analytics.totalReferralEarnings} coins\n` +
         `💸 Total Withdraw Count: ${analytics.totalWithdrawCount}\n` +
         `💰 Total Withdraw Amount: ${analytics.totalWithdrawAmount} coins\n` +
         `✅ Total Accepted Withdraw: ${analytics.totalAcceptedWithdraw}\n` +
