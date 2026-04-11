@@ -611,7 +611,7 @@ async function showWithdrawHistory(chatId: number, userId: string) {
   if (all.length > 0) {
     const cfg = getAdminConfig();
     const lines = all
-      .slice(-10)
+      .slice(-5)
       .map((w) => {
         const statusLine =
           w.status === "approved" ? "✅ Approved" :
@@ -1242,7 +1242,7 @@ export function initBot(token: string, baseUrl: string): void {
           `❌ *Invalid Withdrawal Amount*\n\n` +
           `The selected amount (${amount} 🪙) is below the minimum withdrawal of ${cfg.minWithdraw} 🪙.\n\n` +
           `Please go back and choose a valid option.`,
-          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_withdraw" }]] } }
+          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "balance_withdraw" }]] } }
         );
         return;
       }
@@ -1252,7 +1252,7 @@ export function initBot(token: string, baseUrl: string): void {
           `You selected a withdrawal of ${amount} coins, but your current balance is only ${user.coins} coins.\n\n` +
           `You need ${amount - user.coins} more coins to use this option.\n\n` +
           `👉 Please choose an option within your available balance.`,
-          { reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_withdraw" }]] } }
+          { reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "balance_withdraw" }]] } }
         );
         return;
       }
@@ -1397,9 +1397,9 @@ export function initBot(token: string, baseUrl: string): void {
 
       await bot!.sendMessage(
         chatId,
-        `👥 *User Statistics*\n\n👤 Total: ${userIds.length}\n💰 Total Coins: ${totalCoins}\n✅ Total Completed: ${totalCompleted}\n\nTop 5 Users:\n${userIds
+        `👥 *User Statistics*\n\n👤 Total: ${userIds.length}\n💰 Total Coins: ${totalCoins}\n✅ Total Completed: ${totalCompleted}\n\nTop 10 Users:\n${userIds
           .sort((a, b) => allUsers[b].coins - allUsers[a].coins)
-          .slice(0, 5)
+          .slice(0, 10)
           .map((id, i) => `${i + 1}. \`${id}\`: ${allUsers[id].coins} coins`)
           .join("\n")}`,
         {
