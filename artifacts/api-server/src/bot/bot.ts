@@ -603,14 +603,15 @@ async function showReferralMenu(chatId: number, userId: string) {
 
 async function showWithdrawHistory(chatId: number, userId: string) {
   const txt = t(userId);
-  const all = getWithdrawals().filter((w) => w.userId === userId);
+  const all = getWithdrawals()
+    .filter((w) => w.userId === userId)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   let text = txt.no_history;
   if (all.length > 0) {
     const cfg = getAdminConfig();
     const lines = all
       .slice(-10)
-      .reverse()
       .map((w) => {
         const statusLine =
           w.status === "approved" ? "✅ Approved" :
