@@ -329,9 +329,6 @@ function adminMenuKeyboard() {
         { text: "🗂 Wdrl Bin", callback_data: "admin_wdrl_bin" },
       ],
       [
-        { text: "📊 Stats", callback_data: "admin_stats" },
-      ],
-      [
         { text: "💼 Manage User Wallet", callback_data: "admin_wallet" },
         { text: "📦 Bulk Wallet Control", callback_data: "admin_bulkwallet" },
       ],
@@ -366,6 +363,9 @@ function adminMenuKeyboard() {
       [
         { text: "🎟️ Coupon Eligibility", callback_data: "admin_coupon_eligibility" },
         { text: "💸 Withdraw Eligibility", callback_data: "admin_withdraw_eligibility" },
+      ],
+      [
+        { text: "📊 Stats", callback_data: "admin_stats" },
       ],
     ],
   };
