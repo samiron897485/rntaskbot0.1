@@ -68,6 +68,7 @@ import {
   performCheckIn,
   countTasksCompletedTodayIST,
   getTasksCompletedBetween,
+  getReferralEarningsBetween,
   countTasksInWindow,
   deleteWithdrawalById,
 } from "../db/mockDb.js";
@@ -691,9 +692,12 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
     ? new Date(lastWd.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
     : "—";
   const currentWdTime = new Date(wr.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+  const fromTs = lastWd ? new Date(lastWd.createdAt).getTime() : 0;
+  const toTs = new Date(wr.createdAt).getTime();
   const tasksSinceLastWd = lastWd
-    ? getTasksCompletedBetween(wr.userId, new Date(lastWd.createdAt).getTime(), new Date(wr.createdAt).getTime())
+    ? getTasksCompletedBetween(wr.userId, fromTs, toTs)
     : analytics.totalTasksCompleted;
+  const refEarningsSinceLastWd = getReferralEarningsBetween(wr.userId, fromTs, toTs);
 
   const wdText =
     `💸 *Withdrawal Request*\n` +
@@ -710,7 +714,8 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
     `✔️ Accepted: ${analytics.totalAcceptedWithdraw} | ❌ Rejected: ${analytics.totalRejectedWithdraw}\n\n` +
     `🕐 Last Withdraw: ${escMd(lastWdTime)}\n` +
     `🕑 Current: ${escMd(currentWdTime)}\n` +
-    `📋 Tasks Since Last: ${tasksSinceLastWd}`;
+    `📋 Tasks Since Last: ${tasksSinceLastWd}\n` +
+    `💎 Ref Earnings Since Last: ${refEarningsSinceLastWd} coins`;
 
   const wdKeyboard = {
     inline_keyboard: [
