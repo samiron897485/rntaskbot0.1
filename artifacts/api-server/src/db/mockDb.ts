@@ -287,9 +287,20 @@ export function checkWithdrawCooldown(userId: string): { allowed: boolean; hours
   return { allowed: false, hoursLeft };
 }
 
+export function getReferralEarningsBetween(userId: string, fromTs: number, toTs: number): number {
+  const user = getUser(userId);
+  return (user.earningHistory || [])
+    .filter((h) => {
+      const date = new Date(h.date).getTime();
+      return date >= fromTs && date <= toTs && h.reason.includes("Referral");
+    })
+    .reduce((sum, h) => sum + h.amount, 0);
+}
+
 export function getUserAnalytics(userId: string): {
   totalTasksCompleted: number;
-  totalReferralCompleted: number;
+  totalReferredUsers: number;
+  totalReferralEarnings: number;
   totalWithdrawCount: number;
   totalWithdrawAmount: number;
   totalAcceptedWithdraw: number;
@@ -298,11 +309,14 @@ export function getUserAnalytics(userId: string): {
 } {
   const user = getUser(userId);
   const userWithdrawals = getUserWithdrawals(userId);
-  const referralHistory = (user.earningHistory || []).filter((h) => h.reason === "Referral Commission");
+  const referralEarnings = (user.earningHistory || [])
+    .filter((h) => h.reason.includes("Referral"))
+    .reduce((sum, h) => sum + h.amount, 0);
 
   return {
     totalTasksCompleted: user.completedTasks.length,
-    totalReferralCompleted: referralHistory.length,
+    totalReferredUsers: user.totalReferrals || 0,
+    totalReferralEarnings: referralEarnings,
     totalWithdrawCount: userWithdrawals.length,
     totalWithdrawAmount: userWithdrawals.reduce((s, w) => s + w.amount, 0),
     totalAcceptedWithdraw: userWithdrawals.filter((w) => w.status === "approved").length,

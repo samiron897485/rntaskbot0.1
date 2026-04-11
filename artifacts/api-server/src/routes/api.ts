@@ -27,6 +27,7 @@ import {
   createCouponCode,
   getCouponCodes,
   getUserAnalytics,
+  getReferralEarningsBetween,
   checkWithdrawCooldown,
   isLinkDuplicate,
   getPolicy,
@@ -416,7 +417,21 @@ router.get("/admin/user-analytics/:userId", adminAuthMiddleware, (req: Request, 
 
 router.get("/admin/withdrawals", adminAuthMiddleware, (_req: Request, res: Response) => {
   const withdrawals = getWithdrawals();
-  res.json({ success: true, withdrawals });
+  const enriched = withdrawals.map((w) => {
+    const user = getUser(w.userId);
+    const userWds = getUserWithdrawals(w.userId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const idx = userWds.findIndex((x) => x.id === w.id);
+    const prevWd = idx > 0 ? userWds[idx - 1] : null;
+    const fromTs = prevWd ? new Date(prevWd.createdAt).getTime() : 0;
+    const toTs = new Date(w.createdAt).getTime();
+    return {
+      ...w,
+      totalReferredUsers: user.totalReferrals || 0,
+      referralEarningsInPeriod: getReferralEarningsBetween(w.userId, fromTs, toTs),
+    };
+  });
+  res.json({ success: true, withdrawals: enriched });
 });
 
 router.post("/admin/delete-task", adminAuthMiddleware, (req: Request, res: Response) => {

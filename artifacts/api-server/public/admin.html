@@ -75,8 +75,7 @@
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('stats')" data-i18n="tab_stats">📊 Stats</div>
-  <div class="tab" onclick="switchTab('tasks')" data-i18n="tab_tasks">📋 Tasks</div>
+  <div class="tab active" onclick="switchTab('tasks')" data-i18n="tab_tasks">📋 Tasks</div>
   <div class="tab" onclick="switchTab('users')" data-i18n="tab_users">👥 Users</div>
   <div class="tab" onclick="switchTab('withdraw')" data-i18n="tab_withdraw">💸 Withdraw</div>
   <div class="tab" onclick="switchTab('broadcast')" data-i18n="tab_broadcast">📢 Broadcast</div>
@@ -84,11 +83,12 @@
   <div class="tab" onclick="switchTab('wallet')" data-i18n="tab_wallet">💼 Wallet</div>
   <div class="tab" onclick="switchTab('analytics')">📊 Analytics</div>
   <div class="tab" onclick="switchTab('coupons')">🎟️ Coupons</div>
+  <div class="tab" onclick="switchTab('stats')" data-i18n="tab_stats">📈 Stats</div>
 </div>
 
 <div class="content">
 
-  <div class="panel active" id="panel-stats">
+  <div class="panel" id="panel-stats">
     <div class="stat-grid" id="statsGrid">
       <div class="stat-box"><div class="val" id="s-users">-</div><div class="lbl" data-i18n="stat_users">Total Users</div></div>
       <div class="stat-box"><div class="val" id="s-tasks">-</div><div class="lbl" data-i18n="stat_tasks">Active Tasks</div></div>
@@ -103,7 +103,7 @@
     </div>
   </div>
 
-  <div class="panel" id="panel-tasks">
+  <div class="panel active" id="panel-tasks">
     <div class="card">
       <h3 data-i18n="add_task">➕ Add New Task</h3>
       <input type="url" id="newTaskUrl" data-i18n-placeholder="task_url_placeholder" placeholder="https://example.com/page" />
@@ -505,7 +505,7 @@
     applyLang();
   }
 
-  const tabNames = ['stats','tasks','users','withdraw','broadcast','settings','wallet'];
+  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','stats'];
 
   function switchTab(name) {
     document.querySelectorAll('.tab').forEach((t, i) => {
@@ -670,7 +670,14 @@
           const inr = Math.round((w.amount / rate) * 100) / 100;
           return `<tr>
           <td style="font-size:0.75rem;color:#94a3b8">${w.id}</td>
-          <td style="color:#60a5fa">${w.userId}</td>
+          <td>
+            <span style="color:#60a5fa">${w.userId}</span>
+            <div style="margin-top:4px;font-size:0.75rem;color:#64748b">
+              👥 <span style="color:#00d4aa">${w.totalReferredUsers ?? 0}</span> referred
+              &nbsp;|&nbsp;
+              💎 <span style="color:#fbbf24">${w.referralEarningsInPeriod ?? 0}</span> ref coins (period)
+            </div>
+          </td>
           <td style="color:#00d4aa;font-weight:bold">${w.amount}</td>
           <td style="color:#fbbf24;font-weight:bold">₹${inr}</td>
           <td>${w.whatsapp}</td>
@@ -846,7 +853,8 @@
           <table>
             <tr><th>Metric</th><th>Value</th></tr>
             <tr><td>✅ Total Tasks Completed</td><td>${a.totalTasksCompleted}</td></tr>
-            <tr><td>👥 Total Referrals</td><td>${a.totalReferralCompleted}</td></tr>
+            <tr><td>👥 Total Users Referred</td><td style="color:#00d4aa;font-weight:bold">${a.totalReferredUsers}</td></tr>
+            <tr><td>💎 Total Referral Earnings (Bonus + Commission)</td><td style="color:#fbbf24;font-weight:bold">${a.totalReferralEarnings} coins</td></tr>
             <tr><td>💸 Total Withdraw Count</td><td>${a.totalWithdrawCount}</td></tr>
             <tr><td>💰 Total Withdraw Amount</td><td>${a.totalWithdrawAmount} coins</td></tr>
             <tr><td>✅ Accepted Withdrawals</td><td>${a.totalAcceptedWithdraw}</td></tr>
@@ -913,7 +921,7 @@
   }
 
   applyLang();
-  loadStats();
+  loadTasks();
 </script>
 </body>
 </html>
