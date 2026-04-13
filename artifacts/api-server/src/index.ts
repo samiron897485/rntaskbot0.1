@@ -2,7 +2,7 @@ import app from "./app.js";
 import { logger } from "./lib/logger.js";
 import { initBot, bot } from "./bot/bot.js";
 import { initDb, loadAllData } from "./db/persistence.js";
-import { populateFromDb } from "./db/mockDb.js";
+import { populateFromDb, runCleanup } from "./db/mockDb.js";
 
 process.on("unhandledRejection", (reason) => {
   logger.warn({ reason }, "Unhandled promise rejection — bot error ignored");
@@ -46,6 +46,25 @@ const baseUrl = primaryDomain
   ? `https://${primaryDomain}`
   : process.env["BASE_URL"] || `http://localhost:${port}`;
 
+function scheduleCleanup(): void {
+  const SIX_HOURS = 6 * 60 * 60 * 1000;
+
+  const doCleanup = () => {
+    try {
+      const result = runCleanup();
+      logger.info(result, "Scheduled cleanup completed");
+    } catch (e) {
+      logger.warn({ err: e }, "Scheduled cleanup failed");
+    }
+  };
+
+  // Run once at startup to clean existing stale data
+  doCleanup();
+
+  // Then run every 6 hours
+  setInterval(doCleanup, SIX_HOURS);
+}
+
 async function main() {
   await initDb();
   const dbData = await loadAllData();
@@ -58,6 +77,8 @@ async function main() {
     }
 
     logger.info({ port, baseUrl }, "Server listening");
+
+    scheduleCleanup();
 
     if (telegramToken) {
       try {

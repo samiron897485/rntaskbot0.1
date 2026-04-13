@@ -34,6 +34,8 @@ import {
   saveSpamFlag,
   removeSpamFlag,
   deleteWithdrawalFromDb,
+  deleteIpRecord,
+  deleteDeviceRecord,
 } from "./persistence.js";
 
 export const adminConfig: AdminConfig = {
@@ -741,6 +743,54 @@ export function getTasksCompletedBetween(userId: string, fromMs: number, toMs: n
     const t = new Date(h.date).getTime();
     return t >= fromMs && t <= toMs;
   }).length;
+}
+
+export function runCleanup(): { removedTasks: number; removedIPs: number; removedDevices: number } {
+  const now = Date.now();
+  const threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000;
+
+  // 1. Remove expired tasks from memory and database
+  let removedTasks = 0;
+  for (let i = tasks.length - 1; i >= 0; i--) {
+    if (tasks[i]!.expiresAt.getTime() < now) {
+      const taskId = tasks[i]!.id;
+      tasks.splice(i, 1);
+      dbRemoveTask(taskId);
+      removedTasks++;
+    }
+  }
+
+  // 2. Remove IP records where no associated user has been active in the last 3 days
+  let removedIPs = 0;
+  for (const ip of Object.keys(ipToUsers)) {
+    const userIds = ipToUsers[ip] ?? [];
+    const hasRecentUser = userIds.some((uid) => {
+      const u = users[uid];
+      return u !== undefined && u.lastActive !== undefined && u.lastActive > threeDaysAgo;
+    });
+    if (!hasRecentUser) {
+      delete ipToUsers[ip];
+      deleteIpRecord(ip);
+      removedIPs++;
+    }
+  }
+
+  // 3. Remove device records where no associated user has been active in the last 3 days
+  let removedDevices = 0;
+  for (const deviceId of Object.keys(deviceToUsers)) {
+    const userIds = deviceToUsers[deviceId] ?? [];
+    const hasRecentUser = userIds.some((uid) => {
+      const u = users[uid];
+      return u !== undefined && u.lastActive !== undefined && u.lastActive > threeDaysAgo;
+    });
+    if (!hasRecentUser) {
+      delete deviceToUsers[deviceId];
+      deleteDeviceRecord(deviceId);
+      removedDevices++;
+    }
+  }
+
+  return { removedTasks, removedIPs, removedDevices };
 }
 
 export { tasks, users, withdrawals };

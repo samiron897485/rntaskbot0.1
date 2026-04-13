@@ -250,3 +250,15 @@ export function removeSpamFlag(userId: string): void {
     await db!.delete(spamFlagsStore).where(eq(spamFlagsStore.userId, userId));
   });
 }
+
+export function deleteIpRecord(ip: string): void {
+  save(async () => {
+    await db!.delete(ipUsersStore).where(eq(ipUsersStore.ip, ip));
+  });
+}
+
+export function deleteDeviceRecord(deviceId: string): void {
+  save(async () => {
+    await db!.delete(deviceUsersStore).where(eq(deviceUsersStore.deviceId, deviceId));
+  });
+}
