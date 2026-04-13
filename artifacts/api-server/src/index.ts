@@ -48,21 +48,41 @@ const baseUrl = primaryDomain
 
 function scheduleCleanup(): void {
   const SIX_HOURS = 6 * 60 * 60 * 1000;
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
-  const doCleanup = () => {
+  const doCleanup = (trigger: string) => {
     try {
       const result = runCleanup();
-      logger.info(result, "Scheduled cleanup completed");
+      logger.info({ ...result, trigger }, "Scheduled cleanup completed");
     } catch (e) {
       logger.warn({ err: e }, "Scheduled cleanup failed");
     }
   };
 
   // Run once at startup to clean existing stale data
-  doCleanup();
+  doCleanup("startup");
 
-  // Then run every 6 hours
-  setInterval(doCleanup, SIX_HOURS);
+  // Run every 6 hours as a safety net
+  setInterval(() => doCleanup("6h-interval"), SIX_HOURS);
+
+  // Also run exactly at midnight IST every day
+  const scheduleMidnightIST = () => {
+    const nowIST = Date.now() + IST_OFFSET_MS;
+    const midnightTodayIST = nowIST - (nowIST % ONE_DAY);
+    const nextMidnightUTC = midnightTodayIST + ONE_DAY - IST_OFFSET_MS;
+    const msUntilMidnight = nextMidnightUTC - Date.now();
+    setTimeout(() => {
+      doCleanup("midnight-IST");
+      setInterval(() => doCleanup("midnight-IST"), ONE_DAY);
+    }, msUntilMidnight);
+    logger.info(
+      { minutesUntilMidnight: Math.round(msUntilMidnight / 60000) },
+      "Midnight IST cleanup scheduled"
+    );
+  };
+
+  scheduleMidnightIST();
 }
 
 async function main() {

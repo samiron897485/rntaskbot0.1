@@ -519,6 +519,14 @@ export function claimCoupon(userId: string, code: string): { success: boolean; m
   if (!coupon) {
     return { success: false, message: "invalid" };
   }
+  // Check if coupon has expired — created before today's midnight IST
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const nowIST = Date.now() + IST_OFFSET_MS;
+  const midnightTodayIST = nowIST - (nowIST % (24 * 60 * 60 * 1000));
+  const cutoffUTC = midnightTodayIST - IST_OFFSET_MS;
+  if (coupon.createdAt.getTime() < cutoffUTC) {
+    return { success: false, message: "expired" };
+  }
   if (coupon.usedBy.includes(userId)) {
     return { success: false, message: "already_claimed" };
   }
