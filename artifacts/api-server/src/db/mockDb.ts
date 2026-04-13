@@ -36,6 +36,7 @@ import {
   deleteWithdrawalFromDb,
   deleteIpRecord,
   deleteDeviceRecord,
+  deleteCoupon,
 } from "./persistence.js";
 
 export const adminConfig: AdminConfig = {
@@ -745,9 +746,22 @@ export function getTasksCompletedBetween(userId: string, fromMs: number, toMs: n
   }).length;
 }
 
-export function runCleanup(): { removedTasks: number; removedIPs: number; removedDevices: number } {
+export function runCleanup(): {
+  removedTasks: number;
+  removedIPs: number;
+  removedDevices: number;
+  removedCoupons: number;
+} {
   const now = Date.now();
   const threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000;
+
+  // IST = UTC+5:30. "Last 2 days in IST" means keep coupons from today and
+  // yesterday (IST). We find midnight of yesterday in IST and delete anything older.
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const nowIST = now + IST_OFFSET_MS;
+  const midnightTodayIST = nowIST - (nowIST % (24 * 60 * 60 * 1000));
+  const cutoffIST = midnightTodayIST - 24 * 60 * 60 * 1000; // start of yesterday IST
+  const cutoffUTC = cutoffIST - IST_OFFSET_MS;
 
   // 1. Remove expired tasks from memory and database
   let removedTasks = 0;
@@ -760,7 +774,18 @@ export function runCleanup(): { removedTasks: number; removedIPs: number; remove
     }
   }
 
-  // 2. Remove IP records where no associated user has been active in the last 3 days
+  // 2. Remove coupon codes older than 2 days (IST)
+  let removedCoupons = 0;
+  for (const code of Object.keys(couponCodes)) {
+    const coupon = couponCodes[code]!;
+    if (coupon.createdAt.getTime() < cutoffUTC) {
+      delete couponCodes[code];
+      deleteCoupon(code);
+      removedCoupons++;
+    }
+  }
+
+  // 3. Remove IP records where no associated user has been active in the last 3 days
   let removedIPs = 0;
   for (const ip of Object.keys(ipToUsers)) {
     const userIds = ipToUsers[ip] ?? [];
@@ -775,7 +800,7 @@ export function runCleanup(): { removedTasks: number; removedIPs: number; remove
     }
   }
 
-  // 3. Remove device records where no associated user has been active in the last 3 days
+  // 4. Remove device records where no associated user has been active in the last 3 days
   let removedDevices = 0;
   for (const deviceId of Object.keys(deviceToUsers)) {
     const userIds = deviceToUsers[deviceId] ?? [];
@@ -790,7 +815,7 @@ export function runCleanup(): { removedTasks: number; removedIPs: number; remove
     }
   }
 
-  return { removedTasks, removedIPs, removedDevices };
+  return { removedTasks, removedCoupons, removedIPs, removedDevices };
 }
 
 export { tasks, users, withdrawals };

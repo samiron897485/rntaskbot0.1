@@ -251,6 +251,12 @@ export function removeSpamFlag(userId: string): void {
   });
 }
 
+export function deleteCoupon(code: string): void {
+  save(async () => {
+    await db!.delete(couponsStore).where(eq(couponsStore.code, code));
+  });
+}
+
 export function deleteIpRecord(ip: string): void {
   save(async () => {
     await db!.delete(ipUsersStore).where(eq(ipUsersStore.ip, ip));
