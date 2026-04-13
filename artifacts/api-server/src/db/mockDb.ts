@@ -755,13 +755,12 @@ export function runCleanup(): {
   const now = Date.now();
   const threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000;
 
-  // IST = UTC+5:30. "Last 2 days in IST" means keep coupons from today and
-  // yesterday (IST). We find midnight of yesterday in IST and delete anything older.
+  // IST = UTC+5:30. Keep only coupons created today (IST).
+  // Anything created before midnight of today (IST) gets deleted.
   const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
   const nowIST = now + IST_OFFSET_MS;
-  const midnightTodayIST = nowIST - (nowIST % (24 * 60 * 60 * 1000));
-  const cutoffIST = midnightTodayIST - 24 * 60 * 60 * 1000; // start of yesterday IST
-  const cutoffUTC = cutoffIST - IST_OFFSET_MS;
+  const midnightTodayIST = nowIST - (nowIST % (24 * 60 * 60 * 1000)); // 00:00 today IST
+  const cutoffUTC = midnightTodayIST - IST_OFFSET_MS;
 
   // 1. Remove expired tasks from memory and database
   let removedTasks = 0;
