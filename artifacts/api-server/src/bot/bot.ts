@@ -161,9 +161,9 @@ const T = {
     coupon_already_claimed: "❌ You have already claimed this coupon.",
     withdraw_cooldown: (hours: number) => `⏳ You can request withdrawal after ${hours} hours.`,
     user_analytics_title: "📊 *User Analytics*",
-    earning_history_btn: "📊 Earn Log",
-    earning_history_title: "📊 *Earn Log*",
-    earning_history_empty: "📊 *Earn Log*\n\nNo transactions yet.",
+    earning_history_btn: "📊 Earning Logs",
+    earning_history_title: "📊 *Earning Logs*",
+    earning_history_empty: "📊 *Earning Logs*\n\nNo transactions yet.",
     earning_history_nav: (from: number, to: number, total: number) => `(${from}-${to} of ${total})`,
     prev_btn: "◀️ Previous",
     next_btn: "Next ▶️",
@@ -247,9 +247,9 @@ const T = {
     coupon_already_claimed: "❌ You have already claimed this coupon.",
     withdraw_cooldown: (hours: number) => `⏳ You can request withdrawal after ${hours} hours.`,
     user_analytics_title: "📊 *User Analytics*",
-    earning_history_btn: "📊 Earn Log",
-    earning_history_title: "📊 *Earn Log*",
-    earning_history_empty: "📊 *Earn Log*\n\nNo transactions yet.",
+    earning_history_btn: "📊 Earning Logs",
+    earning_history_title: "📊 *Earning Logs*",
+    earning_history_empty: "📊 *Earning Logs*\n\nNo transactions yet.",
     earning_history_nav: (from: number, to: number, total: number) => `(${from}-${to} of ${total})`,
     prev_btn: "◀️ Previous",
     next_btn: "Next ▶️",
@@ -572,10 +572,11 @@ async function showEarningHistory(chatId: number, userId: string, page: number) 
   const allHistory = (user.earningHistory || []).slice().reverse().slice(0, MAX_ITEMS);
 
   if (allHistory.length === 0) {
-    await bot!.sendMessage(chatId, txt.earning_history_empty, {
+    const msgId = await sendOrEdit(chatId, userId, txt.earning_history_empty, {
       parse_mode: "Markdown",
       reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] },
     });
+    if (msgId) updateUser(userId, { lastMessageId: msgId });
     return;
   }
 
@@ -603,10 +604,11 @@ async function showEarningHistory(chatId: number, userId: string, page: number) 
   keyboard.push([{ text: txt.back_btn, callback_data: "menu_balance" }]);
 
   const header = `${txt.earning_history_title} ${txt.earning_history_nav(start + 1, end, allHistory.length)}\n\n`;
-  await bot!.sendMessage(chatId, header + lines, {
+  const msgId = await sendOrEdit(chatId, userId, header + lines, {
     parse_mode: "Markdown",
     reply_markup: { inline_keyboard: keyboard },
   });
+  if (msgId) updateUser(userId, { lastMessageId: msgId });
 }
 
 async function showSettingsMenu(chatId: number, userId: string) {
@@ -1341,7 +1343,7 @@ export function initBot(token: string, baseUrl: string): void {
 
     if (data.startsWith("balance_earning_history_")) {
       const page = parseInt(data.replace("balance_earning_history_", ""), 10);
-      if (!isNaN(page) && page >= 0 && page <= 1) {
+      if (!isNaN(page) && page >= 0) {
         await showEarningHistory(chatId, userId, page);
       }
       return;
