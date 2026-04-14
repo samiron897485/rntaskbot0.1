@@ -95,7 +95,7 @@ const T = {
     no_task: (avail: number, done: number) =>
       `😔 No tasks available right now.\n\n📊 Available: ${avail} | ✅ Completed: ${done}\n\nCheck back later.`,
     task_title: "📋 *Current Task*",
-    task_link: "🔗 Link",
+    task_link: "🆔 Task ID",
     task_expire: "⏰ Expires in",
     task_reward: "💰 Reward: 1 Coin",
     task_counter: (avail: number, done: number) => `📊 Available: ${avail} | ✅ Completed: ${done}`,
@@ -187,7 +187,7 @@ const T = {
     no_task: (avail: number, done: number) =>
       `😔 No tasks available right now.\n\n📊 Available: ${avail} | ✅ Completed: ${done}\n\nCheck back later.`,
     task_title: "📋 *Current Task*",
-    task_link: "🔗 Link",
+    task_link: "🆔 Task ID",
     task_expire: "⏰ Expires in",
     task_reward: "💰 Reward: 1 Coin",
     task_counter: (avail: number, done: number) => `📊 Available: ${avail} | ✅ Completed: ${done}`,
@@ -527,7 +527,7 @@ async function showTaskMenu(chatId: number, userId: string) {
 
   const text =
     `${txt.task_title}\n\n` +
-    `${txt.task_link}: \`${task.link}\`\n` +
+    `${txt.task_link}: \`${task.id}\`\n` +
     `${txt.task_expire}: ${timeLeft}\n` +
     `${txt.task_reward}\n\n` +
     `${txt.task_counter(available, done)}`;
