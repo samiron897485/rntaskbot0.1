@@ -1,6 +1,6 @@
 import app from "./app.js";
 import { logger } from "./lib/logger.js";
-import { initBot, bot } from "./bot/bot.js";
+import { initBot, bot, notifyAdminsCleanup } from "./bot/bot.js";
 import { initDb, loadAllData } from "./db/persistence.js";
 import { populateFromDb, runCleanup } from "./db/mockDb.js";
 
@@ -55,6 +55,7 @@ function scheduleCleanup(): void {
     try {
       const result = runCleanup();
       logger.info({ ...result, trigger }, "Scheduled cleanup completed");
+      notifyAdminsCleanup(result, trigger);
     } catch (e) {
       logger.warn({ err: e }, "Scheduled cleanup failed");
     }

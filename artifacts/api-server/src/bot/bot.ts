@@ -71,6 +71,7 @@ import {
   getReferralEarningsBetween,
   countTasksInWindow,
   deleteWithdrawalById,
+  runCleanup,
 } from "../db/mockDb.js";
 import { logger } from "../lib/logger.js";
 
@@ -379,6 +380,7 @@ function adminMenuKeyboard() {
       ],
       [
         { text: "📊 Stats", callback_data: "admin_stats" },
+        { text: "🧹 Manual Cleanup", callback_data: "admin_manual_cleanup" },
       ],
     ],
   };
@@ -914,6 +916,24 @@ export function sendTaskCompletion(userId: string, coins: number): void {
       .catch(() => sendNew());
   } else {
     sendNew();
+  }
+}
+
+export function notifyAdminsCleanup(
+  result: { removedTasks: number; removedCoupons: number; removedIPs: number; removedDevices: number },
+  trigger: string
+): void {
+  if (!bot) return;
+  const totalRemoved = result.removedTasks + result.removedCoupons + result.removedIPs + result.removedDevices;
+  if (totalRemoved === 0) return;
+  const msg =
+    `🧹 *Auto Cleanup Done* (${trigger})\n\n` +
+    `🗑️ Expired Tasks removed: *${result.removedTasks}*\n` +
+    `🎟️ Old Coupons removed: *${result.removedCoupons}*\n` +
+    `🌐 Old IP records removed: *${result.removedIPs}*\n` +
+    `📱 Old Device records removed: *${result.removedDevices}*`;
+  for (const adminId of ADMIN_IDS) {
+    bot.sendMessage(adminId, msg, { parse_mode: "Markdown" }).catch(() => {});
   }
 }
 
@@ -1655,6 +1675,22 @@ export function initBot(token: string, baseUrl: string): void {
           reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] },
         }
       );
+      return;
+    }
+
+    if (data === "admin_manual_cleanup") {
+      if (!isAdmin(userId)) return;
+      const result = runCleanup();
+      const msg =
+        `🧹 *Manual Cleanup Complete*\n\n` +
+        `🗑️ Expired Tasks removed: *${result.removedTasks}*\n` +
+        `🎟️ Old Coupons removed: *${result.removedCoupons}*\n` +
+        `🌐 Old IP records removed: *${result.removedIPs}*\n` +
+        `📱 Old Device records removed: *${result.removedDevices}*`;
+      await bot!.sendMessage(chatId, msg, {
+        parse_mode: "Markdown",
+        reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] },
+      });
       return;
     }
 
