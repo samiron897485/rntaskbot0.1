@@ -147,6 +147,12 @@ const T = {
       `👥 *Your Referral Info*\n\n🔗 Referral Code: \`${code}\`\n📎 Referral Link:\n\`${link}\`\n\n👤 Total Referrals: ${total}\n💰 Referral Earnings: ${earnings} coins`,
     referral_disabled: "❌ Referral system is currently disabled.",
     referral_welcome: (bonus: number) => `🎁 Referral bonus: +${bonus} coins added!`,
+    referral_rules_btn: "📋 Ref Rules",
+    referral_rules: (bonus: number, reqTasks: number, commission: number) =>
+      `📋 *Referral Rules*\n\n` +
+      `🎁 *Join Bonus:* When someone joins using your referral link, they must complete *${reqTasks} task(s)* first. After that, you will receive *+${bonus} coins* as a referral bonus.\n\n` +
+      `💹 *Per-Task Commission:* You earn *+${commission} coin(s)* every time your referred friend completes a task.\n\n` +
+      `ℹ️ Only Level 1 referrals are counted (direct referrals only).`,
     coins_added: (amount: number, reason: string) => `🎉 +${amount} coins added to your wallet!\n📝 Reason: ${reason}`,
     coins_deducted: (amount: number, reason: string) => `⚠️ ${amount} coins deducted from your wallet.\n📝 Reason: ${reason}`,
     my_id_btn: "🪪 My ID",
@@ -233,6 +239,12 @@ const T = {
       `👥 *Your Referral Info*\n\n🔗 Referral Code: \`${code}\`\n📎 Referral Link:\n\`${link}\`\n\n👤 Total Referrals: ${total}\n💰 Referral Earnings: ${earnings} coins`,
     referral_disabled: "❌ Referral system is currently disabled.",
     referral_welcome: (bonus: number) => `🎁 Referral bonus: +${bonus} coins added!`,
+    referral_rules_btn: "📋 Ref Rules",
+    referral_rules: (bonus: number, reqTasks: number, commission: number) =>
+      `📋 *Referral Rules*\n\n` +
+      `🎁 *Join Bonus:* When someone joins using your referral link, they must complete *${reqTasks} task(s)* first. After that, you will receive *+${bonus} coins* as a referral bonus.\n\n` +
+      `💹 *Per-Task Commission:* You earn *+${commission} coin(s)* every time your referred friend completes a task.\n\n` +
+      `ℹ️ Only Level 1 referrals are counted (direct referrals only).`,
     coins_added: (amount: number, reason: string) => `🎉 +${amount} coins added to your wallet!\n📝 Reason: ${reason}`,
     coins_deducted: (amount: number, reason: string) => `⚠️ ${amount} coins deducted from your wallet.\n📝 Reason: ${reason}`,
     my_id_btn: "🪪 My ID",
@@ -659,7 +671,31 @@ async function showReferralMenu(chatId: number, userId: string) {
     txt.referral_info(user.referralCode, refLink, user.totalReferrals, user.referralEarnings),
     {
       parse_mode: "Markdown",
-      reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_main" }]] },
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: txt.referral_rules_btn, callback_data: "referral_rules" }],
+          [{ text: txt.back_btn, callback_data: "menu_main" }],
+        ],
+      },
+    }
+  );
+  if (msgId) updateUser(userId, { lastMessageId: msgId });
+}
+
+async function showReferralRules(chatId: number, userId: string) {
+  const txt = t(userId);
+  const cfg = getAdminConfig();
+  const msgId = await sendOrEdit(
+    chatId,
+    userId,
+    txt.referral_rules(cfg.referralBonus, cfg.referralTaskRequirement, cfg.perTaskCommission),
+    {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: txt.back_btn, callback_data: "menu_referral" }],
+        ],
+      },
     }
   );
   if (msgId) updateUser(userId, { lastMessageId: msgId });
@@ -1109,6 +1145,11 @@ export function initBot(token: string, baseUrl: string): void {
     }
     if (data === "menu_referral") {
       await showReferralMenu(chatId, userId);
+      return;
+    }
+
+    if (data === "referral_rules") {
+      await showReferralRules(chatId, userId);
       return;
     }
 
