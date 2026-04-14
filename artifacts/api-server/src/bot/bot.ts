@@ -161,6 +161,12 @@ const T = {
     coupon_already_claimed: "❌ You have already claimed this coupon.",
     withdraw_cooldown: (hours: number) => `⏳ You can request withdrawal after ${hours} hours.`,
     user_analytics_title: "📊 *User Analytics*",
+    earning_history_btn: "📊 Earning History",
+    earning_history_title: "📊 *Earning History*",
+    earning_history_empty: "📊 *Earning History*\n\nNo transactions yet.",
+    earning_history_nav: (from: number, to: number, total: number) => `(${from}-${to} of ${total})`,
+    prev_btn: "◀️ Previous",
+    next_btn: "Next ▶️",
   },
   en: {
     welcome: (name: string) =>
@@ -241,6 +247,12 @@ const T = {
     coupon_already_claimed: "❌ You have already claimed this coupon.",
     withdraw_cooldown: (hours: number) => `⏳ You can request withdrawal after ${hours} hours.`,
     user_analytics_title: "📊 *User Analytics*",
+    earning_history_btn: "📊 Earning History",
+    earning_history_title: "📊 *Earning History*",
+    earning_history_empty: "📊 *Earning History*\n\nNo transactions yet.",
+    earning_history_nav: (from: number, to: number, total: number) => `(${from}-${to} of ${total})`,
+    prev_btn: "◀️ Previous",
+    next_btn: "Next ▶️",
   },
 };
 
@@ -542,11 +554,59 @@ async function showBalanceMenu(chatId: number, userId: string) {
           { text: txt.withdraw_btn, callback_data: "balance_withdraw" },
           { text: txt.history_btn, callback_data: "balance_history" },
         ],
+        [{ text: txt.earning_history_btn, callback_data: "balance_earning_history_0" }],
         [{ text: txt.back_btn, callback_data: "menu_main" }],
       ],
     },
   });
   if (msgId) updateUser(userId, { lastMessageId: msgId });
+}
+
+async function showEarningHistory(chatId: number, userId: string, page: number) {
+  const txt = t(userId);
+  const user = getUser(userId);
+  const PAGE_SIZE = 5;
+  const MAX_ITEMS = 10;
+
+  // Get last 10 items, newest first
+  const allHistory = (user.earningHistory || []).slice().reverse().slice(0, MAX_ITEMS);
+
+  if (allHistory.length === 0) {
+    await bot!.sendMessage(chatId, txt.earning_history_empty, {
+      parse_mode: "Markdown",
+      reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] },
+    });
+    return;
+  }
+
+  const start = page * PAGE_SIZE;
+  const end = Math.min(start + PAGE_SIZE, allHistory.length);
+  const pageItems = allHistory.slice(start, end);
+  const totalPages = Math.ceil(allHistory.length / PAGE_SIZE);
+
+  const lines = pageItems.map((h, i) => {
+    const date = new Date(h.date).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit", month: "short",
+      hour: "2-digit", minute: "2-digit",
+    });
+    const sign = h.amount >= 0 ? "+" : "";
+    return `${start + i + 1}. *${sign}${h.amount} 🪙* — ${escMd(h.reason)}\n    📅 ${escMd(date)}`;
+  }).join("\n\n");
+
+  const navButtons: { text: string; callback_data: string }[] = [];
+  if (page > 0) navButtons.push({ text: txt.prev_btn, callback_data: `balance_earning_history_${page - 1}` });
+  if (page < totalPages - 1) navButtons.push({ text: txt.next_btn, callback_data: `balance_earning_history_${page + 1}` });
+
+  const keyboard: { text: string; callback_data: string }[][] = [];
+  if (navButtons.length > 0) keyboard.push(navButtons);
+  keyboard.push([{ text: txt.back_btn, callback_data: "menu_balance" }]);
+
+  const header = `${txt.earning_history_title} ${txt.earning_history_nav(start + 1, end, allHistory.length)}\n\n`;
+  await bot!.sendMessage(chatId, header + lines, {
+    parse_mode: "Markdown",
+    reply_markup: { inline_keyboard: keyboard },
+  });
 }
 
 async function showSettingsMenu(chatId: number, userId: string) {
@@ -1276,6 +1336,14 @@ export function initBot(token: string, baseUrl: string): void {
 
     if (data === "balance_history") {
       await showWithdrawHistory(chatId, userId);
+      return;
+    }
+
+    if (data.startsWith("balance_earning_history_")) {
+      const page = parseInt(data.replace("balance_earning_history_", ""), 10);
+      if (!isNaN(page) && page >= 0 && page <= 1) {
+        await showEarningHistory(chatId, userId, page);
+      }
       return;
     }
 
@@ -2911,9 +2979,11 @@ export function initBot(token: string, baseUrl: string): void {
       delete pendingBroadcast[userId];
       const allUserIds = Object.keys(getAllUsers());
       let sent = 0;
+      const fromChatId = chatId;
+      const messageId = msg.message_id;
       for (const uid of allUserIds) {
         try {
-          await bot!.sendMessage(uid, `📢 *Broadcast:*\n\n${text}`, { parse_mode: "Markdown" });
+          await (bot as any).copyMessage(uid, fromChatId, messageId);
           sent++;
         } catch (_) {}
       }
@@ -2935,11 +3005,28 @@ export function initBot(token: string, baseUrl: string): void {
     }
   });
 
-  // ── Photo handler for QR code upload ──
+  // ── Photo handler for QR code upload and broadcast ──
   bot.on("photo", async (msg) => {
     const userId = String(msg.from?.id);
     const chatId = msg.chat.id;
     const txt = t(userId);
+
+    // Handle broadcast photo
+    if (isAdmin(userId) && pendingBroadcast[userId]) {
+      delete pendingBroadcast[userId];
+      const allUserIds = Object.keys(getAllUsers());
+      let sent = 0;
+      for (const uid of allUserIds) {
+        try {
+          await (bot as any).copyMessage(uid, chatId, msg.message_id);
+          sent++;
+        } catch (_) {}
+      }
+      await bot!.sendMessage(chatId, `✅ Broadcast complete. Sent to ${sent}/${allUserIds.length} users.`, {
+        reply_markup: { inline_keyboard: [[{ text: "🔙 Admin Menu", callback_data: "admin_back" }]] },
+      });
+      return;
+    }
 
     const withdrawState = getPendingWithdraw(userId);
     if (!withdrawState || withdrawState.step !== "qr") return;
