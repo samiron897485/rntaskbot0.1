@@ -159,15 +159,15 @@
 
       <div class="task-link-box" id="taskLinkBox">
         <h3>📰 News Task</h3>
-        <div id="taskLinkText">Loading...</div>
+        <div id="taskLinkText" style="display:none"></div>
         <button id="openLinkBtn" class="open-link-btn" disabled>📰 Open News Page</button>
         <div class="browser-tip">⚠️ Will open in your default browser</div>
       </div>
 
       <div class="info-box" id="infoBox">
-        ⚡ Click <strong>"Open News Page"</strong> to start.<br>
-        Stay on that page until the timer completes.<br>
-        Return here and press <strong>Claim Reward</strong>.
+        ⚡ Tap <strong>"Open News Page"</strong> to start.<br>
+        Then stay on the main news page, scroll up and down at least 2 times, and wait for the bell sound.<br>
+        Once you hear the bell sound, come back here and tap <strong>Claim Reward</strong>.
       </div>
 
       <div class="progress-bar-wrap" id="progressBarWrap" style="display:none">
@@ -553,7 +553,6 @@
         const data = await res.json();
         if (data.success && data.task) {
           taskLink = data.task.link;
-          taskLinkText.innerHTML = `<a class="task-link" href="${taskLink}" target="_blank">${taskLink}</a>`;
           openLinkBtn.disabled = false;
           updateDisplay();
         } else {
