@@ -230,7 +230,8 @@ export function addWithdrawal(
   userName: string,
   amount: number,
   accountName: string,
-  qrFileId: string
+  qrFileId: string,
+  coinBalance?: number
 ): WithdrawalRequest {
   const wr: WithdrawalRequest = {
     id: `wd_${Date.now()}`,
@@ -241,6 +242,7 @@ export function addWithdrawal(
     qrFileId,
     status: "pending",
     createdAt: new Date(),
+    coinBalance,
   };
   withdrawals.push(wr);
   saveWithdrawal(wr);

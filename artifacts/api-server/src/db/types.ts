@@ -38,6 +38,7 @@ export interface WithdrawalRequest {
   status: "pending" | "approved" | "rejected" | "bin";
   createdAt: Date;
   rejectReason?: string;
+  coinBalance?: number;
 }
 
 export interface EarningHistoryEntry {

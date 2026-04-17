@@ -3128,7 +3128,8 @@ export function initBot(token: string, baseUrl: string): void {
     const userName = msg.from?.first_name || userId;
 
     updateUser(userId, { accountName, qrFileId });
-    const wr = addWithdrawal(userId, userName, amount, accountName, qrFileId);
+    const currentUser = getUser(userId);
+    const wr = addWithdrawal(userId, userName, amount, accountName, qrFileId, currentUser?.coins);
     clearPendingWithdraw(userId);
 
     const cfg = getAdminConfig();

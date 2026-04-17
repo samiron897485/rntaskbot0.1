@@ -465,11 +465,15 @@ router.get("/admin/user-paylogs/:userId", adminAuthMiddleware, (req: Request, re
     res.status(404).json({ success: false, message: "User not found" });
     return;
   }
-  const wds = getUserWithdrawals(userId)
-    .filter((w) => w.status === "approved")
+  const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - TEN_DAYS_MS;
+  const allWds = getUserWithdrawals(userId)
+    .filter((w) => w.status !== "bin" && new Date(w.createdAt).getTime() >= cutoff)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const totalPaid = wds.reduce((s, w) => s + w.amount, 0);
-  res.json({ success: true, userId, paylogs: wds, totalPaid });
+  const totalPaid = allWds
+    .filter((w) => w.status === "approved")
+    .reduce((s, w) => s + w.amount, 0);
+  res.json({ success: true, userId, paylogs: allWds, totalPaid });
 });
 
 router.get("/admin/withdrawals", adminAuthMiddleware, (_req: Request, res: Response) => {
