@@ -479,10 +479,14 @@ router.get("/admin/user-paylogs/:userId", adminAuthMiddleware, (req: Request, re
     .filter((w) => w.status !== "bin" && new Date(w.createdAt).getTime() >= cutoff)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const cfg = getAdminConfig();
-  const approvedWds = allWds.filter((w) => w.status === "approved");
+  const enrichedWds = allWds.map((w) => ({
+    ...w,
+    moneyAmount: w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100,
+  }));
+  const approvedWds = enrichedWds.filter((w) => w.status === "approved");
   const totalPaid = approvedWds.reduce((s, w) => s + w.amount, 0);
-  const totalMoney = Math.round(approvedWds.reduce((s, w) => s + (w.moneyAmount ?? w.amount / cfg.coinToMoneyRate), 0) * 100) / 100;
-  res.json({ success: true, userId, paylogs: allWds, totalPaid, totalMoney });
+  const totalMoney = Math.round(approvedWds.reduce((s, w) => s + w.moneyAmount, 0) * 100) / 100;
+  res.json({ success: true, userId, paylogs: enrichedWds, totalPaid, totalMoney });
 });
 
 router.get("/admin/withdrawals", adminAuthMiddleware, (_req: Request, res: Response) => {
