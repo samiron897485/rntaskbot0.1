@@ -363,6 +363,33 @@ export function getEarningBreakdown(userId: string): {
   };
 }
 
+export function getBalanceBreakdown(userId: string): {
+  taskBalance: number;
+  referralBalance: number;
+  couponBalance: number;
+  checkInBalance: number;
+  adminWalletBalance: number;
+  currentBalance: number;
+} {
+  const user = getUser(userId);
+  const bd = getEarningBreakdown(userId);
+  const currentBalance = user.coins;
+  const totalEarned = bd.totalEarned;
+
+  if (totalEarned === 0 || currentBalance === 0) {
+    return { taskBalance: 0, referralBalance: 0, couponBalance: 0, checkInBalance: 0, adminWalletBalance: 0, currentBalance };
+  }
+
+  const r = (n: number) => Math.round(n / totalEarned * currentBalance);
+  const taskBalance = r(bd.taskEarnings);
+  const referralBalance = r(bd.referralEarnings);
+  const couponBalance = r(bd.couponEarnings);
+  const checkInBalance = r(bd.checkInEarnings);
+  // Admin wallet gets remainder to absorb rounding drift
+  const adminWalletBalance = currentBalance - taskBalance - referralBalance - couponBalance - checkInBalance;
+  return { taskBalance, referralBalance, couponBalance, checkInBalance, adminWalletBalance: Math.max(0, adminWalletBalance), currentBalance };
+}
+
 export function getPaymentStats(): {
   todayPayment: number;
   totalPayment: number;

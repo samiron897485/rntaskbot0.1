@@ -696,14 +696,14 @@
       el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_user')}</th><th>${L('th_amount')}</th><th>${L('th_inr')}</th><th>${L('th_whatsapp')}</th><th>${L('th_status')}</th><th>${L('th_action')}</th></tr></thead><tbody>
         ${d.withdrawals.slice().reverse().map(w => {
           const inr = Math.round((w.amount / rate) * 100) / 100;
-          const bd = w.earningBreakdown || {};
+          const bd = w.balanceBreakdown || {};
           const breakdownHtml = `<div style="margin-top:6px;padding:6px 8px;background:#0f172a;border-radius:6px;font-size:0.73rem;color:#94a3b8;line-height:1.7">
-            <div style="color:#e2e8f0;font-weight:600;margin-bottom:2px">💼 Coin Earning Breakdown</div>
-            <span>✅ Task: <b style="color:#00d4aa">${bd.taskEarnings ?? 0}</b></span>&nbsp;|&nbsp;
-            <span>👥 Referral: <b style="color:#fbbf24">${bd.referralEarnings ?? 0}</b></span>&nbsp;|&nbsp;
-            <span>🎟️ Coupon: <b style="color:#a78bfa">${bd.couponEarnings ?? 0}</b></span>&nbsp;|&nbsp;
-            <span>📅 Check-in: <b style="color:#38bdf8">${bd.checkInEarnings ?? 0}</b></span>&nbsp;|&nbsp;
-            <span>💼 Admin: <b style="color:#fb923c">${bd.adminWalletEarnings ?? 0}</b></span>
+            <div style="color:#e2e8f0;font-weight:600;margin-bottom:2px">💼 Current Balance Breakdown</div>
+            <span>✅ Task: <b style="color:#00d4aa">${bd.taskBalance ?? 0}</b></span>&nbsp;|&nbsp;
+            <span>👥 Referral: <b style="color:#fbbf24">${bd.referralBalance ?? 0}</b></span>&nbsp;|&nbsp;
+            <span>🎟️ Coupon: <b style="color:#a78bfa">${bd.couponBalance ?? 0}</b></span>&nbsp;|&nbsp;
+            <span>📅 Check-in: <b style="color:#38bdf8">${bd.checkInBalance ?? 0}</b></span>&nbsp;|&nbsp;
+            <span>💼 Admin: <b style="color:#fb923c">${bd.adminWalletBalance ?? 0}</b></span>
           </div>`;
           return `<tr>
           <td style="font-size:0.75rem;color:#94a3b8">${w.id}</td>
@@ -1038,7 +1038,7 @@
         res.textContent = '';
         document.getElementById('analyticsCard').style.display = 'block';
         const a = d.analytics;
-        const bd = a.earningBreakdown || {};
+        const bd = a.balanceBreakdown || {};
         document.getElementById('analyticsData').innerHTML = `
           <table>
             <tr><th>Metric</th><th>Value</th></tr>
@@ -1053,15 +1053,15 @@
             <tr><td>📅 Join Date</td><td>${new Date(a.joinDate).toLocaleDateString('en-GB')}</td></tr>
           </table>
           <div style="margin-top:14px;padding:14px;background:#0f172a;border-radius:10px;border:1px solid #334155">
-            <div style="color:#00d4aa;font-weight:600;margin-bottom:10px">💼 Coin Earning Breakdown</div>
+            <div style="color:#00d4aa;font-weight:600;margin-bottom:10px">💼 Current Balance Breakdown</div>
             <table>
-              <tr><th>Source</th><th>Coins Earned</th></tr>
-              <tr><td>✅ Task Completed</td><td style="color:#00d4aa;font-weight:bold">${bd.taskEarnings ?? 0}</td></tr>
-              <tr><td>👥 Referral (Bonus + Commission)</td><td style="color:#fbbf24;font-weight:bold">${bd.referralEarnings ?? 0}</td></tr>
-              <tr><td>🎟️ Coupon</td><td style="color:#a78bfa;font-weight:bold">${bd.couponEarnings ?? 0}</td></tr>
-              <tr><td>📅 Daily Check-in</td><td style="color:#38bdf8;font-weight:bold">${bd.checkInEarnings ?? 0}</td></tr>
-              <tr><td>💼 Admin Wallet</td><td style="color:#fb923c;font-weight:bold">${bd.adminWalletEarnings ?? 0}</td></tr>
-              <tr style="border-top:1px solid #334155"><td><b>Total Earned</b></td><td style="color:#e2e8f0;font-weight:bold">${bd.totalEarned ?? 0}</td></tr>
+              <tr><th>Source</th><th>Coins in Balance</th></tr>
+              <tr><td>✅ Task Completed</td><td style="color:#00d4aa;font-weight:bold">${bd.taskBalance ?? 0}</td></tr>
+              <tr><td>👥 Referral (Bonus + Commission)</td><td style="color:#fbbf24;font-weight:bold">${bd.referralBalance ?? 0}</td></tr>
+              <tr><td>🎟️ Coupon</td><td style="color:#a78bfa;font-weight:bold">${bd.couponBalance ?? 0}</td></tr>
+              <tr><td>📅 Daily Check-in</td><td style="color:#38bdf8;font-weight:bold">${bd.checkInBalance ?? 0}</td></tr>
+              <tr><td>💼 Admin Wallet</td><td style="color:#fb923c;font-weight:bold">${bd.adminWalletBalance ?? 0}</td></tr>
+              <tr style="border-top:1px solid #334155"><td><b>Total Balance</b></td><td style="color:#e2e8f0;font-weight:bold">${a.currentBalance ?? 0}</td></tr>
             </table>
           </div>`;
       } else {

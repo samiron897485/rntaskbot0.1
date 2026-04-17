@@ -39,6 +39,7 @@ import {
   markUserAlertSent,
   updateUserLastActive,
   getEarningBreakdown,
+  getBalanceBreakdown,
   getPaymentStats,
   getPaymentLogs,
   getUserWithdrawals,
@@ -445,13 +446,14 @@ router.get("/admin/user-analytics/:userId", adminAuthMiddleware, (req: Request, 
   }
   const analytics = getUserAnalytics(userId);
   const earningBreakdown = getEarningBreakdown(userId);
+  const balanceBreakdown = getBalanceBreakdown(userId);
   const cfg = getAdminConfig();
   const targetUser = getUser(userId);
   const currentBalance = targetUser.coins;
   const currentBalanceMoney = Math.round((currentBalance / cfg.coinToMoneyRate) * 100) / 100;
   const approvedWds = getUserWithdrawals(userId).filter((w) => w.status === "approved");
   const totalWithdrawMoney = Math.round(approvedWds.reduce((s, w) => s + (w.moneyAmount ?? w.amount / cfg.coinToMoneyRate), 0) * 100) / 100;
-  res.json({ success: true, analytics: { ...analytics, earningBreakdown, currentBalance, currentBalanceMoney, totalWithdrawMoney } });
+  res.json({ success: true, analytics: { ...analytics, earningBreakdown, balanceBreakdown, currentBalance, currentBalanceMoney, totalWithdrawMoney } });
 });
 
 router.get("/admin/payment-stats", adminAuthMiddleware, (_req: Request, res: Response) => {
@@ -493,12 +495,12 @@ router.get("/admin/withdrawals", adminAuthMiddleware, (_req: Request, res: Respo
     const prevWd = idx > 0 ? userWds[idx - 1] : null;
     const fromTs = prevWd ? new Date(prevWd.createdAt).getTime() : 0;
     const toTs = new Date(w.createdAt).getTime();
-    const breakdown = getEarningBreakdown(w.userId);
+    const balanceBreakdown = getBalanceBreakdown(w.userId);
     return {
       ...w,
       totalReferredUsers: user.totalReferrals || 0,
       referralEarningsInPeriod: getReferralEarningsBetween(w.userId, fromTs, toTs),
-      earningBreakdown: breakdown,
+      balanceBreakdown,
     };
   });
   res.json({ success: true, withdrawals: enriched });

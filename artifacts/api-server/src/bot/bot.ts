@@ -60,6 +60,7 @@ import {
   clearPendingCouponAdminInput,
   getUserAnalytics,
   getEarningBreakdown,
+  getBalanceBreakdown,
   getPaymentStats,
   getPaymentLogs,
   getUserWithdrawals,
@@ -793,7 +794,7 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
   const cfg = getAdminConfig();
   const inrAmount = (wr.amount / cfg.coinToMoneyRate).toFixed(2);
   const analytics = getUserAnalytics(wr.userId);
-  const breakdown = getEarningBreakdown(wr.userId);
+  const balBd = getBalanceBreakdown(wr.userId);
   const wrUser = getUser(wr.userId);
   const currentBalanceMoney = (wrUser.coins / cfg.coinToMoneyRate).toFixed(2);
   const approvedWds = getWithdrawals().filter((w) => w.userId === wr.userId && w.status === "approved");
@@ -825,13 +826,13 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
     `🪙 Balance: ${wrUser.coins} coins (₹${currentBalanceMoney})\n` +
     `💸 Total Withdrawn: ${analytics.totalWithdrawAmount} coins (₹${totalWithdrawMoney.toFixed(2)})\n` +
     `✔️ Accepted: ${analytics.totalAcceptedWithdraw} | ❌ Rejected: ${analytics.totalRejectedWithdraw}\n\n` +
-    `📦 *Coin Earning Breakdown:*\n` +
-    `✅ Task: ${breakdown.taskEarnings} coins\n` +
-    `👥 Referral: ${breakdown.referralEarnings} coins\n` +
-    `🎟️ Coupon: ${breakdown.couponEarnings} coins\n` +
-    `📅 Check-in: ${breakdown.checkInEarnings} coins\n` +
-    `💼 Admin Wallet: ${breakdown.adminWalletEarnings} coins\n` +
-    `🧮 Total Earned: ${breakdown.totalEarned} coins\n\n` +
+    `📦 *Current Balance Breakdown:*\n` +
+    `✅ Task: ${balBd.taskBalance} coins\n` +
+    `👥 Referral: ${balBd.referralBalance} coins\n` +
+    `🎟️ Coupon: ${balBd.couponBalance} coins\n` +
+    `📅 Check-in: ${balBd.checkInBalance} coins\n` +
+    `💼 Admin Wallet: ${balBd.adminWalletBalance} coins\n` +
+    `🪙 Total Balance: ${wrUser.coins} coins\n\n` +
     `🕐 Last Withdraw: ${escMd(lastWdTime)}\n` +
     `🕑 Current: ${escMd(currentWdTime)}\n` +
     `📋 Tasks Since Last: ${tasksSinceLastWd}\n` +
@@ -2716,7 +2717,7 @@ export function initBot(token: string, baseUrl: string): void {
         return;
       }
       const analytics = getUserAnalytics(targetId);
-      const breakdown = getEarningBreakdown(targetId);
+      const balBd = getBalanceBreakdown(targetId);
       const cfg = getAdminConfig();
       const targetUser = getUser(targetId);
       const joinDateStr = analytics.joinDate.toLocaleDateString("en-GB");
@@ -2734,14 +2735,14 @@ export function initBot(token: string, baseUrl: string): void {
         `💰 Total Withdraw Amount: ${analytics.totalWithdrawAmount} coins (₹${totalWithdrawMoney.toFixed(2)})\n` +
         `✅ Total Accepted: ${analytics.totalAcceptedWithdraw} | ❌ Rejected: ${analytics.totalRejectedWithdraw}\n` +
         `📅 Join Date: ${joinDateStr}\n\n` +
-        `📦 *Coin Earning Breakdown:*\n` +
-        `✅ Task: ${breakdown.taskEarnings} coins\n` +
-        `👥 Referral: ${breakdown.referralEarnings} coins\n` +
-        `🎟️ Coupon: ${breakdown.couponEarnings} coins\n` +
-        `📅 Check-in: ${breakdown.checkInEarnings} coins\n` +
-        `💼 Admin Wallet: ${breakdown.adminWalletEarnings} coins\n` +
+        `📦 *Current Balance Breakdown:*\n` +
+        `✅ Task: ${balBd.taskBalance} coins\n` +
+        `👥 Referral: ${balBd.referralBalance} coins\n` +
+        `🎟️ Coupon: ${balBd.couponBalance} coins\n` +
+        `📅 Check-in: ${balBd.checkInBalance} coins\n` +
+        `💼 Admin Wallet: ${balBd.adminWalletBalance} coins\n` +
         `━━━━━━━━━━━━━━\n` +
-        `🧮 Total Earned: ${breakdown.totalEarned} coins`,
+        `🪙 Total Balance: ${targetUser.coins} coins`,
         {
           parse_mode: "Markdown",
           reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] },
