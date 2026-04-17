@@ -49,6 +49,9 @@ export async function initDb(): Promise<void> {
     const pool = new Pool({
       connectionString: url,
       ssl: process.env["NODE_ENV"] === "production" ? { rejectUnauthorized: false } : false,
+      max: 5,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
     });
     await pool.query(CREATE_TABLES_SQL);
     db = drizzle(pool);
