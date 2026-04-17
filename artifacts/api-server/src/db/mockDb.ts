@@ -257,11 +257,12 @@ export function getWithdrawals(status?: WithdrawalRequest["status"]): Withdrawal
   return [...withdrawals];
 }
 
-export function updateWithdrawal(id: string, status: WithdrawalRequest["status"], rejectReason?: string): WithdrawalRequest | null {
+export function updateWithdrawal(id: string, status: WithdrawalRequest["status"], rejectReason?: string, lockedMoneyAmount?: number): WithdrawalRequest | null {
   const w = withdrawals.find((x) => x.id === id);
   if (!w) return null;
   w.status = status;
   if (rejectReason) w.rejectReason = rejectReason;
+  if (status === "approved" && lockedMoneyAmount != null) w.moneyAmount = lockedMoneyAmount;
   saveWithdrawal(w);
   return w;
 }
