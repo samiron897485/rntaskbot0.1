@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { validateSession } from "./session.js";
 
 const HARDCODED_ADMIN_IDS = ["1414414216", "7728185213"];
 
@@ -24,13 +25,19 @@ export function adminAuthMiddleware(
   res: Response,
   next: NextFunction
 ): void {
+  const sessionToken = req.cookies?.["admin_session"] as string | undefined;
+  if (validateSession(sessionToken)) {
+    next();
+    return;
+  }
+
   const token =
     (req.headers["x-admin-token"] as string | undefined) ||
     (req.query["token"] as string | undefined) ||
     "";
 
   if (!isValidAdminToken(token)) {
-    res.status(403).send("Access Denied");
+    res.status(403).json({ success: false, message: "Access Denied" });
     return;
   }
 

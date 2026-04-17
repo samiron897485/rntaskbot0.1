@@ -72,6 +72,7 @@
   <h1>🔧 L1 Admin Panel</h1>
   <span class="badge" id="pendingBadge" style="display:none">0 Pending</span>
   <button class="lang-btn" id="langToggleBtn" onclick="toggleLang()">🇧🇩 বাংলা</button>
+  <button class="lang-btn" onclick="logout()" style="background:#7f1d1d;border-color:#991b1b;color:#fca5a5">🚪 Logout</button>
 </div>
 
 <div class="tabs">
@@ -317,15 +318,15 @@
 </div>
 
 <script>
-  const ADMIN_TOKEN = new URLSearchParams(window.location.search).get('token') || '';
-  if (!ADMIN_TOKEN) {
-    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:#ff4444;font-family:sans-serif;font-size:1.1rem;">403 Access Denied</div>';
-    throw new Error('No admin token');
-  }
   function apiFetch(url, options) {
     options = options || {};
-    const headers = Object.assign({ 'x-admin-token': ADMIN_TOKEN }, options.headers || {});
-    return globalThis.fetch(url, Object.assign({}, options, { headers }));
+    const headers = Object.assign({}, options.headers || {});
+    return globalThis.fetch(url, Object.assign({}, options, { headers, credentials: 'same-origin' }));
+  }
+
+  async function logout() {
+    await apiFetch('/api/admin/logout', { method: 'POST' });
+    window.location.href = '/login';
   }
   const translations = {
     en: {

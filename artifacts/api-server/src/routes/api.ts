@@ -45,8 +45,36 @@ import {
 } from "../db/mockDb.js";
 import { sendTaskCompletion } from "../bot/bot.js";
 import { bot } from "../bot/bot.js";
+import { validateAdminCredentials, createSession, destroySession } from "../middleware/session.js";
 
 const router: IRouter = Router();
+
+router.post("/admin/login", (req: Request, res: Response) => {
+  const { username, password } = req.body as { username: string; password: string };
+  if (!username || !password) {
+    res.status(400).json({ success: false, message: "Username and password are required" });
+    return;
+  }
+  if (!validateAdminCredentials(username, password)) {
+    res.status(401).json({ success: false, message: "Invalid username or password" });
+    return;
+  }
+  const token = createSession();
+  res.cookie("admin_session", token, {
+    httpOnly: true,
+    sameSite: "strict",
+    maxAge: 24 * 60 * 60 * 1000,
+    secure: process.env["NODE_ENV"] === "production",
+  });
+  res.json({ success: true });
+});
+
+router.post("/admin/logout", (req: Request, res: Response) => {
+  const sessionToken = req.cookies?.["admin_session"] as string | undefined;
+  destroySession(sessionToken);
+  res.clearCookie("admin_session");
+  res.json({ success: true });
+});
 
 router.get("/config", (_req: Request, res: Response) => {
   const cfg = getAdminConfig();
