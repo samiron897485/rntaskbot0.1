@@ -884,8 +884,8 @@
       const r = await apiFetch('/api/admin/payment-stats');
       const d = await r.json();
       if (d.success) {
-        document.getElementById('pay-today').textContent = `${d.todayPayment} coins | ৳${d.todayMoney ?? '—'}`;
-        document.getElementById('pay-total').textContent = `${d.totalPayment} coins | ৳${d.totalMoney ?? '—'}`;
+        document.getElementById('pay-today').textContent = `${d.todayPayment} coins | ₹${d.todayMoney ?? '—'}`;
+        document.getElementById('pay-total').textContent = `${d.totalPayment} coins | ₹${d.totalMoney ?? '—'}`;
       }
     } catch(e) {}
     await loadPaymentLogs();
@@ -913,12 +913,12 @@
     const slice = _paymentLogs.slice(start, start + PAGE_SIZE);
     const container = document.getElementById('paymentLogsContainer');
     if (slice.length === 0) { container.innerHTML = '<div class="empty">No more records</div>'; return; }
-    let html = `<table><thead><tr><th>Date</th><th>Amount (coins)</th><th>Money (৳)</th><th>Users Paid</th></tr></thead><tbody>`;
+    let html = `<table><thead><tr><th>Date</th><th>Amount (coins)</th><th>Money (₹)</th><th>Users Paid</th></tr></thead><tbody>`;
     for (const row of slice) {
       html += `<tr>
         <td style="color:#60a5fa">${row.date}</td>
         <td style="color:#00d4aa;font-weight:bold">${row.totalAmount}</td>
-        <td style="color:#a78bfa;font-weight:bold">৳${row.totalMoney ?? '—'}</td>
+        <td style="color:#a78bfa;font-weight:bold">₹${row.totalMoney ?? '—'}</td>
         <td style="color:#fbbf24">${row.userCount}</td>
       </tr>`;
     }
@@ -993,13 +993,13 @@
       <span style="color:#e2e8f0">User: <b style="color:#60a5fa">${_userPaylogsUid}</b></span>
       &nbsp;|&nbsp;
       <span style="color:#e2e8f0">Total Approved: <b style="color:#00d4aa">${_userPaylogsTotalPaid} coins</b>
-        ${_userPaylogsTotalMoney != null ? `<span style="color:#a78bfa"> | ৳${Number(_userPaylogsTotalMoney).toFixed(2)}</span>` : ''}</span>
+        ${_userPaylogsTotalMoney != null ? `<span style="color:#a78bfa"> | ₹${Number(_userPaylogsTotalMoney).toFixed(2)}</span>` : ''}</span>
     </div>`;
-    html += `<table><thead><tr><th>Date</th><th>Coins</th><th>Money (৳)</th><th>Balance at Time</th><th>Status</th></tr></thead><tbody>`;
+    html += `<table><thead><tr><th>Date</th><th>Coins</th><th>Money (₹)</th><th>Balance at Time</th><th>Status</th></tr></thead><tbody>`;
     for (const w of slice) {
       const date = new Date(w.createdAt).toLocaleDateString('en-GB');
       const balanceAtTime = w.coinBalance != null ? `${w.coinBalance} coins` : '-';
-      const money = w.moneyAmount != null ? `৳${Number(w.moneyAmount).toFixed(2)}` : '-';
+      const money = w.moneyAmount != null ? `₹${Number(w.moneyAmount).toFixed(2)}` : '-';
       let statusBadge;
       if (w.status === 'approved') statusBadge = `<span class="badge-approved">✅ Approved</span>`;
       else if (w.status === 'rejected') statusBadge = `<span class="badge-rejected">❌ Rejected</span>`;
@@ -1042,12 +1042,12 @@
         document.getElementById('analyticsData').innerHTML = `
           <table>
             <tr><th>Metric</th><th>Value</th></tr>
-            <tr><td>💰 Current Balance</td><td style="color:#00d4aa;font-weight:bold">${a.currentBalance ?? 0} coins <span style="color:#a78bfa">| ৳${a.currentBalanceMoney ?? 0}</span></td></tr>
+            <tr><td>💰 Current Balance</td><td style="color:#00d4aa;font-weight:bold">${a.currentBalance ?? 0} coins <span style="color:#a78bfa">| ₹${a.currentBalanceMoney ?? 0}</span></td></tr>
             <tr><td>✅ Total Tasks Completed</td><td>${a.totalTasksCompleted}</td></tr>
             <tr><td>👥 Total Users Referred</td><td style="color:#00d4aa;font-weight:bold">${a.totalReferredUsers}</td></tr>
             <tr><td>💎 Total Referral Earnings (Bonus + Commission)</td><td style="color:#fbbf24;font-weight:bold">${a.totalReferralEarnings} coins</td></tr>
             <tr><td>💸 Total Withdraw Count</td><td>${a.totalWithdrawCount}</td></tr>
-            <tr><td>💰 Total Withdraw Amount</td><td>${a.totalWithdrawAmount} coins <span style="color:#a78bfa">| ৳${a.totalWithdrawMoney ?? 0}</span></td></tr>
+            <tr><td>💰 Total Withdraw Amount</td><td>${a.totalWithdrawAmount} coins <span style="color:#a78bfa">| ₹${a.totalWithdrawMoney ?? 0}</span></td></tr>
             <tr><td>✅ Accepted Withdrawals</td><td>${a.totalAcceptedWithdraw}</td></tr>
             <tr><td>❌ Rejected Withdrawals</td><td>${a.totalRejectedWithdraw}</td></tr>
             <tr><td>📅 Join Date</td><td>${new Date(a.joinDate).toLocaleDateString('en-GB')}</td></tr>

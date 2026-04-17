@@ -339,10 +339,16 @@ export function getEarningBreakdown(userId: string): {
 } {
   const user = getUser(userId);
   const history = user.earningHistory || [];
-  let taskEarnings = 0, referralEarnings = 0, couponEarnings = 0, adminWalletEarnings = 0, checkInEarnings = 0;
+
+  // Use authoritative sources for task and referral earnings
+  const taskEarnings = user.completedTasks.length;
+  const referralEarnings = user.referralEarnings || 0;
+
+  // For coupon, check-in, and admin wallet use earningHistory
+  let couponEarnings = 0, adminWalletEarnings = 0, checkInEarnings = 0;
   for (const h of history) {
-    if (h.reason === "Task Completed") taskEarnings += h.amount;
-    else if (h.reason.startsWith("Referral")) referralEarnings += h.amount;
+    if (h.reason === "Task Completed") continue;
+    else if (h.reason.startsWith("Referral")) continue;
     else if (h.reason.startsWith("Coupon:")) couponEarnings += h.amount;
     else if (h.reason === "Daily Check-in") checkInEarnings += h.amount;
     else adminWalletEarnings += h.amount;

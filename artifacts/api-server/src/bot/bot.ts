@@ -793,10 +793,12 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
   const cfg = getAdminConfig();
   const inrAmount = (wr.amount / cfg.coinToMoneyRate).toFixed(2);
   const analytics = getUserAnalytics(wr.userId);
+  const breakdown = getEarningBreakdown(wr.userId);
   const wrUser = getUser(wr.userId);
-  const allUserWds = getWithdrawals()
-    .filter((w) => w.userId === wr.userId && w.status === "approved")
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const currentBalanceMoney = (wrUser.coins / cfg.coinToMoneyRate).toFixed(2);
+  const approvedWds = getWithdrawals().filter((w) => w.userId === wr.userId && w.status === "approved");
+  const totalWithdrawMoney = approvedWds.reduce((s, w) => s + (w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100), 0);
+  const allUserWds = approvedWds.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const lastWd = allUserWds[0];
   const lastWdTime = lastWd
     ? new Date(lastWd.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
@@ -820,8 +822,16 @@ async function showQueueItem(chatId: number, adminId: string): Promise<void> {
     `📊 *User Stats:*\n` +
     `✅ Tasks: ${analytics.totalTasksCompleted}\n` +
     `👥 Referred: ${analytics.totalReferredUsers} | 💎 Ref Earnings: ${analytics.totalReferralEarnings} coins\n` +
-    `🪙 Balance: ${wrUser.coins} coins\n` +
+    `🪙 Balance: ${wrUser.coins} coins (₹${currentBalanceMoney})\n` +
+    `💸 Total Withdrawn: ${analytics.totalWithdrawAmount} coins (₹${totalWithdrawMoney.toFixed(2)})\n` +
     `✔️ Accepted: ${analytics.totalAcceptedWithdraw} | ❌ Rejected: ${analytics.totalRejectedWithdraw}\n\n` +
+    `📦 *Coin Earning Breakdown:*\n` +
+    `✅ Task: ${breakdown.taskEarnings} coins\n` +
+    `👥 Referral: ${breakdown.referralEarnings} coins\n` +
+    `🎟️ Coupon: ${breakdown.couponEarnings} coins\n` +
+    `📅 Check-in: ${breakdown.checkInEarnings} coins\n` +
+    `💼 Admin Wallet: ${breakdown.adminWalletEarnings} coins\n` +
+    `🧮 Total Earned: ${breakdown.totalEarned} coins\n\n` +
     `🕐 Last Withdraw: ${escMd(lastWdTime)}\n` +
     `🕑 Current: ${escMd(currentWdTime)}\n` +
     `📋 Tasks Since Last: ${tasksSinceLastWd}\n` +
@@ -915,6 +925,58 @@ async function showBinItem(chatId: number, adminId: string): Promise<void> {
   } else {
     await bot.sendMessage(chatId, binText, { parse_mode: "Markdown", reply_markup: binKeyboard }).catch(() => {});
   }
+}
+
+async function showUserPaylogs(chatId: number, messageId: number, targetId: string, page: number): Promise<void> {
+  if (!bot) return;
+  const cfg = getAdminConfig();
+  const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - TEN_DAYS_MS;
+  const wds = getUserWithdrawals(targetId)
+    .filter((w) => w.status !== "bin" && new Date(w.createdAt).getTime() >= cutoff)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const totalPaid = wds.filter((w) => w.status === "approved").reduce((s, w) => s + w.amount, 0);
+  const totalPaidMoney = wds.filter((w) => w.status === "approved").reduce((s, w) => s + (w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100), 0);
+
+  const PAGE_SIZE = 5;
+  const totalPages = Math.max(1, Math.ceil(wds.length / PAGE_SIZE));
+  const safePage = Math.min(Math.max(0, page), totalPages - 1);
+
+  let bodyText: string;
+  if (wds.length === 0) {
+    bodyText = `📋 No withdrawals found in the last 10 days.`;
+  } else {
+    const slice = wds.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+    const statusEmoji = (s: string) => s === "approved" ? "✅" : s === "rejected" ? "❌" : "⏳";
+    const lines = slice.map((w, i) => {
+      const date = new Date(w.createdAt).toLocaleDateString("en-GB");
+      const money = w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100;
+      const bal = w.coinBalance != null ? ` | Balance: ${w.coinBalance} coins` : "";
+      return `${safePage * PAGE_SIZE + i + 1}. ${date} | ${statusEmoji(w.status)} ${w.status}\n   🪙 ${w.amount} coins (₹${money})${bal}`;
+    }).join("\n");
+    bodyText = lines;
+  }
+
+  const headerText =
+    `👤 *User Paylogs*\n\n🔢 User: \`${targetId}\`\n` +
+    `💰 Total Approved: ${totalPaid} coins (₹${totalPaidMoney.toFixed(2)})\n` +
+    `_(Last 10 days — Page ${safePage + 1}/${totalPages})_\n\n${bodyText}`;
+
+  const navRow: { text: string; callback_data: string }[] = [];
+  if (safePage > 0) navRow.push({ text: "⬅️ Previous", callback_data: `admin_uplogs_${targetId}_${safePage - 1}` });
+  if (safePage < totalPages - 1) navRow.push({ text: "➡️ Next", callback_data: `admin_uplogs_${targetId}_${safePage + 1}` });
+  const keyboard: { text: string; callback_data: string }[][] = [];
+  if (navRow.length > 0) keyboard.push(navRow);
+  keyboard.push([{ text: "🔙 Admin Menu", callback_data: "admin_back" }]);
+
+  await bot.editMessageText(headerText, {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: "Markdown",
+    reply_markup: { inline_keyboard: keyboard },
+  }).catch(async () => {
+    await bot!.sendMessage(chatId, headerText, { parse_mode: "Markdown", reply_markup: { inline_keyboard: keyboard } }).catch(() => {});
+  });
 }
 
 export function sendTaskCompletion(userId: string, coins: number): void {
@@ -2311,9 +2373,9 @@ export function initBot(token: string, baseUrl: string): void {
       await bot!.sendMessage(
         chatId,
         `💰 *Payment Stats*\n\n` +
-        `📅 Today's Payment:\n  🪙 ${stats.todayPayment} coins | 💵 ৳${stats.todayMoney}\n\n` +
-        `📊 Total Payment (All Time):\n  🪙 ${stats.totalPayment} coins | 💵 ৳${stats.totalMoney}\n\n` +
-        `💱 Current Rate: ${cfg.coinToMoneyRate} coins = ৳1`,
+        `📅 Today's Payment:\n  🪙 ${stats.todayPayment} coins | 💵 ₹${stats.todayMoney}\n\n` +
+        `📊 Total Payment (All Time):\n  🪙 ${stats.totalPayment} coins | 💵 ₹${stats.totalMoney}\n\n` +
+        `💱 Current Rate: ${cfg.coinToMoneyRate} coins = ₹1`,
         {
           parse_mode: "Markdown",
           reply_markup: {
@@ -2342,7 +2404,7 @@ export function initBot(token: string, baseUrl: string): void {
       }
       const totalPages = Math.ceil(logs.length / PAGE_SIZE);
       const lines = slice.map((r) =>
-        `📅 ${r.date}\n  🪙 ${r.totalAmount} coins | 💵 ৳${r.totalMoney} | 👥 ${r.userCount} users`
+        `📅 ${r.date}\n  🪙 ${r.totalAmount} coins | 💵 ₹${r.totalMoney} | 👥 ${r.userCount} users`
       ).join("\n\n");
       const nav: { text: string; callback_data: string }[][] = [];
       const navRow: { text: string; callback_data: string }[] = [];
@@ -2350,11 +2412,30 @@ export function initBot(token: string, baseUrl: string): void {
       if (start + PAGE_SIZE < logs.length) navRow.push({ text: "➡️ Next", callback_data: `admin_paylogs_page_${page + 1}` });
       if (navRow.length > 0) nav.push(navRow);
       nav.push([{ text: "🔙 Back", callback_data: "admin_payments" }]);
-      await bot!.sendMessage(
-        chatId,
-        `📋 *Payment Logs* (Page ${page + 1}/${totalPages})\n\n${lines}`,
-        { parse_mode: "Markdown", reply_markup: { inline_keyboard: nav } }
-      );
+      const paylogsText = `📋 *Payment Logs* (Page ${page + 1}/${totalPages})\n\n${lines}`;
+      const paylogsMarkup = { inline_keyboard: nav };
+      if (msgId) {
+        await bot!.editMessageText(paylogsText, {
+          chat_id: chatId,
+          message_id: msgId,
+          parse_mode: "Markdown",
+          reply_markup: paylogsMarkup,
+        }).catch(async () => {
+          await bot!.sendMessage(chatId, paylogsText, { parse_mode: "Markdown", reply_markup: paylogsMarkup });
+        });
+      } else {
+        await bot!.sendMessage(chatId, paylogsText, { parse_mode: "Markdown", reply_markup: paylogsMarkup });
+      }
+      return;
+    }
+
+    if (data.startsWith("admin_uplogs_")) {
+      if (!isAdmin(userId)) return;
+      const parts = data.replace("admin_uplogs_", "").split("_");
+      const page = parseInt(parts[parts.length - 1], 10) || 0;
+      const targetId = parts.slice(0, parts.length - 1).join("_");
+      if (!targetId || !msgId) return;
+      await showUserPaylogs(chatId, msgId, targetId, page);
       return;
     }
 
@@ -2363,7 +2444,7 @@ export function initBot(token: string, baseUrl: string): void {
       pendingUserPaylogsInput[userId] = true;
       await bot!.sendMessage(
         chatId,
-        `👤 *User Payment Logs*\n\nUser ID টি পাঠান (Telegram User ID):`,
+        `👤 *User Payment Logs*\n\nEnter the User ID (Telegram User ID):`,
         {
           parse_mode: "Markdown",
           reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "admin_cancel" }]] },
@@ -2645,12 +2726,12 @@ export function initBot(token: string, baseUrl: string): void {
       await bot!.sendMessage(
         chatId,
         `📊 *User Analytics*\n\n🔢 User ID: \`${targetId}\`\n\n` +
-        `💰 *Current Balance:* ${targetUser.coins} coins (৳${currentBalanceMoney})\n\n` +
+        `💰 *Current Balance:* ${targetUser.coins} coins (₹${currentBalanceMoney})\n\n` +
         `✅ Total Tasks Completed: ${analytics.totalTasksCompleted}\n` +
         `👥 Total Users Referred: ${analytics.totalReferredUsers}\n` +
         `💎 Total Referral Earnings: ${analytics.totalReferralEarnings} coins\n` +
         `💸 Total Withdraw Count: ${analytics.totalWithdrawCount}\n` +
-        `💰 Total Withdraw Amount: ${analytics.totalWithdrawAmount} coins (৳${totalWithdrawMoney.toFixed(2)})\n` +
+        `💰 Total Withdraw Amount: ${analytics.totalWithdrawAmount} coins (₹${totalWithdrawMoney.toFixed(2)})\n` +
         `✅ Total Accepted: ${analytics.totalAcceptedWithdraw} | ❌ Rejected: ${analytics.totalRejectedWithdraw}\n` +
         `📅 Join Date: ${joinDateStr}\n\n` +
         `📦 *Coin Earning Breakdown:*\n` +
@@ -2680,39 +2761,8 @@ export function initBot(token: string, baseUrl: string): void {
         });
         return;
       }
-      const cfg = getAdminConfig();
-      const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
-      const cutoff = Date.now() - TEN_DAYS_MS;
-      const wds = getUserWithdrawals(targetId)
-        .filter((w) => w.status !== "bin" && new Date(w.createdAt).getTime() >= cutoff)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      const totalPaid = wds.filter((w) => w.status === "approved").reduce((s, w) => s + w.amount, 0);
-      const totalPaidMoney = wds.filter((w) => w.status === "approved").reduce((s, w) => s + (w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100), 0);
-      if (wds.length === 0) {
-        await bot!.sendMessage(chatId,
-          `👤 User: \`${targetId}\`\n\n📋 গত ১০ দিনে কোনো withdrawal নেই।`,
-          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] } }
-        );
-        return;
-      }
-      const slice = wds.slice(0, 5);
-      const statusEmoji = (s: string) => s === "approved" ? "✅" : s === "rejected" ? "❌" : "⏳";
-      const lines = slice.map((w, i) => {
-        const date = new Date(w.createdAt).toLocaleDateString("en-GB");
-        const money = w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100;
-        const bal = w.coinBalance != null ? `Balance: ${w.coinBalance} coins` : "";
-        return `${i + 1}. ${date} | ${statusEmoji(w.status)} ${w.status}\n   🪙 ${w.amount} coins (৳${money})${bal ? " | " + bal : ""}`;
-      }).join("\n");
-      await bot!.sendMessage(
-        chatId,
-        `👤 *User Paylogs*\n\n🔢 User: \`${targetId}\`\n` +
-        `💰 Total Approved: ${totalPaid} coins (৳${totalPaidMoney.toFixed(2)})\n` +
-        `_(গত ১০ দিনের সর্বোচ্চ ৫টি দেখানো হচ্ছে)_\n\n${lines}`,
-        {
-          parse_mode: "Markdown",
-          reply_markup: { inline_keyboard: [[{ text: "🔙 Admin Menu", callback_data: "admin_back" }]] },
-        }
-      );
+      const sentMsg = await bot!.sendMessage(chatId, `⏳ Loading paylogs for \`${targetId}\`...`, { parse_mode: "Markdown" });
+      await showUserPaylogs(chatId, sentMsg.message_id, targetId, 0);
       return;
     }
 
