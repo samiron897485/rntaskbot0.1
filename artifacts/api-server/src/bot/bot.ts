@@ -59,6 +59,10 @@ import {
   setPendingCouponAdminInput,
   clearPendingCouponAdminInput,
   getUserAnalytics,
+  getEarningBreakdown,
+  getPaymentStats,
+  getPaymentLogs,
+  getUserWithdrawals,
   claimCoupon,
   createCouponCode,
   getCouponCodes,
@@ -393,6 +397,10 @@ function adminMenuKeyboard() {
       [
         { text: "📊 Stats", callback_data: "admin_stats" },
         { text: "🧹 Manual Cleanup", callback_data: "admin_manual_cleanup" },
+      ],
+      [
+        { text: "💰 Payments", callback_data: "admin_payments" },
+        { text: "👤 User Paylogs", callback_data: "admin_user_paylogs" },
       ],
     ],
   };
@@ -734,6 +742,7 @@ async function showWithdrawHistory(chatId: number, userId: string) {
 
 const pendingBroadcast: Record<string, boolean> = {};
 const pendingAnalyticsInput: Record<string, boolean> = {};
+const pendingUserPaylogsInput: Record<string, boolean> = {};
 const pendingPolicyInput: Record<string, boolean> = {};
 interface EligibilityState { step: "hours" | "tasks"; type: "coupon" | "withdraw"; hours?: number; }
 const pendingEligibilityInput: Record<string, EligibilityState> = {};
@@ -2295,6 +2304,74 @@ export function initBot(token: string, baseUrl: string): void {
       return;
     }
 
+    if (data === "admin_payments") {
+      if (!isAdmin(userId)) return;
+      const stats = getPaymentStats();
+      const cfg = getAdminConfig();
+      await bot!.sendMessage(
+        chatId,
+        `💰 *Payment Stats*\n\n` +
+        `📅 Today's Payment:\n  🪙 ${stats.todayPayment} coins | 💵 ৳${stats.todayMoney}\n\n` +
+        `📊 Total Payment (All Time):\n  🪙 ${stats.totalPayment} coins | 💵 ৳${stats.totalMoney}\n\n` +
+        `💱 Current Rate: ${cfg.coinToMoneyRate} coins = ৳1`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "📋 Payment Logs (30 days)", callback_data: "admin_paylogs_page_0" }],
+              [{ text: "🔙 Admin Menu", callback_data: "admin_back" }],
+            ],
+          },
+        }
+      );
+      return;
+    }
+
+    if (data.startsWith("admin_paylogs_page_")) {
+      if (!isAdmin(userId)) return;
+      const page = parseInt(data.replace("admin_paylogs_page_", ""), 10) || 0;
+      const logs = getPaymentLogs();
+      const PAGE_SIZE = 5;
+      const start = page * PAGE_SIZE;
+      const slice = logs.slice(start, start + PAGE_SIZE);
+      if (slice.length === 0) {
+        await bot!.sendMessage(chatId, "📋 No payment logs found for the last 30 days.", {
+          reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_payments" }]] },
+        });
+        return;
+      }
+      const totalPages = Math.ceil(logs.length / PAGE_SIZE);
+      const lines = slice.map((r) =>
+        `📅 ${r.date}\n  🪙 ${r.totalAmount} coins | 💵 ৳${r.totalMoney} | 👥 ${r.userCount} users`
+      ).join("\n\n");
+      const nav: { text: string; callback_data: string }[][] = [];
+      const navRow: { text: string; callback_data: string }[] = [];
+      if (page > 0) navRow.push({ text: "⬅️ Previous", callback_data: `admin_paylogs_page_${page - 1}` });
+      if (start + PAGE_SIZE < logs.length) navRow.push({ text: "➡️ Next", callback_data: `admin_paylogs_page_${page + 1}` });
+      if (navRow.length > 0) nav.push(navRow);
+      nav.push([{ text: "🔙 Back", callback_data: "admin_payments" }]);
+      await bot!.sendMessage(
+        chatId,
+        `📋 *Payment Logs* (Page ${page + 1}/${totalPages})\n\n${lines}`,
+        { parse_mode: "Markdown", reply_markup: { inline_keyboard: nav } }
+      );
+      return;
+    }
+
+    if (data === "admin_user_paylogs") {
+      if (!isAdmin(userId)) return;
+      pendingUserPaylogsInput[userId] = true;
+      await bot!.sendMessage(
+        chatId,
+        `👤 *User Payment Logs*\n\nUser ID টি পাঠান (Telegram User ID):`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "admin_cancel" }]] },
+        }
+      );
+      return;
+    }
+
     if (data === "admin_create_coupon") {
       if (!isAdmin(userId)) return;
       setPendingCouponAdminInput(userId, "code");
@@ -2372,6 +2449,7 @@ export function initBot(token: string, baseUrl: string): void {
       delete pendingAddWithdrawOption[userId];
       delete pendingMsgUser[userId];
       delete pendingAnalyticsInput[userId];
+      delete pendingUserPaylogsInput[userId];
       delete pendingPolicyInput[userId];
       delete pendingEligibilityInput[userId];
       delete pendingRejectInput[userId];
@@ -2557,21 +2635,82 @@ export function initBot(token: string, baseUrl: string): void {
         return;
       }
       const analytics = getUserAnalytics(targetId);
+      const breakdown = getEarningBreakdown(targetId);
+      const cfg = getAdminConfig();
+      const targetUser = getUser(targetId);
       const joinDateStr = analytics.joinDate.toLocaleDateString("en-GB");
+      const approvedWds = getUserWithdrawals(targetId).filter((w) => w.status === "approved");
+      const totalWithdrawMoney = approvedWds.reduce((s, w) => s + (w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100), 0);
+      const currentBalanceMoney = Math.round((targetUser.coins / cfg.coinToMoneyRate) * 100) / 100;
       await bot!.sendMessage(
         chatId,
         `📊 *User Analytics*\n\n🔢 User ID: \`${targetId}\`\n\n` +
+        `💰 *Current Balance:* ${targetUser.coins} coins (৳${currentBalanceMoney})\n\n` +
         `✅ Total Tasks Completed: ${analytics.totalTasksCompleted}\n` +
         `👥 Total Users Referred: ${analytics.totalReferredUsers}\n` +
         `💎 Total Referral Earnings: ${analytics.totalReferralEarnings} coins\n` +
         `💸 Total Withdraw Count: ${analytics.totalWithdrawCount}\n` +
-        `💰 Total Withdraw Amount: ${analytics.totalWithdrawAmount} coins\n` +
-        `✅ Total Accepted Withdraw: ${analytics.totalAcceptedWithdraw}\n` +
-        `❌ Total Rejected Withdraw: ${analytics.totalRejectedWithdraw}\n` +
-        `📅 Join Date: ${joinDateStr}`,
+        `💰 Total Withdraw Amount: ${analytics.totalWithdrawAmount} coins (৳${totalWithdrawMoney.toFixed(2)})\n` +
+        `✅ Total Accepted: ${analytics.totalAcceptedWithdraw} | ❌ Rejected: ${analytics.totalRejectedWithdraw}\n` +
+        `📅 Join Date: ${joinDateStr}\n\n` +
+        `📦 *Coin Earning Breakdown:*\n` +
+        `✅ Task: ${breakdown.taskEarnings} coins\n` +
+        `👥 Referral: ${breakdown.referralEarnings} coins\n` +
+        `🎟️ Coupon: ${breakdown.couponEarnings} coins\n` +
+        `📅 Check-in: ${breakdown.checkInEarnings} coins\n` +
+        `💼 Admin Wallet: ${breakdown.adminWalletEarnings} coins\n` +
+        `━━━━━━━━━━━━━━\n` +
+        `🧮 Total Earned: ${breakdown.totalEarned} coins`,
         {
           parse_mode: "Markdown",
           reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] },
+        }
+      );
+      return;
+    }
+
+    if (isAdmin(userId) && pendingUserPaylogsInput[userId]) {
+      delete pendingUserPaylogsInput[userId];
+      const targetId = text.trim();
+      const allUsers = getAllUsers();
+      if (!allUsers[targetId]) {
+        await bot!.sendMessage(chatId, `❌ User \`${targetId}\` not found.`, {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] },
+        });
+        return;
+      }
+      const cfg = getAdminConfig();
+      const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
+      const cutoff = Date.now() - TEN_DAYS_MS;
+      const wds = getUserWithdrawals(targetId)
+        .filter((w) => w.status !== "bin" && new Date(w.createdAt).getTime() >= cutoff)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const totalPaid = wds.filter((w) => w.status === "approved").reduce((s, w) => s + w.amount, 0);
+      const totalPaidMoney = wds.filter((w) => w.status === "approved").reduce((s, w) => s + (w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100), 0);
+      if (wds.length === 0) {
+        await bot!.sendMessage(chatId,
+          `👤 User: \`${targetId}\`\n\n📋 গত ১০ দিনে কোনো withdrawal নেই।`,
+          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] } }
+        );
+        return;
+      }
+      const slice = wds.slice(0, 5);
+      const statusEmoji = (s: string) => s === "approved" ? "✅" : s === "rejected" ? "❌" : "⏳";
+      const lines = slice.map((w, i) => {
+        const date = new Date(w.createdAt).toLocaleDateString("en-GB");
+        const money = w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100;
+        const bal = w.coinBalance != null ? `Balance: ${w.coinBalance} coins` : "";
+        return `${i + 1}. ${date} | ${statusEmoji(w.status)} ${w.status}\n   🪙 ${w.amount} coins (৳${money})${bal ? " | " + bal : ""}`;
+      }).join("\n");
+      await bot!.sendMessage(
+        chatId,
+        `👤 *User Paylogs*\n\n🔢 User: \`${targetId}\`\n` +
+        `💰 Total Approved: ${totalPaid} coins (৳${totalPaidMoney.toFixed(2)})\n` +
+        `_(গত ১০ দিনের সর্বোচ্চ ৫টি দেখানো হচ্ছে)_\n\n${lines}`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "🔙 Admin Menu", callback_data: "admin_back" }]] },
         }
       );
       return;
@@ -3129,7 +3268,9 @@ export function initBot(token: string, baseUrl: string): void {
 
     updateUser(userId, { accountName, qrFileId });
     const currentUser = getUser(userId);
-    const wr = addWithdrawal(userId, userName, amount, accountName, qrFileId, currentUser?.coins);
+    const wdCfg = getAdminConfig();
+    const wdMoneyAmount = Math.round((amount / wdCfg.coinToMoneyRate) * 100) / 100;
+    const wr = addWithdrawal(userId, userName, amount, accountName, qrFileId, currentUser?.coins, wdMoneyAmount);
     clearPendingWithdraw(userId);
 
     const cfg = getAdminConfig();

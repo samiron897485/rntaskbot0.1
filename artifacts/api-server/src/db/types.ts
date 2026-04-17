@@ -39,6 +39,7 @@ export interface WithdrawalRequest {
   createdAt: Date;
   rejectReason?: string;
   coinBalance?: number;
+  moneyAmount?: number;
 }
 
 export interface EarningHistoryEntry {

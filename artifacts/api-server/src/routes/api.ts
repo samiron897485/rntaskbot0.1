@@ -445,7 +445,13 @@ router.get("/admin/user-analytics/:userId", adminAuthMiddleware, (req: Request, 
   }
   const analytics = getUserAnalytics(userId);
   const earningBreakdown = getEarningBreakdown(userId);
-  res.json({ success: true, analytics: { ...analytics, earningBreakdown } });
+  const cfg = getAdminConfig();
+  const targetUser = getUser(userId);
+  const currentBalance = targetUser.coins;
+  const currentBalanceMoney = Math.round((currentBalance / cfg.coinToMoneyRate) * 100) / 100;
+  const approvedWds = getUserWithdrawals(userId).filter((w) => w.status === "approved");
+  const totalWithdrawMoney = Math.round(approvedWds.reduce((s, w) => s + (w.moneyAmount ?? w.amount / cfg.coinToMoneyRate), 0) * 100) / 100;
+  res.json({ success: true, analytics: { ...analytics, earningBreakdown, currentBalance, currentBalanceMoney, totalWithdrawMoney } });
 });
 
 router.get("/admin/payment-stats", adminAuthMiddleware, (_req: Request, res: Response) => {
@@ -470,10 +476,11 @@ router.get("/admin/user-paylogs/:userId", adminAuthMiddleware, (req: Request, re
   const allWds = getUserWithdrawals(userId)
     .filter((w) => w.status !== "bin" && new Date(w.createdAt).getTime() >= cutoff)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const totalPaid = allWds
-    .filter((w) => w.status === "approved")
-    .reduce((s, w) => s + w.amount, 0);
-  res.json({ success: true, userId, paylogs: allWds, totalPaid });
+  const cfg = getAdminConfig();
+  const approvedWds = allWds.filter((w) => w.status === "approved");
+  const totalPaid = approvedWds.reduce((s, w) => s + w.amount, 0);
+  const totalMoney = Math.round(approvedWds.reduce((s, w) => s + (w.moneyAmount ?? w.amount / cfg.coinToMoneyRate), 0) * 100) / 100;
+  res.json({ success: true, userId, paylogs: allWds, totalPaid, totalMoney });
 });
 
 router.get("/admin/withdrawals", adminAuthMiddleware, (_req: Request, res: Response) => {
