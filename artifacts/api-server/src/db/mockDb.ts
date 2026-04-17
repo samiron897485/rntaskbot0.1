@@ -325,6 +325,70 @@ export function getUserAnalytics(userId: string): {
   };
 }
 
+export function getEarningBreakdown(userId: string): {
+  taskEarnings: number;
+  referralEarnings: number;
+  couponEarnings: number;
+  adminWalletEarnings: number;
+  checkInEarnings: number;
+  totalEarned: number;
+} {
+  const user = getUser(userId);
+  const history = user.earningHistory || [];
+  let taskEarnings = 0, referralEarnings = 0, couponEarnings = 0, adminWalletEarnings = 0, checkInEarnings = 0;
+  for (const h of history) {
+    if (h.reason === "Task Completed") taskEarnings += h.amount;
+    else if (h.reason.startsWith("Referral")) referralEarnings += h.amount;
+    else if (h.reason.startsWith("Coupon:")) couponEarnings += h.amount;
+    else if (h.reason === "Daily Check-in") checkInEarnings += h.amount;
+    else adminWalletEarnings += h.amount;
+  }
+  return {
+    taskEarnings,
+    referralEarnings,
+    couponEarnings,
+    adminWalletEarnings,
+    checkInEarnings,
+    totalEarned: taskEarnings + referralEarnings + couponEarnings + adminWalletEarnings + checkInEarnings,
+  };
+}
+
+export function getPaymentStats(): {
+  todayPayment: number;
+  totalPayment: number;
+} {
+  const allWithdrawals = getWithdrawals("approved");
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  let todayPayment = 0;
+  let totalPayment = 0;
+  for (const w of allWithdrawals) {
+    totalPayment += w.amount;
+    if (new Date(w.createdAt).getTime() >= todayStart) {
+      todayPayment += w.amount;
+    }
+  }
+  return { todayPayment, totalPayment };
+}
+
+export function getPaymentLogs(): { date: string; totalAmount: number; userCount: number }[] {
+  const allWithdrawals = getWithdrawals("approved");
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const byDate: Record<string, { totalAmount: number; userIds: Set<string> }> = {};
+  for (const w of allWithdrawals) {
+    const ts = new Date(w.createdAt).getTime();
+    if (ts < thirtyDaysAgo) continue;
+    const d = new Date(w.createdAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (!byDate[key]) byDate[key] = { totalAmount: 0, userIds: new Set() };
+    byDate[key].totalAmount += w.amount;
+    byDate[key].userIds.add(w.userId);
+  }
+  return Object.entries(byDate)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([date, v]) => ({ date, totalAmount: v.totalAmount, userCount: v.userIds.size }));
+}
+
 export function setPendingWithdraw(
   userId: string,
   step: WithdrawStep,

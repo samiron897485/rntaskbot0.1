@@ -83,6 +83,7 @@
   <div class="tab" onclick="switchTab('wallet')" data-i18n="tab_wallet">💼 Wallet</div>
   <div class="tab" onclick="switchTab('analytics')">📊 Analytics</div>
   <div class="tab" onclick="switchTab('coupons')">🎟️ Coupons</div>
+  <div class="tab" onclick="switchTab('payments')">💰 Payments</div>
   <div class="tab" onclick="switchTab('stats')" data-i18n="tab_stats">📈 Stats</div>
 </div>
 
@@ -267,6 +268,31 @@
     <div class="card" id="analyticsCard" style="display:none">
       <h3>📊 Analytics Result</h3>
       <div id="analyticsData"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-payments">
+    <div class="stat-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
+      <div class="stat-box">
+        <div class="val" id="pay-today">-</div>
+        <div class="lbl">💰 Today's Payment (coins)</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="pay-total">-</div>
+        <div class="lbl">💸 Total Payment (coins)</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📋 Payment Logs <button class="refresh-btn" onclick="loadPaymentLogs()">🔄 Refresh</button></h3>
+      <div id="paymentLogsContainer"><div class="empty">Click refresh to load</div></div>
+      <div id="paymentLogsPagination" style="display:flex;gap:10px;justify-content:center;margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h3>👤 Users Paylogs</h3>
+      <input type="text" id="paylogUserId" placeholder="Enter Telegram User ID" />
+      <button class="btn btn-primary" onclick="loadUserPaylogs()">🔍 Get Payment History</button>
+      <div class="result" id="paylogResult"></div>
+      <div id="userPaylogContainer" style="margin-top:12px"></div>
     </div>
   </div>
 
@@ -505,7 +531,7 @@
     applyLang();
   }
 
-  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','stats'];
+  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','payments','stats'];
 
   function switchTab(name) {
     document.querySelectorAll('.tab').forEach((t, i) => {
@@ -518,6 +544,7 @@
     if (name === 'users') loadUsers();
     if (name === 'withdraw') loadWithdrawals();
     if (name === 'settings') loadSettings();
+    if (name === 'payments') loadPaymentStats();
   }
 
   let _coinRate = 10;
@@ -668,6 +695,15 @@
       el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_user')}</th><th>${L('th_amount')}</th><th>${L('th_inr')}</th><th>${L('th_whatsapp')}</th><th>${L('th_status')}</th><th>${L('th_action')}</th></tr></thead><tbody>
         ${d.withdrawals.slice().reverse().map(w => {
           const inr = Math.round((w.amount / rate) * 100) / 100;
+          const bd = w.earningBreakdown || {};
+          const breakdownHtml = `<div style="margin-top:6px;padding:6px 8px;background:#0f172a;border-radius:6px;font-size:0.73rem;color:#94a3b8;line-height:1.7">
+            <div style="color:#e2e8f0;font-weight:600;margin-bottom:2px">💼 Coin Earning Breakdown</div>
+            <span>✅ Task: <b style="color:#00d4aa">${bd.taskEarnings ?? 0}</b></span>&nbsp;|&nbsp;
+            <span>👥 Referral: <b style="color:#fbbf24">${bd.referralEarnings ?? 0}</b></span>&nbsp;|&nbsp;
+            <span>🎟️ Coupon: <b style="color:#a78bfa">${bd.couponEarnings ?? 0}</b></span>&nbsp;|&nbsp;
+            <span>📅 Check-in: <b style="color:#38bdf8">${bd.checkInEarnings ?? 0}</b></span>&nbsp;|&nbsp;
+            <span>💼 Admin: <b style="color:#fb923c">${bd.adminWalletEarnings ?? 0}</b></span>
+          </div>`;
           return `<tr>
           <td style="font-size:0.75rem;color:#94a3b8">${w.id}</td>
           <td>
@@ -677,10 +713,11 @@
               &nbsp;|&nbsp;
               💎 <span style="color:#fbbf24">${w.referralEarningsInPeriod ?? 0}</span> ref coins (period)
             </div>
+            ${breakdownHtml}
           </td>
           <td style="color:#00d4aa;font-weight:bold">${w.amount}</td>
           <td style="color:#fbbf24;font-weight:bold">₹${inr}</td>
-          <td>${w.whatsapp}</td>
+          <td>${w.whatsapp ?? '-'}</td>
           <td><span class="badge-${w.status}">${w.status === 'pending' ? L('wd_pending') : w.status === 'approved' ? L('wd_approved') : L('wd_rejected')}</span></td>
           <td>${w.status === 'pending' ? `<div class="action-row">
             <button class="btn btn-approve btn-sm" onclick="processWithdrawal('${w.id}','approve')">✅</button>
@@ -837,6 +874,116 @@
     setTimeout(() => { el.className = 'result'; }, 4000);
   }
 
+  let _paymentLogs = [];
+  let _paymentLogsPage = 0;
+  const PAGE_SIZE = 5;
+
+  async function loadPaymentStats() {
+    try {
+      const r = await apiFetch('/api/admin/payment-stats');
+      const d = await r.json();
+      if (d.success) {
+        document.getElementById('pay-today').textContent = d.todayPayment;
+        document.getElementById('pay-total').textContent = d.totalPayment;
+      }
+    } catch(e) {}
+    await loadPaymentLogs();
+  }
+
+  async function loadPaymentLogs() {
+    const container = document.getElementById('paymentLogsContainer');
+    container.innerHTML = '<div class="empty">Loading...</div>';
+    try {
+      const r = await apiFetch('/api/admin/payment-logs');
+      const d = await r.json();
+      if (!d.success || d.logs.length === 0) {
+        container.innerHTML = '<div class="empty">No payment logs in the last 30 days</div>';
+        document.getElementById('paymentLogsPagination').innerHTML = '';
+        return;
+      }
+      _paymentLogs = d.logs;
+      _paymentLogsPage = 0;
+      renderPaymentLogsPage();
+    } catch(e) { container.innerHTML = '<div class="empty">Failed to load</div>'; }
+  }
+
+  function renderPaymentLogsPage() {
+    const start = _paymentLogsPage * PAGE_SIZE;
+    const slice = _paymentLogs.slice(start, start + PAGE_SIZE);
+    const container = document.getElementById('paymentLogsContainer');
+    if (slice.length === 0) { container.innerHTML = '<div class="empty">No more records</div>'; return; }
+    let html = `<table><thead><tr><th>Date</th><th>Total Amount (coins)</th><th>Users Paid</th></tr></thead><tbody>`;
+    for (const row of slice) {
+      html += `<tr>
+        <td style="color:#60a5fa">${row.date}</td>
+        <td style="color:#00d4aa;font-weight:bold">${row.totalAmount}</td>
+        <td style="color:#fbbf24">${row.userCount}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+    const totalPages = Math.ceil(_paymentLogs.length / PAGE_SIZE);
+    const pagination = document.getElementById('paymentLogsPagination');
+    pagination.innerHTML = '';
+    if (_paymentLogsPage > 0) {
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'btn btn-primary';
+      prevBtn.style.width = 'auto';
+      prevBtn.style.marginTop = '0';
+      prevBtn.textContent = '← Previous';
+      prevBtn.onclick = () => { _paymentLogsPage--; renderPaymentLogsPage(); };
+      pagination.appendChild(prevBtn);
+    }
+    const pageInfo = document.createElement('span');
+    pageInfo.style.cssText = 'color:#94a3b8;align-self:center;font-size:0.85rem';
+    pageInfo.textContent = `Page ${_paymentLogsPage + 1} / ${totalPages}`;
+    pagination.appendChild(pageInfo);
+    if (start + PAGE_SIZE < _paymentLogs.length) {
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'btn btn-primary';
+      nextBtn.style.width = 'auto';
+      nextBtn.style.marginTop = '0';
+      nextBtn.textContent = 'Next →';
+      nextBtn.onclick = () => { _paymentLogsPage++; renderPaymentLogsPage(); };
+      pagination.appendChild(nextBtn);
+    }
+  }
+
+  async function loadUserPaylogs() {
+    const uid = document.getElementById('paylogUserId').value.trim();
+    const res = document.getElementById('paylogResult');
+    const container = document.getElementById('userPaylogContainer');
+    container.innerHTML = '';
+    if (!uid) { showResult(res, 'error', 'Enter a User ID'); return; }
+    try {
+      const r = await apiFetch(`/api/admin/user-paylogs/${uid}`);
+      const d = await r.json();
+      if (!d.success) { showResult(res, 'error', d.message || 'User not found'); return; }
+      res.className = 'result';
+      if (d.paylogs.length === 0) {
+        container.innerHTML = '<div class="empty">No approved payments for this user</div>';
+        return;
+      }
+      let html = `<div style="margin-bottom:10px;padding:10px;background:#0f172a;border-radius:8px;font-size:0.88rem">
+        <span style="color:#e2e8f0">User: <b style="color:#60a5fa">${uid}</b></span>
+        &nbsp;|&nbsp;
+        <span style="color:#e2e8f0">Total Paid: <b style="color:#00d4aa">${d.totalPaid} coins</b></span>
+      </div>`;
+      html += `<table><thead><tr><th>Date</th><th>Amount (coins)</th><th>Status</th></tr></thead><tbody>`;
+      for (const w of d.paylogs) {
+        const date = new Date(w.createdAt).toLocaleDateString('en-GB');
+        html += `<tr>
+          <td style="color:#94a3b8">${date}</td>
+          <td style="color:#00d4aa;font-weight:bold">${w.amount}</td>
+          <td><span class="badge-approved">✅ Approved</span></td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    } catch(e) { showResult(res, 'error', 'Error occurred'); }
+  }
+
   async function loadAnalytics() {
     const uid = document.getElementById('analyticsUserId').value.trim();
     const res = document.getElementById('analyticsResult');
@@ -849,6 +996,7 @@
         res.textContent = '';
         document.getElementById('analyticsCard').style.display = 'block';
         const a = d.analytics;
+        const bd = a.earningBreakdown || {};
         document.getElementById('analyticsData').innerHTML = `
           <table>
             <tr><th>Metric</th><th>Value</th></tr>
@@ -860,7 +1008,19 @@
             <tr><td>✅ Accepted Withdrawals</td><td>${a.totalAcceptedWithdraw}</td></tr>
             <tr><td>❌ Rejected Withdrawals</td><td>${a.totalRejectedWithdraw}</td></tr>
             <tr><td>📅 Join Date</td><td>${new Date(a.joinDate).toLocaleDateString('en-GB')}</td></tr>
-          </table>`;
+          </table>
+          <div style="margin-top:14px;padding:14px;background:#0f172a;border-radius:10px;border:1px solid #334155">
+            <div style="color:#00d4aa;font-weight:600;margin-bottom:10px">💼 Coin Earning Breakdown</div>
+            <table>
+              <tr><th>Source</th><th>Coins Earned</th></tr>
+              <tr><td>✅ Task Completed</td><td style="color:#00d4aa;font-weight:bold">${bd.taskEarnings ?? 0}</td></tr>
+              <tr><td>👥 Referral (Bonus + Commission)</td><td style="color:#fbbf24;font-weight:bold">${bd.referralEarnings ?? 0}</td></tr>
+              <tr><td>🎟️ Coupon</td><td style="color:#a78bfa;font-weight:bold">${bd.couponEarnings ?? 0}</td></tr>
+              <tr><td>📅 Daily Check-in</td><td style="color:#38bdf8;font-weight:bold">${bd.checkInEarnings ?? 0}</td></tr>
+              <tr><td>💼 Admin Wallet</td><td style="color:#fb923c;font-weight:bold">${bd.adminWalletEarnings ?? 0}</td></tr>
+              <tr style="border-top:1px solid #334155"><td><b>Total Earned</b></td><td style="color:#e2e8f0;font-weight:bold">${bd.totalEarned ?? 0}</td></tr>
+            </table>
+          </div>`;
       } else {
         showResult(res, 'error', d.message || 'User not found.');
         document.getElementById('analyticsCard').style.display = 'none';

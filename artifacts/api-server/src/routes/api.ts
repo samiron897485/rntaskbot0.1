@@ -38,6 +38,10 @@ import {
   canSendUserAlert,
   markUserAlertSent,
   updateUserLastActive,
+  getEarningBreakdown,
+  getPaymentStats,
+  getPaymentLogs,
+  getUserWithdrawals,
 } from "../db/mockDb.js";
 import { sendTaskCompletion } from "../bot/bot.js";
 import { bot } from "../bot/bot.js";
@@ -412,7 +416,32 @@ router.get("/admin/user-analytics/:userId", adminAuthMiddleware, (req: Request, 
     return;
   }
   const analytics = getUserAnalytics(userId);
-  res.json({ success: true, analytics });
+  const earningBreakdown = getEarningBreakdown(userId);
+  res.json({ success: true, analytics: { ...analytics, earningBreakdown } });
+});
+
+router.get("/admin/payment-stats", adminAuthMiddleware, (_req: Request, res: Response) => {
+  const stats = getPaymentStats();
+  res.json({ success: true, ...stats });
+});
+
+router.get("/admin/payment-logs", adminAuthMiddleware, (_req: Request, res: Response) => {
+  const logs = getPaymentLogs();
+  res.json({ success: true, logs });
+});
+
+router.get("/admin/user-paylogs/:userId", adminAuthMiddleware, (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const allUsers = getAllUsers();
+  if (!allUsers[userId]) {
+    res.status(404).json({ success: false, message: "User not found" });
+    return;
+  }
+  const wds = getUserWithdrawals(userId)
+    .filter((w) => w.status === "approved")
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const totalPaid = wds.reduce((s, w) => s + w.amount, 0);
+  res.json({ success: true, userId, paylogs: wds, totalPaid });
 });
 
 router.get("/admin/withdrawals", adminAuthMiddleware, (_req: Request, res: Response) => {
@@ -425,10 +454,12 @@ router.get("/admin/withdrawals", adminAuthMiddleware, (_req: Request, res: Respo
     const prevWd = idx > 0 ? userWds[idx - 1] : null;
     const fromTs = prevWd ? new Date(prevWd.createdAt).getTime() : 0;
     const toTs = new Date(w.createdAt).getTime();
+    const breakdown = getEarningBreakdown(w.userId);
     return {
       ...w,
       totalReferredUsers: user.totalReferrals || 0,
       referralEarningsInPeriod: getReferralEarningsBetween(w.userId, fromTs, toTs),
+      earningBreakdown: breakdown,
     };
   });
   res.json({ success: true, withdrawals: enriched });
