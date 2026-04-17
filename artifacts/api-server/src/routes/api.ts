@@ -540,8 +540,8 @@ router.post("/admin/process-withdrawal", adminAuthMiddleware, async (req: Reques
   if (action === "approve") {
     const cfg = getAdminConfig();
     const lockedMoney = Math.round((wr.amount / cfg.coinToMoneyRate) * 100) / 100;
-    updateWithdrawal(withdrawalId, status, undefined, lockedMoney);
     const user = getUser(wr.userId);
+    updateWithdrawal(withdrawalId, status, undefined, lockedMoney, user.coins);
     updateUser(wr.userId, { coins: Math.max(0, user.coins - wr.amount) });
   } else {
     updateWithdrawal(withdrawalId, status);

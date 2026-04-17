@@ -1655,8 +1655,8 @@ export function initBot(token: string, baseUrl: string): void {
       if (!wr) return;
       const approvalCfg = getAdminConfig();
       const lockedMoney = Math.round((wr.amount / approvalCfg.coinToMoneyRate) * 100) / 100;
-      updateWithdrawal(wdId, "approved", undefined, lockedMoney);
       const targetUser = getUser(wr.userId);
+      updateWithdrawal(wdId, "approved", undefined, lockedMoney, targetUser.coins);
       updateUser(wr.userId, { coins: Math.max(0, targetUser.coins - wr.amount) });
       await bot!.sendMessage(chatId, `✅ Withdrawal \`${escMd(wdId)}\` approved.`, { parse_mode: "Markdown" });
       bot!.sendMessage(wr.userId, T.en.withdraw_approved(wr.amount)).catch(() => {});
