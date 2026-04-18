@@ -414,10 +414,14 @@ export function getBalanceBreakdown(userId: string): {
 
 export function getCCRStats(): {
   totalCoinsEarned: number;
+  totalTaskCoinsEarned: number;
+  extraCoinsEarned: number;
   companyIncomeINR: number;
   totalPaidINR: number;
   profitLossINR: number;
   todayCoinsEarned: number;
+  todayTaskCoinsEarned: number;
+  todayExtraCoinsEarned: number;
   todayIncomeINR: number;
   todayPaidINR: number;
   todayProfitLossINR: number;
@@ -426,11 +430,13 @@ export function getCCRStats(): {
   const cfg = adminConfig;
   const ccr = cfg.companyCoinRate || 100;
 
-  // Total coins ever earned by all users (authoritative sources)
+  // Total coins ever earned by all users (all sources + task-only)
   let totalCoinsEarned = 0;
+  let totalTaskCoinsEarned = 0;
   for (const [userId] of Object.entries(users)) {
     const bd = getEarningBreakdown(userId);
     totalCoinsEarned += bd.totalEarned;
+    totalTaskCoinsEarned += bd.taskEarnings;
   }
 
   // IST midnight today
@@ -439,13 +445,17 @@ export function getCCRStats(): {
   const todayMidnightIST = nowIST - (nowIST % (24 * 60 * 60 * 1000));
   const todayMidnightUTC = todayMidnightIST - IST_OFFSET_MS;
 
-  // Today's task completions across all users
+  // Today's earnings by source
   let todayCoinsEarned = 0;
+  let todayTaskCoinsEarned = 0;
   for (const [, user] of Object.entries(users)) {
     const history = user.earningHistory || [];
     for (const h of history) {
       const t = new Date(h.date).getTime();
-      if (t >= todayMidnightUTC) todayCoinsEarned += h.amount;
+      if (t >= todayMidnightUTC) {
+        todayCoinsEarned += h.amount;
+        if (h.reason === "Task Completed") todayTaskCoinsEarned += h.amount;
+      }
     }
   }
 
@@ -463,15 +473,20 @@ export function getCCRStats(): {
   totalPaidINR = Math.round(totalPaidINR * 100) / 100;
   todayPaidINR = Math.round(todayPaidINR * 100) / 100;
 
-  const companyIncomeINR = Math.round((totalCoinsEarned / ccr) * 100) / 100;
-  const todayIncomeINR = Math.round((todayCoinsEarned / ccr) * 100) / 100;
+  // Company income is based on TASK coins only (revenue from task views)
+  const companyIncomeINR = Math.round((totalTaskCoinsEarned / ccr) * 100) / 100;
+  const todayIncomeINR = Math.round((todayTaskCoinsEarned / ccr) * 100) / 100;
 
   return {
     totalCoinsEarned,
+    totalTaskCoinsEarned,
+    extraCoinsEarned: Math.round((totalCoinsEarned - totalTaskCoinsEarned) * 100) / 100,
     companyIncomeINR,
     totalPaidINR,
     profitLossINR: Math.round((companyIncomeINR - totalPaidINR) * 100) / 100,
     todayCoinsEarned,
+    todayTaskCoinsEarned,
+    todayExtraCoinsEarned: Math.round((todayCoinsEarned - todayTaskCoinsEarned) * 100) / 100,
     todayIncomeINR,
     todayPaidINR,
     todayProfitLossINR: Math.round((todayIncomeINR - todayPaidINR) * 100) / 100,
@@ -521,7 +536,7 @@ export function getDateRangeTaskStats(fromMs: number, toMs: number): {
     totalTasks,
     uniqueUsers: perUser.length,
     totalCoinsEarned,
-    topUsers: perUser.sort((a, b) => b.tasksCompleted - a.tasksCompleted).slice(0, 10),
+    topUsers: perUser.sort((a, b) => b.tasksCompleted - a.tasksCompleted),
   };
 }
 

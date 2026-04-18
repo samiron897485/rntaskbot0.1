@@ -311,7 +311,7 @@
 
   <div class="panel" id="panel-activity">
     <div class="card">
-      <h3>📅 Task Stats by Date Range <button class="refresh-btn" onclick="loadDateStats()">🔄 Load</button></h3>
+      <h3>📅 Task Stats by Date Range</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
         <div>
           <label>From Date (IST)</label>
@@ -327,21 +327,17 @@
     </div>
 
     <div class="card">
-      <h3>✅ Active Users (last 30 days) <button class="refresh-btn" onclick="loadActivityUsers()">🔄 Refresh</button></h3>
-      <div style="margin-bottom:8px;display:flex;gap:8px">
-        <input type="text" id="activeUserSearch" placeholder="Search by User ID..." style="margin-bottom:0;flex:1" oninput="filterActivityTable('active')" />
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <h3 style="margin:0">👥 User Activity</h3>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button id="actBtnActive" onclick="switchActivityView('active')" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;background:#00d4aa;color:#0f172a;font-weight:600;font-size:0.82rem">✅ Active</button>
+          <button id="actBtnInactive" onclick="switchActivityView('inactive')" style="padding:5px 14px;border-radius:20px;border:none;cursor:pointer;background:#1e293b;color:#94a3b8;font-weight:600;font-size:0.82rem">💤 Inactive</button>
+          <button class="refresh-btn" onclick="loadActivityUsers()">🔄 Refresh</button>
+        </div>
       </div>
-      <div id="activeCountBadge" style="margin-bottom:8px;font-size:0.85rem;color:#00d4aa"></div>
-      <div id="activeUsersTable"><div class="empty">Click Refresh to load</div></div>
-    </div>
-
-    <div class="card">
-      <h3>💤 Inactive Users (30+ days idle) <button class="refresh-btn" onclick="loadActivityUsers()">🔄 Refresh</button></h3>
-      <div style="margin-bottom:8px;display:flex;gap:8px">
-        <input type="text" id="inactiveUserSearch" placeholder="Search by User ID..." style="margin-bottom:0;flex:1" oninput="filterActivityTable('inactive')" />
-      </div>
-      <div id="inactiveCountBadge" style="margin-bottom:8px;font-size:0.85rem;color:#fbbf24"></div>
-      <div id="inactiveUsersTable"><div class="empty">Click Refresh to load</div></div>
+      <div id="activityCountBadge" style="margin-bottom:8px;font-size:0.85rem"></div>
+      <input type="text" id="activityUserSearch" placeholder="Search by User ID..." style="margin-bottom:10px" oninput="filterCurrentActivityTable()" />
+      <div id="activityUsersTable"><div class="empty">Click Refresh to load</div></div>
     </div>
   </div>
 
@@ -953,6 +949,9 @@
       const pl = (n) => n >= 0
         ? `<span style="color:#22c55e;font-weight:bold">+₹${n}</span>`
         : `<span style="color:#ef4444;font-weight:bold">-₹${Math.abs(n)}</span>`;
+      const diff = (n) => n > 0
+        ? `<span style="color:#fbbf24">+${n}</span>`
+        : `<span style="color:#94a3b8">${n}</span>`;
       el.innerHTML = `
         <p style="color:#94a3b8;font-size:0.82rem;margin-bottom:12px">
           CCR = <b>${d.companyCoinRate}</b> coins/₹1 &nbsp;(internal rate — separate from user coin rate)
@@ -966,7 +965,17 @@
               <td style="color:#60a5fa">${d.totalCoinsEarned}</td>
             </tr>
             <tr>
-              <td>💹 Company Income (coins ÷ CCR)</td>
+              <td>✅ Coins Earned (task only)</td>
+              <td style="color:#38bdf8">${d.todayTaskCoinsEarned}</td>
+              <td style="color:#38bdf8">${d.totalTaskCoinsEarned}</td>
+            </tr>
+            <tr style="background:rgba(251,191,36,0.05)">
+              <td style="font-size:0.8rem;color:#94a3b8">↳ Extra coins (non-task) vs task-only</td>
+              <td style="font-size:0.85rem">${diff(d.todayExtraCoinsEarned)}</td>
+              <td style="font-size:0.85rem">${diff(d.extraCoinsEarned)}</td>
+            </tr>
+            <tr>
+              <td>💹 Company Income (task coins ÷ CCR)</td>
               <td style="color:#00d4aa">₹${d.todayIncomeINR}</td>
               <td style="color:#00d4aa">₹${d.companyIncomeINR}</td>
             </tr>
@@ -1241,22 +1250,22 @@
       let topHtml = '';
       if (d.topUsers && d.topUsers.length > 0) {
         topHtml = `<div style="margin-top:14px">
-          <div style="color:#94a3b8;font-size:0.82rem;margin-bottom:6px">🏆 Top Users</div>
-          <table><thead><tr><th>#</th><th>User ID</th><th>Tasks Done</th></tr></thead><tbody>
+          <div style="color:#94a3b8;font-size:0.82rem;margin-bottom:6px">All Users (sorted by tasks)</div>
+          <div style="max-height:320px;overflow-y:auto;border-radius:6px;border:1px solid #334155">
+          <table style="margin:0"><thead><tr><th style="position:sticky;top:0;background:#0f172a">#</th><th style="position:sticky;top:0;background:#0f172a">User ID</th><th style="position:sticky;top:0;background:#0f172a">Tasks Done</th></tr></thead><tbody>
           ${d.topUsers.map((u, i) => `<tr>
             <td style="color:#94a3b8">${i + 1}</td>
             <td style="color:#60a5fa">${u.userId}</td>
             <td style="color:#00d4aa;font-weight:bold">${u.tasksCompleted}</td>
           </tr>`).join('')}
-          </tbody></table></div>`;
+          </tbody></table></div></div>`;
       }
       el.innerHTML = `
         <div style="padding:12px;background:#0f172a;border-radius:10px;border:1px solid #334155">
           <div style="color:#00d4aa;font-weight:600;margin-bottom:12px">${label}</div>
-          <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0">
+          <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:0">
             <div class="stat-box"><div class="val" style="font-size:1.4rem">${d.totalTasks}</div><div class="lbl">Tasks Completed</div></div>
             <div class="stat-box"><div class="val" style="font-size:1.4rem">${d.uniqueUsers}</div><div class="lbl">Unique Users</div></div>
-            <div class="stat-box"><div class="val" style="font-size:1.4rem">${d.totalCoinsEarned}</div><div class="lbl">Coins Earned</div></div>
           </div>
           ${topHtml}
         </div>`;
@@ -1265,10 +1274,10 @@
 
   let _activeUsers = [];
   let _inactiveUsers = [];
+  let _currentActivityView = 'active';
 
   async function loadActivityUsers() {
-    document.getElementById('activeUsersTable').innerHTML = '<div class="empty">Loading...</div>';
-    document.getElementById('inactiveUsersTable').innerHTML = '<div class="empty">Loading...</div>';
+    document.getElementById('activityUsersTable').innerHTML = '<div class="empty">Loading...</div>';
     try {
       const [ar, ir] = await Promise.all([
         apiFetch('/api/admin/active-users'),
@@ -1278,21 +1287,47 @@
       const id = await ir.json();
       _activeUsers = ad.users || [];
       _inactiveUsers = id.users || [];
-      document.getElementById('activeCountBadge').textContent = `✅ ${ad.count ?? 0} active users (at least 1 activity in the last 30 days)`;
-      document.getElementById('inactiveCountBadge').textContent = `💤 ${id.count ?? 0} inactive users (no activity for 30+ days)`;
-      renderActivityTable('active', _activeUsers);
-      renderActivityTable('inactive', _inactiveUsers);
+      renderCurrentActivityTable();
     } catch(e) {
-      document.getElementById('activeUsersTable').innerHTML = '<div class="empty">Error loading</div>';
-      document.getElementById('inactiveUsersTable').innerHTML = '<div class="empty">Error loading</div>';
+      document.getElementById('activityUsersTable').innerHTML = '<div class="empty">Error loading</div>';
     }
   }
 
-  function renderActivityTable(type, data) {
-    const el = document.getElementById(type + 'UsersTable');
-    if (!data || data.length === 0) { el.innerHTML = `<div class="empty">No ${type} users</div>`; return; }
-    let html = `<table><thead><tr><th>User ID</th><th>Coins</th><th>Tasks Done</th><th>Last Active</th></tr></thead><tbody>`;
-    for (const u of data.slice(0, 100)) {
+  function switchActivityView(view) {
+    _currentActivityView = view;
+    document.getElementById('actBtnActive').style.background = view === 'active' ? '#00d4aa' : '#1e293b';
+    document.getElementById('actBtnActive').style.color = view === 'active' ? '#0f172a' : '#94a3b8';
+    document.getElementById('actBtnInactive').style.background = view === 'inactive' ? '#fbbf24' : '#1e293b';
+    document.getElementById('actBtnInactive').style.color = view === 'inactive' ? '#0f172a' : '#94a3b8';
+    document.getElementById('activityUserSearch').value = '';
+    renderCurrentActivityTable();
+  }
+
+  function renderCurrentActivityTable() {
+    const query = document.getElementById('activityUserSearch').value.trim().toLowerCase();
+    const isActive = _currentActivityView === 'active';
+    const source = isActive ? _activeUsers : _inactiveUsers;
+    const data = query ? source.filter(u => u.userId.toLowerCase().includes(query)) : source;
+    const badge = document.getElementById('activityCountBadge');
+    if (isActive) {
+      badge.style.color = '#00d4aa';
+      badge.textContent = `✅ ${_activeUsers.length} active users (at least 1 activity in the last 30 days)${query ? ` — showing ${data.length} matching` : ''}`;
+    } else {
+      badge.style.color = '#fbbf24';
+      badge.textContent = `💤 ${_inactiveUsers.length} inactive users (no activity for 30+ days)${query ? ` — showing ${data.length} matching` : ''}`;
+    }
+    const el = document.getElementById('activityUsersTable');
+    if (!data || data.length === 0) {
+      el.innerHTML = `<div class="empty">No ${_currentActivityView} users${query ? ' matching search' : ''}</div>`;
+      return;
+    }
+    let html = `<div style="max-height:420px;overflow-y:auto"><table style="margin:0"><thead><tr>
+      <th style="position:sticky;top:0;background:#111827">User ID</th>
+      <th style="position:sticky;top:0;background:#111827">Coins</th>
+      <th style="position:sticky;top:0;background:#111827">Tasks Done</th>
+      <th style="position:sticky;top:0;background:#111827">Last Active</th>
+    </tr></thead><tbody>`;
+    for (const u of data) {
       const lastActive = u.lastActive
         ? new Date(u.lastActive).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
         : 'Never';
@@ -1303,16 +1338,12 @@
         <td style="color:#94a3b8;font-size:0.8rem">${lastActive}</td>
       </tr>`;
     }
-    html += '</tbody></table>';
-    if (data.length > 100) html += `<div style="text-align:center;color:#64748b;font-size:0.82rem;margin-top:8px">Showing 100 of ${data.length} users</div>`;
+    html += '</tbody></table></div>';
     el.innerHTML = html;
   }
 
-  function filterActivityTable(type) {
-    const query = document.getElementById(type + 'UserSearch').value.trim().toLowerCase();
-    const source = type === 'active' ? _activeUsers : _inactiveUsers;
-    const filtered = query ? source.filter(u => u.userId.toLowerCase().includes(query)) : source;
-    renderActivityTable(type, filtered);
+  function filterCurrentActivityTable() {
+    renderCurrentActivityTable();
   }
 
   applyLang();
