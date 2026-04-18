@@ -43,6 +43,7 @@ import {
   getPaymentStats,
   getPaymentLogs,
   getUserWithdrawals,
+  getCCRStats,
 } from "../db/mockDb.js";
 import { sendTaskCompletion } from "../bot/bot.js";
 import { bot } from "../bot/bot.js";
@@ -95,7 +96,7 @@ router.get("/admin/config", adminAuthMiddleware, (_req: Request, res: Response) 
 router.post("/admin/config", adminAuthMiddleware, (req: Request, res: Response) => {
   const data = req.body;
   const allowed = [
-    "minWithdraw", "coinToMoneyRate", "taskDuration", "taskExpiry",
+    "minWithdraw", "coinToMoneyRate", "companyCoinRate", "taskDuration", "taskExpiry",
     "referralEnabled", "referralBonus", "perTaskCommission",
     "lifetimeCommission", "supportLink", "defaultLanguage",
     "withdrawCooldownHours", "couponLink", "referralTaskRequirement", "policy",
@@ -464,6 +465,11 @@ router.get("/admin/payment-stats", adminAuthMiddleware, (_req: Request, res: Res
 router.get("/admin/payment-logs", adminAuthMiddleware, (_req: Request, res: Response) => {
   const logs = getPaymentLogs();
   res.json({ success: true, logs });
+});
+
+router.get("/admin/ccr-stats", adminAuthMiddleware, (_req: Request, res: Response) => {
+  const stats = getCCRStats();
+  res.json({ success: true, ...stats });
 });
 
 router.get("/admin/user-paylogs/:userId", adminAuthMiddleware, (req: Request, res: Response) => {

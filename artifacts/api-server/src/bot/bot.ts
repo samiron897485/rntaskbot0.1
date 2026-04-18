@@ -77,6 +77,7 @@ import {
   countTasksInWindow,
   deleteWithdrawalById,
   runCleanup,
+  getTasksCompletedAllUsersBetween,
 } from "../db/mockDb.js";
 import { logger } from "../lib/logger.js";
 
@@ -408,18 +409,19 @@ function adminMenuKeyboard() {
 }
 
 const SETTING_META: Record<string, { label: string; unit: string; type: "number" | "text" }> = {
-  taskDuration:             { label: "⏱️ Task Timer",               unit: "seconds", type: "number" },
-  taskExpiry:               { label: "📅 Task Expiry",               unit: "hours",   type: "number" },
-  referralBonus:            { label: "🎁 Referral Bonus",            unit: "coins",   type: "number" },
-  referralTaskRequirement:  { label: "🎯 Referral Task Requirement", unit: "tasks",   type: "number" },
-  perTaskCommission:        { label: "💹 Per Task Commission",       unit: "coins",   type: "number" },
-  minWithdraw:              { label: "💸 Min Withdraw",              unit: "coins",   type: "number" },
-  coinToMoneyRate:          { label: "💱 Coin Rate (INR)",           unit: "coins/₹1", type: "number" },
-  supportLink:              { label: "🔗 Support Link",              unit: "",        type: "text" },
-  withdrawCooldownHours:    { label: "⏱️ Withdraw Cooldown",         unit: "hours",   type: "number" },
-  couponLink:               { label: "🎟️ Free Coupon Link",          unit: "",        type: "text" },
-  checkInDailyReward:       { label: "📅 Check-In Daily Reward",      unit: "coins",   type: "number" },
-  checkInRequiredTasks:     { label: "📅 Check-In Required Tasks",     unit: "tasks",   type: "number" },
+  taskDuration:             { label: "⏱️ Task Timer",               unit: "seconds",  type: "number" },
+  taskExpiry:               { label: "📅 Task Expiry",               unit: "hours",    type: "number" },
+  referralBonus:            { label: "🎁 Referral Bonus",            unit: "coins",    type: "number" },
+  referralTaskRequirement:  { label: "🎯 Referral Task Requirement", unit: "tasks",    type: "number" },
+  perTaskCommission:        { label: "💹 Per Task Commission",       unit: "coins",    type: "number" },
+  minWithdraw:              { label: "💸 Min Withdraw",              unit: "coins",    type: "number" },
+  coinToMoneyRate:          { label: "💱 User Coin Rate (INR)",      unit: "coins/₹1", type: "number" },
+  companyCoinRate:          { label: "🏢 CCR (Company Coin Rate)",   unit: "coins/₹1", type: "number" },
+  supportLink:              { label: "🔗 Support Link",              unit: "",         type: "text" },
+  withdrawCooldownHours:    { label: "⏱️ Withdraw Cooldown",         unit: "hours",    type: "number" },
+  couponLink:               { label: "🎟️ Free Coupon Link",          unit: "",         type: "text" },
+  checkInDailyReward:       { label: "📅 Check-In Daily Reward",     unit: "coins",    type: "number" },
+  checkInRequiredTasks:     { label: "📅 Check-In Required Tasks",   unit: "tasks",    type: "number" },
 };
 
 function currentSettingValue(key: string, cfg: ReturnType<typeof getAdminConfig>): string {
@@ -3354,6 +3356,56 @@ export function initBot(token: string, baseUrl: string): void {
       });
     }
   });
+
+  // ── 11 PM IST Daily Report ──
+  (function schedule11PMReport() {
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const TARGET_HOUR_IST = 23; // 11 PM
+
+    function sendDailyReport(): void {
+      if (!bot) return;
+      const now = Date.now();
+      const toMs = now;
+      const fromMs = now - 24 * 60 * 60 * 1000;
+      const { totalTasks, uniqueUsers } = getTasksCompletedAllUsersBetween(fromMs, toMs);
+      const fromDate = new Date(fromMs);
+      const toDate = new Date(toMs);
+      const fmt = (d: Date) => {
+        const ist = new Date(d.getTime() + IST_OFFSET_MS);
+        return `${ist.getUTCDate()}/${ist.getUTCMonth() + 1}/${ist.getUTCFullYear()} ${String(ist.getUTCHours()).padStart(2, "0")}:${String(ist.getUTCMinutes()).padStart(2, "0")} IST`;
+      };
+      const msg =
+        `📊 *Daily Task Report*\n\n` +
+        `⏰ Period: ${fmt(fromDate)} → ${fmt(toDate)}\n\n` +
+        `✅ Total Tasks Completed: *${totalTasks}*\n` +
+        `👥 Unique Users: *${uniqueUsers}*`;
+      for (const adminId of ADMIN_IDS) {
+        bot.sendMessage(adminId, msg, { parse_mode: "Markdown" }).catch(() => {});
+      }
+      logger.info({ totalTasks, uniqueUsers }, "Daily 11 PM IST report sent to admins");
+    }
+
+    function scheduleNext(): void {
+      const nowUTC = Date.now();
+      const nowIST = nowUTC + IST_OFFSET_MS;
+      // Set target to 11 PM today in IST (as UTC-based calculation)
+      const istDayStart = nowIST - (nowIST % (24 * 60 * 60 * 1000));
+      let target11PMIST = istDayStart + TARGET_HOUR_IST * 60 * 60 * 1000;
+      if (nowIST >= target11PMIST) {
+        target11PMIST += 24 * 60 * 60 * 1000; // already past 11 PM, schedule tomorrow
+      }
+      const targetUTC = target11PMIST - IST_OFFSET_MS;
+      const msUntil = targetUTC - nowUTC;
+      logger.info({ minutesUntil: Math.round(msUntil / 60000) }, "Daily 11 PM IST report scheduled");
+      setTimeout(() => {
+        sendDailyReport();
+        // Re-schedule for next day
+        setInterval(sendDailyReport, 24 * 60 * 60 * 1000);
+      }, msUntil);
+    }
+
+    scheduleNext();
+  })();
 
   bot.on("polling_error", (err) => {
     const is409 = err.message?.includes("409") || (err as { code?: string }).code === "ETELEGRAM";

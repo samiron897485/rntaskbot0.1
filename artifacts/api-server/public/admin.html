@@ -173,11 +173,15 @@
           <input type="number" id="cfg-minWithdraw" placeholder="10" min="1" />
         </div>
         <div class="settings-field">
-          <label data-i18n="coin_rate_label">Coin to Money Rate (coins per 1 unit)</label>
+          <label data-i18n="coin_rate_label">User Coin Rate — coins per ₹1 (user-facing)</label>
           <input type="number" id="cfg-coinToMoneyRate" placeholder="10" min="1" />
         </div>
+        <div class="settings-field">
+          <label>🏢 CCR — Company Coin Rate — coins per ₹1 (internal profit tracking)</label>
+          <input type="number" id="cfg-companyCoinRate" placeholder="100" min="1" />
+        </div>
       </div>
-      <button class="btn btn-primary" onclick="saveConfig(['minWithdraw','coinToMoneyRate'])" data-i18n="btn_save_withdraw">💾 Save Withdraw Settings</button>
+      <button class="btn btn-primary" onclick="saveConfig(['minWithdraw','coinToMoneyRate','companyCoinRate'])" data-i18n="btn_save_withdraw">💾 Save Withdraw Settings</button>
       <div class="result" id="withdrawSettingsResult"></div>
     </div>
 
@@ -281,6 +285,13 @@
       <div class="stat-box">
         <div class="val" id="pay-total">-</div>
         <div class="lbl" id="pay-total-lbl">💸 Total Payment</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🏢 CCR — Company Profit / Loss <button class="refresh-btn" onclick="loadCCRStats()">🔄 Refresh</button></h3>
+      <div id="ccrStatsContainer">
+        <div class="empty">Click refresh to load</div>
       </div>
     </div>
     <div class="card">
@@ -770,6 +781,7 @@
       document.getElementById('cfg-taskExpiry').value = cfg.taskExpiry;
       document.getElementById('cfg-minWithdraw').value = cfg.minWithdraw;
       document.getElementById('cfg-coinToMoneyRate').value = cfg.coinToMoneyRate;
+      document.getElementById('cfg-companyCoinRate').value = cfg.companyCoinRate || 100;
       document.getElementById('cfg-referralEnabled').checked = cfg.referralEnabled;
       document.getElementById('cfg-lifetimeCommission').checked = cfg.lifetimeCommission;
       document.getElementById('cfg-referralBonus').value = cfg.referralBonus;
@@ -784,6 +796,7 @@
     taskExpiry: 'taskSettingsResult',
     minWithdraw: 'withdrawSettingsResult',
     coinToMoneyRate: 'withdrawSettingsResult',
+    companyCoinRate: 'withdrawSettingsResult',
     referralEnabled: 'referralSettingsResult',
     referralBonus: 'referralSettingsResult',
     perTaskCommission: 'referralSettingsResult',
@@ -889,6 +902,49 @@
       }
     } catch(e) {}
     await loadPaymentLogs();
+    await loadCCRStats();
+  }
+
+  async function loadCCRStats() {
+    const el = document.getElementById('ccrStatsContainer');
+    el.innerHTML = '<div class="empty">Loading...</div>';
+    try {
+      const r = await apiFetch('/api/admin/ccr-stats');
+      const d = await r.json();
+      if (!d.success) { el.innerHTML = '<div class="empty">Failed to load CCR stats</div>'; return; }
+      const pl = (n) => n >= 0
+        ? `<span style="color:#22c55e;font-weight:bold">+₹${n}</span>`
+        : `<span style="color:#ef4444;font-weight:bold">-₹${Math.abs(n)}</span>`;
+      el.innerHTML = `
+        <p style="color:#94a3b8;font-size:0.82rem;margin-bottom:12px">
+          CCR = <b>${d.companyCoinRate}</b> coins/₹1 &nbsp;(internal rate — separate from user coin rate)
+        </p>
+        <table>
+          <thead><tr><th>Metric</th><th>Today (IST)</th><th>All Time</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>🪙 Coins Earned (all users)</td>
+              <td style="color:#60a5fa">${d.todayCoinsEarned}</td>
+              <td style="color:#60a5fa">${d.totalCoinsEarned}</td>
+            </tr>
+            <tr>
+              <td>💹 Company Income (coins ÷ CCR)</td>
+              <td style="color:#00d4aa">₹${d.todayIncomeINR}</td>
+              <td style="color:#00d4aa">₹${d.companyIncomeINR}</td>
+            </tr>
+            <tr>
+              <td>💸 Amount Paid to Users</td>
+              <td style="color:#a78bfa">₹${d.todayPaidINR}</td>
+              <td style="color:#a78bfa">₹${d.totalPaidINR}</td>
+            </tr>
+            <tr style="border-top:2px solid #334155">
+              <td><b>📊 Profit / Loss</b></td>
+              <td>${pl(d.todayProfitLossINR)}</td>
+              <td>${pl(d.profitLossINR)}</td>
+            </tr>
+          </tbody>
+        </table>`;
+    } catch(e) { el.innerHTML = '<div class="empty">Error loading CCR stats</div>'; }
   }
 
   async function loadPaymentLogs() {

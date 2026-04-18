@@ -1,6 +1,7 @@
 export interface AdminConfig {
   minWithdraw: number;
   coinToMoneyRate: number;
+  companyCoinRate: number;
   taskDuration: number;
   taskExpiry: number;
   referralEnabled: boolean;
@@ -67,6 +68,13 @@ export interface UserData {
   joinDate: Date;
   lastWithdrawalAt?: number;
   earningHistory: EarningHistoryEntry[];
+  earningsByCategory?: {
+    task: number;
+    referral: number;
+    coupon: number;
+    checkIn: number;
+    adminWallet: number;
+  };
   referralBonusPaid?: boolean;
   deviceId?: string;
   riskScore?: number;

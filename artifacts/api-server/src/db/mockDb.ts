@@ -42,6 +42,7 @@ import {
 export const adminConfig: AdminConfig = {
   minWithdraw: 10,
   coinToMoneyRate: 10,
+  companyCoinRate: 100,
   taskDuration: 20,
   taskExpiry: 12,
   referralEnabled: true,
@@ -151,12 +152,25 @@ export function updateUser(userId: string, data: Partial<UserData>): void {
   saveUser(userId, users[userId]);
 }
 
+function categoryFromReason(reason: string): keyof NonNullable<UserData["earningsByCategory"]> {
+  if (reason === "Task Completed") return "task";
+  if (reason.startsWith("Referral")) return "referral";
+  if (reason.startsWith("Coupon:")) return "coupon";
+  if (reason === "Daily Check-In") return "checkIn";
+  return "adminWallet";
+}
+
 export function addEarningHistory(userId: string, amount: number, reason: string): void {
   const user = getUser(userId);
   const history = user.earningHistory || [];
   history.push({ amount, reason, date: new Date() });
   if (history.length > 100) history.splice(0, history.length - 100);
-  users[userId] = { ...user, earningHistory: history };
+
+  const cat = categoryFromReason(reason);
+  const prev = user.earningsByCategory ?? { task: 0, referral: 0, coupon: 0, checkIn: 0, adminWallet: 0 };
+  const earningsByCategory = { ...prev, [cat]: (prev[cat] || 0) + amount };
+
+  users[userId] = { ...user, earningHistory: history, earningsByCategory };
   saveUser(userId, users[userId]);
 }
 
@@ -342,21 +356,30 @@ export function getEarningBreakdown(userId: string): {
   totalEarned: number;
 } {
   const user = getUser(userId);
-  const history = user.earningHistory || [];
 
-  // Use authoritative sources for task and referral earnings
+  // Always use authoritative sources for task and referral earnings
   const taskEarnings = user.completedTasks.length;
   const referralEarnings = user.referralEarnings || 0;
 
-  // For coupon, check-in, and admin wallet use earningHistory
   let couponEarnings = 0, adminWalletEarnings = 0, checkInEarnings = 0;
-  for (const h of history) {
-    if (h.reason === "Task Completed") continue;
-    else if (h.reason.startsWith("Referral")) continue;
-    else if (h.reason.startsWith("Coupon:")) couponEarnings += h.amount;
-    else if (h.reason === "Daily Check-in") checkInEarnings += h.amount;
-    else adminWalletEarnings += h.amount;
+
+  if (user.earningsByCategory) {
+    // Use accurate per-category accumulators (not limited by history cap)
+    couponEarnings = user.earningsByCategory.coupon || 0;
+    checkInEarnings = user.earningsByCategory.checkIn || 0;
+    adminWalletEarnings = user.earningsByCategory.adminWallet || 0;
+  } else {
+    // Fall back to earningHistory for older users without accumulators
+    const history = user.earningHistory || [];
+    for (const h of history) {
+      if (h.reason === "Task Completed") continue;
+      else if (h.reason.startsWith("Referral")) continue;
+      else if (h.reason.startsWith("Coupon:")) couponEarnings += h.amount;
+      else if (h.reason === "Daily Check-In" || h.reason === "Daily Check-in") checkInEarnings += h.amount;
+      else adminWalletEarnings += h.amount;
+    }
   }
+
   return {
     taskEarnings,
     referralEarnings,
@@ -384,14 +407,108 @@ export function getBalanceBreakdown(userId: string): {
     return { taskBalance: 0, referralBalance: 0, couponBalance: 0, checkInBalance: 0, adminWalletBalance: 0, currentBalance };
   }
 
-  const r = (n: number) => Math.round(n / totalEarned * currentBalance);
-  const taskBalance = r(bd.taskEarnings);
-  const referralBalance = r(bd.referralEarnings);
-  const couponBalance = r(bd.couponEarnings);
-  const checkInBalance = r(bd.checkInEarnings);
-  // Admin wallet gets remainder to absorb rounding drift
-  const adminWalletBalance = currentBalance - taskBalance - referralBalance - couponBalance - checkInBalance;
-  return { taskBalance, referralBalance, couponBalance, checkInBalance, adminWalletBalance: Math.max(0, adminWalletBalance), currentBalance };
+  // Proportionally distribute current balance across categories using accurate totals
+  const ratio = currentBalance / totalEarned;
+  const taskBalance = Math.floor(bd.taskEarnings * ratio);
+  const referralBalance = Math.floor(bd.referralEarnings * ratio);
+  const couponBalance = Math.floor(bd.couponEarnings * ratio);
+  const checkInBalance = Math.floor(bd.checkInEarnings * ratio);
+  const adminWalletBalance = Math.floor(bd.adminWalletEarnings * ratio);
+  // Distribute remainder (from flooring) to task balance since it's the largest category
+  const distributed = taskBalance + referralBalance + couponBalance + checkInBalance + adminWalletBalance;
+  const remainder = currentBalance - distributed;
+  return {
+    taskBalance: taskBalance + remainder,
+    referralBalance,
+    couponBalance,
+    checkInBalance,
+    adminWalletBalance,
+    currentBalance,
+  };
+}
+
+export function getCCRStats(): {
+  totalCoinsEarned: number;
+  companyIncomeINR: number;
+  totalPaidINR: number;
+  profitLossINR: number;
+  todayCoinsEarned: number;
+  todayIncomeINR: number;
+  todayPaidINR: number;
+  todayProfitLossINR: number;
+  companyCoinRate: number;
+} {
+  const cfg = adminConfig;
+  const ccr = cfg.companyCoinRate || 100;
+
+  // Total coins ever earned by all users (authoritative sources)
+  let totalCoinsEarned = 0;
+  for (const [userId] of Object.entries(users)) {
+    const bd = getEarningBreakdown(userId);
+    totalCoinsEarned += bd.totalEarned;
+  }
+
+  // IST midnight today
+  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+  const nowIST = Date.now() + IST_OFFSET_MS;
+  const todayMidnightIST = nowIST - (nowIST % (24 * 60 * 60 * 1000));
+  const todayMidnightUTC = todayMidnightIST - IST_OFFSET_MS;
+
+  // Today's task completions across all users
+  let todayCoinsEarned = 0;
+  for (const [, user] of Object.entries(users)) {
+    const history = user.earningHistory || [];
+    for (const h of history) {
+      const t = new Date(h.date).getTime();
+      if (t >= todayMidnightUTC) todayCoinsEarned += h.amount;
+    }
+  }
+
+  // Approved withdrawals (all time and today)
+  const approved = getWithdrawals("approved");
+  let totalPaidINR = 0;
+  let todayPaidINR = 0;
+  for (const w of approved) {
+    const money = w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100;
+    totalPaidINR += money;
+    if (new Date(w.createdAt).getTime() >= todayMidnightUTC) {
+      todayPaidINR += money;
+    }
+  }
+  totalPaidINR = Math.round(totalPaidINR * 100) / 100;
+  todayPaidINR = Math.round(todayPaidINR * 100) / 100;
+
+  const companyIncomeINR = Math.round((totalCoinsEarned / ccr) * 100) / 100;
+  const todayIncomeINR = Math.round((todayCoinsEarned / ccr) * 100) / 100;
+
+  return {
+    totalCoinsEarned,
+    companyIncomeINR,
+    totalPaidINR,
+    profitLossINR: Math.round((companyIncomeINR - totalPaidINR) * 100) / 100,
+    todayCoinsEarned,
+    todayIncomeINR,
+    todayPaidINR,
+    todayProfitLossINR: Math.round((todayIncomeINR - todayPaidINR) * 100) / 100,
+    companyCoinRate: ccr,
+  };
+}
+
+export function getTasksCompletedAllUsersBetween(fromMs: number, toMs: number): { totalTasks: number; uniqueUsers: number } {
+  let totalTasks = 0;
+  let uniqueUsers = 0;
+  for (const user of Object.values(users)) {
+    const completedInWindow = (user.earningHistory || []).filter(h => {
+      if (h.reason !== "Task Completed") return false;
+      const t = new Date(h.date).getTime();
+      return t >= fromMs && t <= toMs;
+    }).length;
+    if (completedInWindow > 0) {
+      totalTasks += completedInWindow;
+      uniqueUsers++;
+    }
+  }
+  return { totalTasks, uniqueUsers };
 }
 
 export function getPaymentStats(): {
