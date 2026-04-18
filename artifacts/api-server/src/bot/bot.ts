@@ -78,6 +78,7 @@ import {
   deleteWithdrawalById,
   runCleanup,
   getTasksCompletedAllUsersBetween,
+  getDateRangeTaskStats,
 } from "../db/mockDb.js";
 import { logger } from "../lib/logger.js";
 
@@ -398,6 +399,9 @@ function adminMenuKeyboard() {
       ],
       [
         { text: "📊 Stats", callback_data: "admin_stats" },
+        { text: "📅 Date Stats", callback_data: "admin_date_stats" },
+      ],
+      [
         { text: "🧹 Manual Cleanup", callback_data: "admin_manual_cleanup" },
       ],
       [
@@ -747,6 +751,7 @@ const pendingBroadcast: Record<string, boolean> = {};
 const pendingAnalyticsInput: Record<string, boolean> = {};
 const pendingUserPaylogsInput: Record<string, boolean> = {};
 const pendingPolicyInput: Record<string, boolean> = {};
+const pendingDateStatsInput: Record<string, boolean> = {};
 interface EligibilityState { step: "hours" | "tasks"; type: "coupon" | "withdraw"; hours?: number; }
 const pendingEligibilityInput: Record<string, EligibilityState> = {};
 
@@ -1790,6 +1795,20 @@ export function initBot(token: string, baseUrl: string): void {
         {
           parse_mode: "Markdown",
           reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "admin_back" }]] },
+        }
+      );
+      return;
+    }
+
+    if (data === "admin_date_stats") {
+      if (!isAdmin(userId)) return;
+      pendingDateStatsInput[userId] = true;
+      await bot!.sendMessage(
+        chatId,
+        `📅 *Date Stats*\n\nএকটি তারিখ বা তারিখ রেঞ্জ লিখুন:\n\n🔹 একটি দিন: \`YYYY-MM-DD\`\n🔹 রেঞ্জ: \`YYYY-MM-DD to YYYY-MM-DD\`\n\nউদাহরণ:\n\`2025-04-18\`\n\`2025-04-01 to 2025-04-18\``,
+        {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "❌ বাতিল", callback_data: "admin_back" }]] },
         }
       );
       return;
@@ -3243,6 +3262,40 @@ export function initBot(token: string, baseUrl: string): void {
         {
           parse_mode: "Markdown",
           reply_markup: { inline_keyboard: [[{ text: "💰 View Withdraw Options", callback_data: "admin_withdraw_opts" }]] },
+        }
+      );
+      return;
+    }
+
+    if (isAdmin(userId) && pendingDateStatsInput[userId]) {
+      delete pendingDateStatsInput[userId];
+      const dateRangeRx = /^(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})$/i;
+      const singleRx = /^(\d{4}-\d{2}-\d{2})$/;
+      let from = "", to = "";
+      const rangeMatch = text.trim().match(dateRangeRx);
+      const singleMatch = text.trim().match(singleRx);
+      if (rangeMatch) { from = rangeMatch[1]; to = rangeMatch[2]; }
+      else if (singleMatch) { from = singleMatch[1]; to = singleMatch[1]; }
+      else {
+        await bot!.sendMessage(chatId, `❌ ভুল ফরম্যাট। উদাহরণ:\n\`2025-04-18\`\nঅথবা\n\`2025-04-01 to 2025-04-18\``, {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "🔙 Admin Menu", callback_data: "admin_back" }]] },
+        });
+        return;
+      }
+      const fromMs = new Date(from + "T00:00:00.000+05:30").getTime();
+      const toMs = new Date(to + "T23:59:59.999+05:30").getTime();
+      const stats = getDateRangeTaskStats(fromMs, toMs);
+      const label = from === to ? `📅 ${from}` : `📅 ${from} → ${to}`;
+      let topTxt = "";
+      if (stats.topUsers.length > 0) {
+        topTxt = "\n\n🏆 *Top Users:*\n" + stats.topUsers.map((u, i) => `${i + 1}. \`${u.userId}\` — ${u.tasksCompleted} tasks`).join("\n");
+      }
+      await bot!.sendMessage(chatId,
+        `${label}\n\n✅ Tasks Completed: *${stats.totalTasks}*\n👥 Unique Users: *${stats.uniqueUsers}*\n🪙 Coins Earned: *${stats.totalCoinsEarned}*${topTxt}`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "📅 আবার দেখুন", callback_data: "admin_date_stats" }], [{ text: "🔙 Admin Menu", callback_data: "admin_back" }]] },
         }
       );
       return;

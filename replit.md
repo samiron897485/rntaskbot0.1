@@ -4,6 +4,12 @@
 
 pnpm workspace monorepo using TypeScript. L1 Telegram Bot Earning System with tracking webpage.
 
+## Recent Feature Additions
+
+- **Balance Breakdown fix**: `getBalanceBreakdown` now uses direct per-category earned coins (not proportional), labels updated to "Total Earned" in admin panel.
+- **Date Range Task Stats**: New `/api/admin/task-stats?from=YYYY-MM-DD&to=YYYY-MM-DD` endpoint. Admin panel "👥 Activity" tab has date picker UI. Telegram bot has `📅 Date Stats` admin menu button accepting `YYYY-MM-DD` or `YYYY-MM-DD to YYYY-MM-DD`.
+- **Active/Inactive Users**: `/api/admin/active-users` and `/api/admin/inactive-users` endpoints (30-day threshold). Admin panel Activity tab shows both sections with User ID search.
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

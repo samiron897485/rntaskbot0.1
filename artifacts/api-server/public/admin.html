@@ -86,6 +86,7 @@
   <div class="tab" onclick="switchTab('coupons')">🎟️ Coupons</div>
   <div class="tab" onclick="switchTab('payments')">💰 Payments</div>
   <div class="tab" onclick="switchTab('stats')" data-i18n="tab_stats">📈 Stats</div>
+  <div class="tab" onclick="switchTab('activity')">👥 Activity</div>
 </div>
 
 <div class="content">
@@ -305,6 +306,42 @@
       <button class="btn btn-primary" onclick="loadUserPaylogs()">🔍 Get Payment History</button>
       <div class="result" id="paylogResult"></div>
       <div id="userPaylogContainer" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-activity">
+    <div class="card">
+      <h3>📅 Task Stats by Date Range <button class="refresh-btn" onclick="loadDateStats()">🔄 Load</button></h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label>From Date (IST)</label>
+          <input type="date" id="dateStatsFrom" />
+        </div>
+        <div>
+          <label>To Date (IST) — leave blank for single day</label>
+          <input type="date" id="dateStatsTo" />
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="loadDateStats()" style="margin-top:4px">🔍 Show Stats</button>
+      <div id="dateStatsResult" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3>✅ Active Users (last 30 days) <button class="refresh-btn" onclick="loadActivityUsers()">🔄 Refresh</button></h3>
+      <div style="margin-bottom:8px;display:flex;gap:8px">
+        <input type="text" id="activeUserSearch" placeholder="Search by User ID..." style="margin-bottom:0;flex:1" oninput="filterActivityTable('active')" />
+      </div>
+      <div id="activeCountBadge" style="margin-bottom:8px;font-size:0.85rem;color:#00d4aa"></div>
+      <div id="activeUsersTable"><div class="empty">Click Refresh to load</div></div>
+    </div>
+
+    <div class="card">
+      <h3>💤 Inactive Users (30+ days idle) <button class="refresh-btn" onclick="loadActivityUsers()">🔄 Refresh</button></h3>
+      <div style="margin-bottom:8px;display:flex;gap:8px">
+        <input type="text" id="inactiveUserSearch" placeholder="Search by User ID..." style="margin-bottom:0;flex:1" oninput="filterActivityTable('inactive')" />
+      </div>
+      <div id="inactiveCountBadge" style="margin-bottom:8px;font-size:0.85rem;color:#fbbf24"></div>
+      <div id="inactiveUsersTable"><div class="empty">Click Refresh to load</div></div>
     </div>
   </div>
 
@@ -543,7 +580,7 @@
     applyLang();
   }
 
-  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','payments','stats'];
+  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','payments','stats','activity'];
 
   function switchTab(name) {
     document.querySelectorAll('.tab').forEach((t, i) => {
@@ -557,6 +594,7 @@
     if (name === 'withdraw') loadWithdrawals();
     if (name === 'settings') loadSettings();
     if (name === 'payments') loadPaymentStats();
+    if (name === 'activity') { loadActivityUsers(); setDefaultDateStatsDate(); }
   }
 
   let _coinRate = 10;
@@ -709,7 +747,7 @@
           const inr = Math.round((w.amount / rate) * 100) / 100;
           const bd = w.balanceBreakdown || {};
           const breakdownHtml = `<div style="margin-top:6px;padding:6px 8px;background:#0f172a;border-radius:6px;font-size:0.73rem;color:#94a3b8;line-height:1.7">
-            <div style="color:#e2e8f0;font-weight:600;margin-bottom:2px">💼 Current Balance Breakdown</div>
+            <div style="color:#e2e8f0;font-weight:600;margin-bottom:2px">💼 Earnings by Source (Total Earned)</div>
             <span>✅ Task: <b style="color:#00d4aa">${bd.taskBalance ?? 0}</b></span>&nbsp;|&nbsp;
             <span>👥 Referral: <b style="color:#fbbf24">${bd.referralBalance ?? 0}</b></span>&nbsp;|&nbsp;
             <span>🎟️ Coupon: <b style="color:#a78bfa">${bd.couponBalance ?? 0}</b></span>&nbsp;|&nbsp;
@@ -1109,15 +1147,17 @@
             <tr><td>📅 Join Date</td><td>${new Date(a.joinDate).toLocaleDateString('en-GB')}</td></tr>
           </table>
           <div style="margin-top:14px;padding:14px;background:#0f172a;border-radius:10px;border:1px solid #334155">
-            <div style="color:#00d4aa;font-weight:600;margin-bottom:10px">💼 Current Balance Breakdown</div>
+            <div style="color:#00d4aa;font-weight:600;margin-bottom:6px">💼 Earnings by Source (Total Earned)</div>
+            <div style="font-size:0.78rem;color:#64748b;margin-bottom:10px">সর্বমোট কোন উৎস থেকে কত কয়েন আর্ন করেছে</div>
             <table>
-              <tr><th>Source</th><th>Coins in Balance</th></tr>
+              <tr><th>Source</th><th>Total Earned</th></tr>
               <tr><td>✅ Task Completed</td><td style="color:#00d4aa;font-weight:bold">${bd.taskBalance ?? 0}</td></tr>
               <tr><td>👥 Referral (Bonus + Commission)</td><td style="color:#fbbf24;font-weight:bold">${bd.referralBalance ?? 0}</td></tr>
               <tr><td>🎟️ Coupon</td><td style="color:#a78bfa;font-weight:bold">${bd.couponBalance ?? 0}</td></tr>
               <tr><td>📅 Daily Check-in</td><td style="color:#38bdf8;font-weight:bold">${bd.checkInBalance ?? 0}</td></tr>
               <tr><td>💼 Admin Wallet</td><td style="color:#fb923c;font-weight:bold">${bd.adminWalletBalance ?? 0}</td></tr>
-              <tr style="border-top:1px solid #334155"><td><b>Total Balance</b></td><td style="color:#e2e8f0;font-weight:bold">${a.currentBalance ?? 0}</td></tr>
+              <tr style="border-top:1px solid #334155"><td><b>Total Earned (All)</b></td><td style="color:#e2e8f0;font-weight:bold">${bd.totalEarned ?? 0}</td></tr>
+              <tr><td><b>Current Balance</b></td><td style="color:#00d4aa;font-weight:bold">${a.currentBalance ?? 0}</td></tr>
             </table>
           </div>`;
       } else {
@@ -1177,6 +1217,102 @@
       html += '</table>';
       el.innerHTML = html;
     } catch(e) { document.getElementById('couponList').innerHTML = '<div class="empty">Error loading coupons</div>'; }
+  }
+
+  function setDefaultDateStatsDate() {
+    const today = new Date().toLocaleDateString('en-CA');
+    if (!document.getElementById('dateStatsFrom').value) {
+      document.getElementById('dateStatsFrom').value = today;
+    }
+  }
+
+  async function loadDateStats() {
+    const from = document.getElementById('dateStatsFrom').value;
+    const to = document.getElementById('dateStatsTo').value;
+    const el = document.getElementById('dateStatsResult');
+    if (!from) { el.innerHTML = '<div class="empty" style="color:#ff4444">Please select a From date</div>'; return; }
+    el.innerHTML = '<div class="empty">Loading...</div>';
+    try {
+      const url = to ? `/api/admin/task-stats?from=${from}&to=${to}` : `/api/admin/task-stats?from=${from}`;
+      const r = await apiFetch(url);
+      const d = await r.json();
+      if (!d.success) { el.innerHTML = `<div class="empty" style="color:#ff4444">${d.message || 'Error'}</div>`; return; }
+      const label = d.from === d.to ? `📅 ${d.from}` : `📅 ${d.from} → ${d.to}`;
+      let topHtml = '';
+      if (d.topUsers && d.topUsers.length > 0) {
+        topHtml = `<div style="margin-top:14px">
+          <div style="color:#94a3b8;font-size:0.82rem;margin-bottom:6px">🏆 Top Users</div>
+          <table><thead><tr><th>#</th><th>User ID</th><th>Tasks Done</th></tr></thead><tbody>
+          ${d.topUsers.map((u, i) => `<tr>
+            <td style="color:#94a3b8">${i + 1}</td>
+            <td style="color:#60a5fa">${u.userId}</td>
+            <td style="color:#00d4aa;font-weight:bold">${u.tasksCompleted}</td>
+          </tr>`).join('')}
+          </tbody></table></div>`;
+      }
+      el.innerHTML = `
+        <div style="padding:12px;background:#0f172a;border-radius:10px;border:1px solid #334155">
+          <div style="color:#00d4aa;font-weight:600;margin-bottom:12px">${label}</div>
+          <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0">
+            <div class="stat-box"><div class="val" style="font-size:1.4rem">${d.totalTasks}</div><div class="lbl">Tasks Completed</div></div>
+            <div class="stat-box"><div class="val" style="font-size:1.4rem">${d.uniqueUsers}</div><div class="lbl">Unique Users</div></div>
+            <div class="stat-box"><div class="val" style="font-size:1.4rem">${d.totalCoinsEarned}</div><div class="lbl">Coins Earned</div></div>
+          </div>
+          ${topHtml}
+        </div>`;
+    } catch(e) { el.innerHTML = '<div class="empty" style="color:#ff4444">Error loading stats</div>'; }
+  }
+
+  let _activeUsers = [];
+  let _inactiveUsers = [];
+
+  async function loadActivityUsers() {
+    document.getElementById('activeUsersTable').innerHTML = '<div class="empty">Loading...</div>';
+    document.getElementById('inactiveUsersTable').innerHTML = '<div class="empty">Loading...</div>';
+    try {
+      const [ar, ir] = await Promise.all([
+        apiFetch('/api/admin/active-users'),
+        apiFetch('/api/admin/inactive-users'),
+      ]);
+      const ad = await ar.json();
+      const id = await ir.json();
+      _activeUsers = ad.users || [];
+      _inactiveUsers = id.users || [];
+      document.getElementById('activeCountBadge').textContent = `✅ ${ad.count ?? 0} active users (গত ৩০ দিনে অন্তত ১ বার এক্টিভ)`;
+      document.getElementById('inactiveCountBadge').textContent = `💤 ${id.count ?? 0} inactive users (৩০+ দিন কোনো এক্টিভিটি নেই)`;
+      renderActivityTable('active', _activeUsers);
+      renderActivityTable('inactive', _inactiveUsers);
+    } catch(e) {
+      document.getElementById('activeUsersTable').innerHTML = '<div class="empty">Error loading</div>';
+      document.getElementById('inactiveUsersTable').innerHTML = '<div class="empty">Error loading</div>';
+    }
+  }
+
+  function renderActivityTable(type, data) {
+    const el = document.getElementById(type + 'UsersTable');
+    if (!data || data.length === 0) { el.innerHTML = `<div class="empty">No ${type} users</div>`; return; }
+    let html = `<table><thead><tr><th>User ID</th><th>Coins</th><th>Tasks Done</th><th>Last Active</th></tr></thead><tbody>`;
+    for (const u of data.slice(0, 100)) {
+      const lastActive = u.lastActive
+        ? new Date(u.lastActive).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+        : 'Never';
+      html += `<tr>
+        <td style="color:#60a5fa">${u.userId}</td>
+        <td style="color:#00d4aa;font-weight:bold">${u.coins}</td>
+        <td>${u.completedTasks}</td>
+        <td style="color:#94a3b8;font-size:0.8rem">${lastActive}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    if (data.length > 100) html += `<div style="text-align:center;color:#64748b;font-size:0.82rem;margin-top:8px">Showing 100 of ${data.length} users</div>`;
+    el.innerHTML = html;
+  }
+
+  function filterActivityTable(type) {
+    const query = document.getElementById(type + 'UserSearch').value.trim().toLowerCase();
+    const source = type === 'active' ? _activeUsers : _inactiveUsers;
+    const filtered = query ? source.filter(u => u.userId.toLowerCase().includes(query)) : source;
+    renderActivityTable(type, filtered);
   }
 
   applyLang();

@@ -397,33 +397,18 @@ export function getBalanceBreakdown(userId: string): {
   checkInBalance: number;
   adminWalletBalance: number;
   currentBalance: number;
+  totalEarned: number;
 } {
   const user = getUser(userId);
   const bd = getEarningBreakdown(userId);
-  const currentBalance = user.coins;
-  const totalEarned = bd.totalEarned;
-
-  if (totalEarned === 0 || currentBalance === 0) {
-    return { taskBalance: 0, referralBalance: 0, couponBalance: 0, checkInBalance: 0, adminWalletBalance: 0, currentBalance };
-  }
-
-  // Proportionally distribute current balance across categories using accurate totals
-  const ratio = currentBalance / totalEarned;
-  const taskBalance = Math.floor(bd.taskEarnings * ratio);
-  const referralBalance = Math.floor(bd.referralEarnings * ratio);
-  const couponBalance = Math.floor(bd.couponEarnings * ratio);
-  const checkInBalance = Math.floor(bd.checkInEarnings * ratio);
-  const adminWalletBalance = Math.floor(bd.adminWalletEarnings * ratio);
-  // Distribute remainder (from flooring) to task balance since it's the largest category
-  const distributed = taskBalance + referralBalance + couponBalance + checkInBalance + adminWalletBalance;
-  const remainder = currentBalance - distributed;
   return {
-    taskBalance: taskBalance + remainder,
-    referralBalance,
-    couponBalance,
-    checkInBalance,
-    adminWalletBalance,
-    currentBalance,
+    taskBalance: bd.taskEarnings,
+    referralBalance: bd.referralEarnings,
+    couponBalance: bd.couponEarnings,
+    checkInBalance: bd.checkInEarnings,
+    adminWalletBalance: bd.adminWalletEarnings,
+    currentBalance: user.coins,
+    totalEarned: bd.totalEarned,
   };
 }
 
@@ -509,6 +494,61 @@ export function getTasksCompletedAllUsersBetween(fromMs: number, toMs: number): 
     }
   }
   return { totalTasks, uniqueUsers };
+}
+
+export function getDateRangeTaskStats(fromMs: number, toMs: number): {
+  totalTasks: number;
+  uniqueUsers: number;
+  totalCoinsEarned: number;
+  topUsers: { userId: string; tasksCompleted: number }[];
+} {
+  const perUser: { userId: string; tasksCompleted: number }[] = [];
+  let totalTasks = 0;
+  let totalCoinsEarned = 0;
+  for (const [userId, user] of Object.entries(users)) {
+    const tasksInWindow = (user.earningHistory || []).filter(h => {
+      if (h.reason !== "Task Completed") return false;
+      const t = new Date(h.date).getTime();
+      return t >= fromMs && t <= toMs;
+    });
+    if (tasksInWindow.length > 0) {
+      totalTasks += tasksInWindow.length;
+      totalCoinsEarned += tasksInWindow.reduce((s, h) => s + h.amount, 0);
+      perUser.push({ userId, tasksCompleted: tasksInWindow.length });
+    }
+  }
+  return {
+    totalTasks,
+    uniqueUsers: perUser.length,
+    totalCoinsEarned,
+    topUsers: perUser.sort((a, b) => b.tasksCompleted - a.tasksCompleted).slice(0, 10),
+  };
+}
+
+export function getActiveUsers(days = 30): { userId: string; coins: number; completedTasks: number; lastActive: number }[] {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  return Object.entries(users)
+    .filter(([, u]) => u.lastActive !== undefined && u.lastActive >= cutoff)
+    .map(([userId, u]) => ({
+      userId,
+      coins: u.coins,
+      completedTasks: u.completedTasks.length,
+      lastActive: u.lastActive!,
+    }))
+    .sort((a, b) => b.lastActive - a.lastActive);
+}
+
+export function getInactiveUsers(days = 30): { userId: string; coins: number; completedTasks: number; lastActive: number | null }[] {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  return Object.entries(users)
+    .filter(([, u]) => u.lastActive === undefined || u.lastActive < cutoff)
+    .map(([userId, u]) => ({
+      userId,
+      coins: u.coins,
+      completedTasks: u.completedTasks.length,
+      lastActive: u.lastActive ?? null,
+    }))
+    .sort((a, b) => (b.lastActive ?? 0) - (a.lastActive ?? 0));
 }
 
 export function getPaymentStats(): {
