@@ -1148,7 +1148,7 @@
           </table>
           <div style="margin-top:14px;padding:14px;background:#0f172a;border-radius:10px;border:1px solid #334155">
             <div style="color:#00d4aa;font-weight:600;margin-bottom:6px">💼 Earnings by Source (Total Earned)</div>
-            <div style="font-size:0.78rem;color:#64748b;margin-bottom:10px">সর্বমোট কোন উৎস থেকে কত কয়েন আর্ন করেছে</div>
+            <div style="font-size:0.78rem;color:#64748b;margin-bottom:10px">How many coins earned from each source (all-time)</div>
             <table>
               <tr><th>Source</th><th>Total Earned</th></tr>
               <tr><td>✅ Task Completed</td><td style="color:#00d4aa;font-weight:bold">${bd.taskBalance ?? 0}</td></tr>
@@ -1278,8 +1278,8 @@
       const id = await ir.json();
       _activeUsers = ad.users || [];
       _inactiveUsers = id.users || [];
-      document.getElementById('activeCountBadge').textContent = `✅ ${ad.count ?? 0} active users (গত ৩০ দিনে অন্তত ১ বার এক্টিভ)`;
-      document.getElementById('inactiveCountBadge').textContent = `💤 ${id.count ?? 0} inactive users (৩০+ দিন কোনো এক্টিভিটি নেই)`;
+      document.getElementById('activeCountBadge').textContent = `✅ ${ad.count ?? 0} active users (at least 1 activity in the last 30 days)`;
+      document.getElementById('inactiveCountBadge').textContent = `💤 ${id.count ?? 0} inactive users (no activity for 30+ days)`;
       renderActivityTable('active', _activeUsers);
       renderActivityTable('inactive', _inactiveUsers);
     } catch(e) {

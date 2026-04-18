@@ -45,14 +45,16 @@ export async function initDb(): Promise<void> {
     logger.warn("DATABASE_URL not set — running in memory-only mode. Data will NOT persist across restarts.");
     return;
   }
+  const needsSsl = !url.includes("sslmode=disable") && !url.includes("localhost") && !url.includes("127.0.0.1");
   try {
     const pool = new Pool({
       connectionString: url,
-      ssl: process.env["NODE_ENV"] === "production" ? { rejectUnauthorized: false } : false,
-      max: 5,
+      ssl: needsSsl ? { rejectUnauthorized: false } : false,
+      max: 10,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 15000,
     });
+    await pool.query("SELECT 1");
     await pool.query(CREATE_TABLES_SQL);
     db = drizzle(pool);
     logger.info("Database connected and tables ready");
@@ -68,7 +70,17 @@ export function isDbReady(): boolean {
 
 function save(fn: () => Promise<void>): void {
   if (!db) return;
-  fn().catch((err) => logger.error({ err }, "DB write error"));
+  fn().catch((err) => {
+    const msg = String(err?.message ?? "");
+    if (msg.includes("timeout") || msg.includes("connect")) {
+      setTimeout(() => {
+        if (!db) return;
+        fn().catch((e2) => logger.error({ err: e2 }, "DB write error (retry failed)"));
+      }, 3000);
+    } else {
+      logger.error({ err }, "DB write error");
+    }
+  });
 }
 
 export async function loadAllData(): Promise<{
