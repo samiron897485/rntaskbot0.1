@@ -741,15 +741,6 @@
       el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_user')}</th><th>${L('th_amount')}</th><th>${L('th_inr')}</th><th>${L('th_whatsapp')}</th><th>${L('th_status')}</th><th>${L('th_action')}</th></tr></thead><tbody>
         ${d.withdrawals.slice().reverse().map(w => {
           const inr = Math.round((w.amount / rate) * 100) / 100;
-          const bd = w.balanceBreakdown || {};
-          const breakdownHtml = `<div style="margin-top:6px;padding:6px 8px;background:#0f172a;border-radius:6px;font-size:0.73rem;color:#94a3b8;line-height:1.7">
-            <div style="color:#e2e8f0;font-weight:600;margin-bottom:2px">💼 Earnings by Source (Total Earned)</div>
-            <span>✅ Task: <b style="color:#00d4aa">${bd.taskBalance ?? 0}</b></span>&nbsp;|&nbsp;
-            <span>👥 Referral: <b style="color:#fbbf24">${bd.referralBalance ?? 0}</b></span>&nbsp;|&nbsp;
-            <span>🎟️ Coupon: <b style="color:#a78bfa">${bd.couponBalance ?? 0}</b></span>&nbsp;|&nbsp;
-            <span>📅 Check-in: <b style="color:#38bdf8">${bd.checkInBalance ?? 0}</b></span>&nbsp;|&nbsp;
-            <span>💼 Admin: <b style="color:#fb923c">${bd.adminWalletBalance ?? 0}</b></span>
-          </div>`;
           return `<tr>
           <td style="font-size:0.75rem;color:#94a3b8">${w.id}</td>
           <td>
@@ -759,7 +750,6 @@
               &nbsp;|&nbsp;
               💎 <span style="color:#fbbf24">${w.referralEarningsInPeriod ?? 0}</span> ref coins (period)
             </div>
-            ${breakdownHtml}
           </td>
           <td style="color:#00d4aa;font-weight:bold">${w.amount}</td>
           <td style="color:#fbbf24;font-weight:bold">₹${inr}</td>
@@ -1260,12 +1250,29 @@
           </tr>`).join('')}
           </tbody></table></div></div>`;
       }
+      const c = d.ccrStats || {};
+      const plColor = c.profitLossINR >= 0 ? '#22c55e' : '#ef4444';
+      const plSign = c.profitLossINR >= 0 ? '+' : '';
       el.innerHTML = `
         <div style="padding:12px;background:#0f172a;border-radius:10px;border:1px solid #334155">
           <div style="color:#00d4aa;font-weight:600;margin-bottom:12px">${label}</div>
-          <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:0">
+          <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px">
             <div class="stat-box"><div class="val" style="font-size:1.4rem">${d.totalTasks}</div><div class="lbl">Tasks Completed</div></div>
             <div class="stat-box"><div class="val" style="font-size:1.4rem">${d.uniqueUsers}</div><div class="lbl">Unique Users</div></div>
+          </div>
+          <div style="margin-bottom:14px">
+            <div style="color:#94a3b8;font-size:0.8rem;margin-bottom:8px">CCR = <b style="color:#e2e8f0">${c.companyCoinRate}</b> coins/₹1</div>
+            <table style="margin:0">
+              <thead><tr><th>Metric</th><th>Period Total</th></tr></thead>
+              <tbody>
+                <tr><td>🪙 Coins Earned (all users)</td><td style="color:#60a5fa">${c.allCoins ?? 0}</td></tr>
+                <tr><td>✅ Coins Earned (task only)</td><td style="color:#38bdf8">${c.taskCoins ?? 0}</td></tr>
+                <tr style="background:rgba(251,191,36,0.05)"><td style="font-size:0.8rem;color:#94a3b8">↳ Extra coins (non-task)</td><td style="color:#fbbf24">+${c.extraCoins ?? 0}</td></tr>
+                <tr><td>💹 Company Income (task ÷ CCR)</td><td style="color:#00d4aa">₹${c.companyIncomeINR ?? 0}</td></tr>
+                <tr><td>💸 Amount Paid to Users</td><td style="color:#a78bfa">₹${c.paidINR ?? 0}</td></tr>
+                <tr style="border-top:2px solid #334155"><td><b>📊 Profit / Loss</b></td><td style="color:${plColor};font-weight:bold">${plSign}₹${c.profitLossINR ?? 0}</td></tr>
+              </tbody>
+            </table>
           </div>
           ${topHtml}
         </div>`;

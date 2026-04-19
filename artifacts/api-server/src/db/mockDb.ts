@@ -516,27 +516,65 @@ export function getDateRangeTaskStats(fromMs: number, toMs: number): {
   uniqueUsers: number;
   totalCoinsEarned: number;
   topUsers: { userId: string; tasksCompleted: number }[];
+  ccrStats: {
+    taskCoins: number;
+    allCoins: number;
+    extraCoins: number;
+    companyIncomeINR: number;
+    paidINR: number;
+    profitLossINR: number;
+    companyCoinRate: number;
+  };
 } {
+  const cfg = adminConfig;
+  const ccr = cfg.companyCoinRate || 100;
+
   const perUser: { userId: string; tasksCompleted: number }[] = [];
   let totalTasks = 0;
   let totalCoinsEarned = 0;
+  let taskCoins = 0;
+  let allCoins = 0;
+
   for (const [userId, user] of Object.entries(users)) {
-    const tasksInWindow = (user.earningHistory || []).filter(h => {
-      if (h.reason !== "Task Completed") return false;
+    const historyInWindow = (user.earningHistory || []).filter(h => {
       const t = new Date(h.date).getTime();
       return t >= fromMs && t <= toMs;
     });
+    const tasksInWindow = historyInWindow.filter(h => h.reason === "Task Completed");
     if (tasksInWindow.length > 0) {
       totalTasks += tasksInWindow.length;
       totalCoinsEarned += tasksInWindow.reduce((s, h) => s + h.amount, 0);
       perUser.push({ userId, tasksCompleted: tasksInWindow.length });
     }
+    taskCoins += tasksInWindow.reduce((s, h) => s + h.amount, 0);
+    allCoins += historyInWindow.reduce((s, h) => s + h.amount, 0);
   }
+
+  // Withdrawals approved in this date range
+  let paidINR = 0;
+  for (const w of getWithdrawals("approved")) {
+    const t = new Date(w.createdAt).getTime();
+    if (t >= fromMs && t <= toMs) {
+      paidINR += w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100;
+    }
+  }
+  paidINR = Math.round(paidINR * 100) / 100;
+  const companyIncomeINR = Math.round((taskCoins / ccr) * 100) / 100;
+
   return {
     totalTasks,
     uniqueUsers: perUser.length,
     totalCoinsEarned,
     topUsers: perUser.sort((a, b) => b.tasksCompleted - a.tasksCompleted),
+    ccrStats: {
+      taskCoins,
+      allCoins: Math.round(allCoins * 100) / 100,
+      extraCoins: Math.round((allCoins - taskCoins) * 100) / 100,
+      companyIncomeINR,
+      paidINR,
+      profitLossINR: Math.round((companyIncomeINR - paidINR) * 100) / 100,
+      companyCoinRate: ccr,
+    },
   };
 }
 
