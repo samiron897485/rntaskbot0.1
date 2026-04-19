@@ -456,8 +456,9 @@ router.get("/admin/user-analytics/:userId", adminAuthMiddleware, (req: Request, 
   const currentBalance = targetUser.coins;
   const currentBalanceMoney = Math.round((currentBalance / cfg.coinToMoneyRate) * 100) / 100;
   const approvedWds = getUserWithdrawals(userId).filter((w) => w.status === "approved");
+  const totalWithdrawCoins = approvedWds.reduce((s, w) => s + w.amount, 0);
   const totalWithdrawMoney = Math.round(approvedWds.reduce((s, w) => s + (w.moneyAmount ?? w.amount / cfg.coinToMoneyRate), 0) * 100) / 100;
-  res.json({ success: true, analytics: { ...analytics, earningBreakdown, balanceBreakdown, currentBalance, currentBalanceMoney, totalWithdrawMoney } });
+  res.json({ success: true, analytics: { ...analytics, earningBreakdown, balanceBreakdown, currentBalance, currentBalanceMoney, totalWithdrawMoney, totalWithdrawCoins } });
 });
 
 router.get("/admin/payment-stats", adminAuthMiddleware, (_req: Request, res: Response) => {

@@ -361,23 +361,16 @@ export function getEarningBreakdown(userId: string): {
   const taskEarnings = user.completedTasks.length;
   const referralEarnings = user.referralEarnings || 0;
 
+  // Always scan earningHistory for accurate totals — earningsByCategory accumulators
+  // can be incomplete for users who earned coins before the accumulator feature existed.
   let couponEarnings = 0, adminWalletEarnings = 0, checkInEarnings = 0;
-
-  if (user.earningsByCategory) {
-    // Use accurate per-category accumulators (not limited by history cap)
-    couponEarnings = user.earningsByCategory.coupon || 0;
-    checkInEarnings = user.earningsByCategory.checkIn || 0;
-    adminWalletEarnings = user.earningsByCategory.adminWallet || 0;
-  } else {
-    // Fall back to earningHistory for older users without accumulators
-    const history = user.earningHistory || [];
-    for (const h of history) {
-      if (h.reason === "Task Completed") continue;
-      else if (h.reason.startsWith("Referral")) continue;
-      else if (h.reason.startsWith("Coupon:")) couponEarnings += h.amount;
-      else if (h.reason === "Daily Check-In" || h.reason === "Daily Check-in") checkInEarnings += h.amount;
-      else adminWalletEarnings += h.amount;
-    }
+  const history = user.earningHistory || [];
+  for (const h of history) {
+    if (h.reason === "Task Completed") continue;
+    if (h.reason.startsWith("Referral")) continue;
+    if (h.reason.startsWith("Coupon:")) { couponEarnings += h.amount; continue; }
+    if (h.reason === "Daily Check-In" || h.reason === "Daily Check-in") { checkInEarnings += h.amount; continue; }
+    adminWalletEarnings += h.amount;
   }
 
   return {
