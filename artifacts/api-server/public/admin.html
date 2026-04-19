@@ -1167,7 +1167,7 @@
               <tr><td>🎟️ Coupon</td><td style="color:#a78bfa;font-weight:bold">${bd.couponBalance ?? 0}</td></tr>
               <tr><td>📅 Daily Check-in</td><td style="color:#38bdf8;font-weight:bold">${bd.checkInBalance ?? 0}</td></tr>
               <tr><td>💼 Admin Wallet</td><td style="color:#fb923c;font-weight:bold">${bd.adminWalletBalance ?? 0}</td></tr>
-              ${(() => { const untracked = (a.currentBalance ?? 0) + (a.totalWithdrawCoins ?? 0) - (bd.totalEarned ?? 0); return untracked > 0 ? \`<tr style="color:#f87171"><td>⚠️ Untracked (not in history)</td><td style="color:#f87171;font-weight:bold">+\${untracked}</td></tr>\` : ''; })()}
+              ${(() => { const untracked = (a.currentBalance ?? 0) + (a.totalWithdrawCoins ?? 0) - (bd.totalEarned ?? 0); return untracked > 0 ? '<tr style="color:#f87171"><td>⚠️ Untracked (not in history)</td><td style="color:#f87171;font-weight:bold">+' + untracked + '</td></tr>' : ''; })()}
               <tr style="border-top:1px solid #334155"><td><b>Total Earned (All)</b></td><td style="color:#e2e8f0;font-weight:bold">${bd.totalEarned ?? 0}</td></tr>
               <tr><td><b>Current Balance</b></td><td style="color:#00d4aa;font-weight:bold">${a.currentBalance ?? 0}</td></tr>
             </table>
