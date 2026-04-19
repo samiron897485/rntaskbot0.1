@@ -85,6 +85,7 @@
   <div class="tab" onclick="switchTab('analytics')">📊 Analytics</div>
   <div class="tab" onclick="switchTab('coupons')">🎟️ Coupons</div>
   <div class="tab" onclick="switchTab('payments')">💰 Payments</div>
+  <div class="tab" onclick="switchTab('pending-wd')">⏳ Pending Withdrawals</div>
   <div class="tab" onclick="switchTab('stats')" data-i18n="tab_stats">📈 Stats</div>
   <div class="tab" onclick="switchTab('activity')">👥 Activity</div>
 </div>
@@ -274,6 +275,17 @@
     <div class="card" id="analyticsCard" style="display:none">
       <h3>📊 Analytics Result</h3>
       <div id="analyticsData"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel-pending-wd">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+        <h3 style="margin:0">⏳ Pending Withdrawals</h3>
+        <button class="refresh-btn" onclick="loadPendingWd()">🔄 Refresh</button>
+      </div>
+      <div id="pendingWdSummary" style="margin-bottom:16px"></div>
+      <div id="pendingWdTable"><div class="empty">Click Refresh to load</div></div>
     </div>
   </div>
 
@@ -576,7 +588,7 @@
     applyLang();
   }
 
-  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','payments','stats','activity'];
+  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','payments','pending-wd','stats','activity'];
 
   function switchTab(name) {
     document.querySelectorAll('.tab').forEach((t, i) => {
@@ -590,6 +602,7 @@
     if (name === 'withdraw') loadWithdrawals();
     if (name === 'settings') loadSettings();
     if (name === 'payments') loadPaymentStats();
+    if (name === 'pending-wd') loadPendingWd();
     if (name === 'activity') { loadActivityUsers(); setDefaultDateStatsDate(); }
   }
 
@@ -1216,6 +1229,92 @@
       html += '</table>';
       el.innerHTML = html;
     } catch(e) { document.getElementById('couponList').innerHTML = '<div class="empty">Error loading coupons</div>'; }
+  }
+
+  async function loadPendingWd() {
+    const summary = document.getElementById('pendingWdSummary');
+    const table = document.getElementById('pendingWdTable');
+    summary.innerHTML = '';
+    table.innerHTML = '<div class="empty">Loading...</div>';
+    try {
+      const [wdRes, cfgRes] = await Promise.all([
+        apiFetch('/api/admin/withdrawals'),
+        apiFetch('/api/admin/config'),
+      ]);
+      const wdData = await wdRes.json();
+      const cfgData = await cfgRes.json();
+      const rate = cfgData.success ? (cfgData.config.coinToMoneyRate || 10) : 10;
+      const pending = (wdData.withdrawals || []).filter(w => w.status === 'pending');
+
+      if (pending.length === 0) {
+        summary.innerHTML = `<div style="padding:12px;background:#0f172a;border-radius:8px;color:#00d4aa;font-weight:600">✅ No pending withdrawals right now</div>`;
+        table.innerHTML = '';
+        return;
+      }
+
+      const totalCoins = pending.reduce((s, w) => s + w.amount, 0);
+      const totalINR = Math.round((totalCoins / rate) * 100) / 100;
+
+      summary.innerHTML = `
+        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:0">
+          <div class="stat-box">
+            <div class="val" style="font-size:1.5rem;color:#fbbf24">${pending.length}</div>
+            <div class="lbl">Pending Requests</div>
+          </div>
+          <div class="stat-box">
+            <div class="val" style="font-size:1.5rem;color:#00d4aa">${totalCoins}</div>
+            <div class="lbl">Total Coins</div>
+          </div>
+          <div class="stat-box">
+            <div class="val" style="font-size:1.5rem;color:#a78bfa">₹${totalINR}</div>
+            <div class="lbl">Total Rupees</div>
+          </div>
+        </div>`;
+
+      let html = `<table>
+        <thead><tr>
+          <th>User ID</th>
+          <th>WhatsApp</th>
+          <th>Coins</th>
+          <th>Rupees</th>
+          <th>Requested At</th>
+          <th>Action</th>
+        </tr></thead><tbody>`;
+      for (const w of pending) {
+        const inr = Math.round((w.amount / rate) * 100) / 100;
+        const reqAt = new Date(w.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        html += `<tr>
+          <td style="color:#60a5fa">${w.userId}</td>
+          <td style="font-size:0.85rem">${w.whatsapp ?? '—'}</td>
+          <td style="color:#00d4aa;font-weight:bold">${w.amount}</td>
+          <td style="color:#fbbf24;font-weight:bold">₹${inr}</td>
+          <td style="color:#94a3b8;font-size:0.8rem">${reqAt}</td>
+          <td>
+            <div class="action-row">
+              <button class="btn btn-approve btn-sm" onclick="pendingWdAction('${w.id}','approve')">✅ Approve</button>
+              <button class="btn btn-reject btn-sm" onclick="pendingWdAction('${w.id}','reject')">❌ Reject</button>
+            </div>
+          </td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      table.innerHTML = html;
+    } catch(e) {
+      summary.innerHTML = '';
+      table.innerHTML = '<div class="empty">Error loading pending withdrawals</div>';
+    }
+  }
+
+  async function pendingWdAction(id, action) {
+    try {
+      const r = await apiFetch('/api/admin/process-withdrawal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ withdrawalId: id, action }),
+      });
+      const d = await r.json();
+      if (d.success) loadPendingWd();
+    } catch(e) {}
   }
 
   function setDefaultDateStatsDate() {
