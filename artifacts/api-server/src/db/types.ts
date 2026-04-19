@@ -80,6 +80,7 @@ export interface UserData {
   lastAlertSentAt?: number;
   lastActive?: number;
   lastCheckInDate?: string;
+  taskCompletionDates?: number[];
 }
 
 export interface CouponCode {

@@ -327,9 +327,11 @@ router.post("/complete-task", (req: Request, res: Response) => {
 
   const newCoins = user.coins + 1;
   const newCompleted = [...user.completedTasks, taskId];
+  const taskCompletionDates = [...(user.taskCompletionDates ?? []), Date.now()];
   updateUser(userId, {
     coins: newCoins,
     completedTasks: newCompleted,
+    taskCompletionDates,
   });
   addEarningHistory(userId, 1, "Task Completed");
 

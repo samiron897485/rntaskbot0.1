@@ -487,15 +487,32 @@ export function getCCRStats(): {
   };
 }
 
+// Count tasks a user completed within an absolute date window.
+// Uses taskCompletionDates (unlimited, no cap) for new entries, and supplements
+// with earningHistory for historical entries that predate taskCompletionDates.
+function countTasksInDateWindow(user: UserData, fromMs: number, toMs: number): number {
+  const dates = user.taskCompletionDates ?? [];
+  const firstNewDate = dates.length > 0 ? Math.min(...dates) : Infinity;
+
+  // Count from taskCompletionDates (no 100-item cap)
+  const fromDates = dates.filter(ts => ts >= fromMs && ts <= toMs).length;
+
+  // Count from earningHistory only for entries that predate taskCompletionDates
+  // (avoids double-counting tasks recorded in both after the fix)
+  const fromHistory = (user.earningHistory ?? []).filter(h => {
+    if (h.reason !== "Task Completed") return false;
+    const t = new Date(h.date).getTime();
+    return t >= fromMs && t <= toMs && t < firstNewDate;
+  }).length;
+
+  return fromDates + fromHistory;
+}
+
 export function getTasksCompletedAllUsersBetween(fromMs: number, toMs: number): { totalTasks: number; uniqueUsers: number } {
   let totalTasks = 0;
   let uniqueUsers = 0;
   for (const user of Object.values(users)) {
-    const completedInWindow = (user.earningHistory || []).filter(h => {
-      if (h.reason !== "Task Completed") return false;
-      const t = new Date(h.date).getTime();
-      return t >= fromMs && t <= toMs;
-    }).length;
+    const completedInWindow = countTasksInDateWindow(user, fromMs, toMs);
     if (completedInWindow > 0) {
       totalTasks += completedInWindow;
       uniqueUsers++;
@@ -529,18 +546,28 @@ export function getDateRangeTaskStats(fromMs: number, toMs: number): {
   let allCoins = 0;
 
   for (const [userId, user] of Object.entries(users)) {
-    const historyInWindow = (user.earningHistory || []).filter(h => {
-      const t = new Date(h.date).getTime();
-      return t >= fromMs && t <= toMs;
-    });
-    const tasksInWindow = historyInWindow.filter(h => h.reason === "Task Completed");
-    if (tasksInWindow.length > 0) {
-      totalTasks += tasksInWindow.length;
-      totalCoinsEarned += tasksInWindow.reduce((s, h) => s + h.amount, 0);
-      perUser.push({ userId, tasksCompleted: tasksInWindow.length });
+    // Use accurate unlimited count (no 100-item cap)
+    const tasksInWindowCount = countTasksInDateWindow(user, fromMs, toMs);
+
+    // 1 coin earned per task
+    const taskCoinsInWindow = tasksInWindowCount;
+
+    // Non-task coins from earningHistory (referral, coupon, admin wallet, etc.)
+    const nonTaskCoins = (user.earningHistory ?? [])
+      .filter(h => {
+        if (h.reason === "Task Completed") return false;
+        const t = new Date(h.date).getTime();
+        return t >= fromMs && t <= toMs;
+      })
+      .reduce((s, h) => s + h.amount, 0);
+
+    if (tasksInWindowCount > 0) {
+      totalTasks += tasksInWindowCount;
+      totalCoinsEarned += taskCoinsInWindow;
+      perUser.push({ userId, tasksCompleted: tasksInWindowCount });
     }
-    taskCoins += tasksInWindow.reduce((s, h) => s + h.amount, 0);
-    allCoins += historyInWindow.reduce((s, h) => s + h.amount, 0);
+    taskCoins += taskCoinsInWindow;
+    allCoins += taskCoinsInWindow + nonTaskCoins;
   }
 
   // Withdrawals approved in this date range
