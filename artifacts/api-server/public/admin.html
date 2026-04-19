@@ -101,7 +101,7 @@
       <div class="stat-box"><div class="val" id="s-approved-wd">-</div><div class="lbl" data-i18n="stat_approved_wd">Approved Withdraw</div></div>
     </div>
     <div class="card">
-      <h3 data-i18n="recent_tasks">📋 Recent Tasks</h3>
+      <h3>📋 Active Queue Preview <span style="font-size:0.75rem;color:#64748b;font-weight:400">(first 3 tasks currently waiting for users)</span></h3>
       <div id="recentTasks"></div>
     </div>
   </div>
@@ -637,9 +637,9 @@
             const m = Math.floor((msLeft % 3600000) / 60000);
             const s = Math.floor((msLeft % 60000) / 1000);
             const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-            return `<div style="padding:8px;background:#0f172a;border-radius:6px;margin-bottom:6px;font-size:0.85rem;color:#94a3b8">
-              <span style="color:#00d4aa">${t.id}</span> — ${t.link.substring(0, 50)}
-              <span style="color:#ffa500;float:right">${timeStr}</span>
+            return `<div style="padding:8px;background:#0f172a;border-radius:6px;margin-bottom:6px;font-size:0.85rem;color:#94a3b8;display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <div><span style="color:#00d4aa">${t.id}</span> — <span style="font-size:0.8rem">${t.link.substring(0, 48)}${t.link.length > 48 ? '…' : ''}</span></div>
+              <div style="white-space:nowrap"><span style="color:#64748b;font-size:0.75rem">expires in </span><span style="color:#ffa500;font-family:monospace">${timeStr}</span></div>
             </div>`;
           }).join('')
         : `<div class="empty">${L('no_tasks')}</div>`;
