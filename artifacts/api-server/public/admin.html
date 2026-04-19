@@ -451,7 +451,7 @@
       th_id: 'ID', th_link: 'Link', th_expires: 'Expires In', th_action: 'Action',
       th_user_id: 'User ID', th_coins: 'Coins', th_done: 'Done', th_skip: 'Skip',
       th_referrals: 'Referrals', th_lang: 'Lang',
-      th_user: 'User', th_amount: 'Amount', th_whatsapp: 'WhatsApp', th_status: 'Status',
+      th_user: 'User', th_amount: 'Amount', th_status: 'Status',
       wd_pending: '⏳ Pending', wd_approved: '✅ Approved', wd_rejected: '❌ Rejected',
       btn_delete: '🗑️ Delete',
       lang_toggle: '🇧🇩 বাংলা',
@@ -538,7 +538,7 @@
       th_id: 'ID', th_link: 'Link', th_expires: 'Expires In', th_action: 'Action',
       th_user_id: 'User ID', th_coins: 'Coins', th_done: 'Done', th_skip: 'Skip',
       th_referrals: 'Referrals', th_lang: 'Lang',
-      th_user: 'User', th_amount: 'Amount', th_whatsapp: 'WhatsApp', th_status: 'Status',
+      th_user: 'User', th_amount: 'Amount', th_status: 'Status',
       wd_pending: '⏳ Pending', wd_approved: '✅ Approved', wd_rejected: '❌ Rejected',
       btn_delete: '🗑️ Delete',
       lang_toggle: '🇬🇧 English',
@@ -751,7 +751,7 @@
       const r = await apiFetch('/api/admin/withdrawals');
       const d = await r.json();
       if (!d.withdrawals || d.withdrawals.length === 0) { el.innerHTML = `<div class="empty">${L('no_withdrawals')}</div>`; return; }
-      el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_user')}</th><th>${L('th_amount')}</th><th>${L('th_inr')}</th><th>${L('th_whatsapp')}</th><th>${L('th_status')}</th><th>${L('th_action')}</th></tr></thead><tbody>
+      el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_user')}</th><th>${L('th_amount')}</th><th>${L('th_inr')}</th><th>${L('th_status')}</th><th>${L('th_action')}</th></tr></thead><tbody>
         ${d.withdrawals.slice().reverse().map(w => {
           const inr = Math.round((w.amount / rate) * 100) / 100;
           return `<tr>
@@ -766,7 +766,6 @@
           </td>
           <td style="color:#00d4aa;font-weight:bold">${w.amount}</td>
           <td style="color:#fbbf24;font-weight:bold">₹${inr}</td>
-          <td>${w.whatsapp ?? '-'}</td>
           <td><span class="badge-${w.status}">${w.status === 'pending' ? L('wd_pending') : w.status === 'approved' ? L('wd_approved') : L('wd_rejected')}</span></td>
           <td>${w.status === 'pending' ? `<div class="action-row">
             <button class="btn btn-approve btn-sm" onclick="processWithdrawal('${w.id}','approve')">✅</button>
@@ -1274,7 +1273,6 @@
       let html = `<table>
         <thead><tr>
           <th>User ID</th>
-          <th>WhatsApp</th>
           <th>Coins</th>
           <th>Rupees</th>
           <th>Requested At</th>
@@ -1285,7 +1283,6 @@
         const reqAt = new Date(w.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         html += `<tr>
           <td style="color:#60a5fa">${w.userId}</td>
-          <td style="font-size:0.85rem">${w.whatsapp ?? '—'}</td>
           <td style="color:#00d4aa;font-weight:bold">${w.amount}</td>
           <td style="color:#fbbf24;font-weight:bold">₹${inr}</td>
           <td style="color:#94a3b8;font-size:0.8rem">${reqAt}</td>

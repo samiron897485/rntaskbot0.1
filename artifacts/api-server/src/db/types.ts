@@ -33,7 +33,6 @@ export interface WithdrawalRequest {
   userId: string;
   userName: string;
   amount: number;
-  whatsapp?: string;
   accountName: string;
   qrFileId: string;
   status: "pending" | "approved" | "rejected" | "bin";
@@ -55,7 +54,6 @@ export interface UserData {
   skippedTasks: string[];
   currentTaskIndex: number;
   language: "bn" | "en";
-  whatsapp?: string;
   accountName?: string;
   qrFileId?: string;
   lastMessageId?: number;
