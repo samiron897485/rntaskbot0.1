@@ -3439,45 +3439,36 @@ export function initBot(token: string, baseUrl: string): void {
     }
   });
 
-  // ── 11 PM IST Daily Report ──
-  (function schedule11PMReport() {
+  // ── 11:50 PM IST Daily Report ──
+  (function schedule1150PMReport() {
     const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-    const TARGET_HOUR_IST = 23; // 11 PM
+    const TARGET_HOUR_IST = 23;   // 11 PM
+    const TARGET_MINUTE_IST = 50; // :50 → 11:50 PM
+    const DAY_MS = 24 * 60 * 60 * 1000;
 
     function sendDailyReport(): void {
       if (!bot) return;
       const now = Date.now();
-      const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-      const DAY_MS = 24 * 60 * 60 * 1000;
-      const nowIST = now + IST_OFFSET_MS;
-      const istDayStart = nowIST - (nowIST % DAY_MS);
-      const fromMs = istDayStart - IST_OFFSET_MS;
+      // Rolling 24-hour window: previous day 11:50 PM IST → today 11:50 PM IST
+      const fromMs = now - DAY_MS;
       const toMs = now;
 
       const stats = getDateRangeTaskStats(fromMs, toMs);
       const ccr = stats.ccrStats;
 
-      const fromDate = new Date(fromMs);
-      const toDate = new Date(toMs);
-      const fmt = (d: Date) => {
-        const ist = new Date(d.getTime() + IST_OFFSET_MS);
+      const fmt = (ms: number) => {
+        const ist = new Date(ms + IST_OFFSET_MS);
         return `${ist.getUTCDate()}/${ist.getUTCMonth() + 1}/${ist.getUTCFullYear()} ${String(ist.getUTCHours()).padStart(2, "0")}:${String(ist.getUTCMinutes()).padStart(2, "0")} IST`;
       };
 
-      let topTxt = "";
-      if (stats.topUsers.length > 0) {
-        const top5 = stats.topUsers.slice(0, 5);
-        topTxt = "\n\n🏆 *Top Users:*\n" + top5.map((u, i) => `${i + 1}. \`${u.userId}\` — ${u.tasksCompleted} tasks`).join("\n");
-      }
-
       const msg =
         `📊 *Daily Task Report*\n` +
-        `⏰ ${fmt(fromDate)} → ${fmt(toDate)}\n` +
+        `⏰ ${fmt(fromMs)} → ${fmt(toMs)}\n` +
         `\n` +
         `✅ Tasks Completed: *${stats.totalTasks}*\n` +
         `👥 Unique Users: *${stats.uniqueUsers}*\n` +
         `\n` +
-        `💰 *Earnings (IST Day)*\n` +
+        `💰 *Earnings (Last 24 Hours)*\n` +
         `🪙 Coins Earned (all): *${ccr.allCoins}*\n` +
         `☑️ Coins Earned (task): *${ccr.taskCoins}*\n` +
         `➕ Extra Coins (non-task): *+${ccr.extraCoins}*\n` +
@@ -3485,31 +3476,28 @@ export function initBot(token: string, baseUrl: string): void {
         `📈 *CCR = ${ccr.companyCoinRate} coins/₹1*\n` +
         `🏢 Company Income: *₹${ccr.companyIncomeINR}*\n` +
         `💸 Paid to Users: *₹${ccr.paidINR}*\n` +
-        `${ccr.profitLossINR >= 0 ? "✅" : "❌"} Profit/Loss: *₹${ccr.profitLossINR}*` +
-        topTxt;
+        `${ccr.profitLossINR >= 0 ? "✅" : "❌"} Profit/Loss: *₹${ccr.profitLossINR}*`;
 
       for (const adminId of ADMIN_IDS) {
         bot.sendMessage(adminId, msg, { parse_mode: "Markdown" }).catch(() => {});
       }
-      logger.info({ totalTasks: stats.totalTasks, uniqueUsers: stats.uniqueUsers }, "Daily 11 PM IST report sent to admins");
+      logger.info({ totalTasks: stats.totalTasks, uniqueUsers: stats.uniqueUsers }, "Daily 11:50 PM IST report sent to admins");
     }
 
     function scheduleNext(): void {
       const nowUTC = Date.now();
       const nowIST = nowUTC + IST_OFFSET_MS;
-      // Set target to 11 PM today in IST (as UTC-based calculation)
-      const istDayStart = nowIST - (nowIST % (24 * 60 * 60 * 1000));
-      let target11PMIST = istDayStart + TARGET_HOUR_IST * 60 * 60 * 1000;
-      if (nowIST >= target11PMIST) {
-        target11PMIST += 24 * 60 * 60 * 1000; // already past 11 PM, schedule tomorrow
+      const istDayStart = nowIST - (nowIST % DAY_MS);
+      let targetIST = istDayStart + TARGET_HOUR_IST * 60 * 60 * 1000 + TARGET_MINUTE_IST * 60 * 1000;
+      if (nowIST >= targetIST) {
+        targetIST += DAY_MS; // already past 11:50 PM today, schedule tomorrow
       }
-      const targetUTC = target11PMIST - IST_OFFSET_MS;
+      const targetUTC = targetIST - IST_OFFSET_MS;
       const msUntil = targetUTC - nowUTC;
-      logger.info({ minutesUntil: Math.round(msUntil / 60000) }, "Daily 11 PM IST report scheduled");
+      logger.info({ minutesUntil: Math.round(msUntil / 60000) }, "Daily 11:50 PM IST report scheduled");
       setTimeout(() => {
         sendDailyReport();
-        // Re-schedule for next day
-        setInterval(sendDailyReport, 24 * 60 * 60 * 1000);
+        setInterval(sendDailyReport, DAY_MS);
       }, msUntil);
     }
 
