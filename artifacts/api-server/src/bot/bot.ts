@@ -3225,10 +3225,11 @@ export function initBot(token: string, baseUrl: string): void {
       const state = pendingMsgUser[userId];
       if (state.step === "userId") {
         const targetId = text.trim();
+        if (!targetId) return;
         pendingMsgUser[userId] = { step: "message", targetUserId: targetId };
         await bot!.sendMessage(
           chatId,
-          `📨 Now enter the message to send to user \`${targetId}\`:\n\n_(Supports plain text and emoji)_`,
+          `📨 Now send the message to user \`${targetId}\`:\n\n_Supports: text, photo, video, audio, voice, document, sticker, animation, links, Telegram username — any message type_`,
           {
             parse_mode: "Markdown",
             reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "admin_cancel" }]] },
@@ -3240,7 +3241,7 @@ export function initBot(token: string, baseUrl: string): void {
         const targetId = state.targetUserId!;
         delete pendingMsgUser[userId];
         try {
-          await bot!.sendMessage(parseInt(targetId), `📩 *Message from Admin:*\n\n${text}`, { parse_mode: "Markdown" });
+          await (bot as any).copyMessage(parseInt(targetId), chatId, msg.message_id);
           await bot!.sendMessage(chatId, `✅ Message sent to user \`${targetId}\` successfully.`, {
             parse_mode: "Markdown",
             reply_markup: { inline_keyboard: [[{ text: "📨 Message Another User", callback_data: "admin_msg_user" }], [{ text: "🔙 Admin Menu", callback_data: "admin_back" }]] },
@@ -3345,6 +3346,25 @@ export function initBot(token: string, baseUrl: string): void {
     const userId = String(msg.from?.id);
     const chatId = msg.chat.id;
     const txt = t(userId);
+
+    // Handle message-user photo (safety net — message event fires first but photo event can also carry it)
+    if (isAdmin(userId) && pendingMsgUser[userId]?.step === "message") {
+      const targetId = pendingMsgUser[userId].targetUserId!;
+      delete pendingMsgUser[userId];
+      try {
+        await (bot as any).copyMessage(parseInt(targetId), chatId, msg.message_id);
+        await bot!.sendMessage(chatId, `✅ Message sent to user \`${targetId}\` successfully.`, {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "📨 Message Another User", callback_data: "admin_msg_user" }], [{ text: "🔙 Admin Menu", callback_data: "admin_back" }]] },
+        });
+      } catch {
+        await bot!.sendMessage(chatId, `❌ Failed to deliver message to user \`${targetId}\`.\n\nMake sure the user has started the bot.`, {
+          parse_mode: "Markdown",
+          reply_markup: { inline_keyboard: [[{ text: "🔙 Admin Menu", callback_data: "admin_back" }]] },
+        });
+      }
+      return;
+    }
 
     // Handle broadcast photo
     if (isAdmin(userId) && pendingBroadcast[userId]) {

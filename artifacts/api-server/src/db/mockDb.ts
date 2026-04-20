@@ -455,18 +455,24 @@ export function getCCRStats(): {
   const today = getISTDayWindow();
 
   // Today's earnings by source
+  // todayTaskCoinsEarned uses unlimited taskCompletionDates (same as getDateRangeTaskStats)
+  // to avoid the 100-item earningHistory cap causing under-counting.
   let todayCoinsEarned = 0;
   let todayTaskCoinsEarned = 0;
   for (const [, user] of Object.entries(users)) {
+    // Task coins: use unlimited taskCompletionDates, 1 coin per task
+    todayTaskCoinsEarned += countTasksInDateWindow(user, today.fromMs, today.toMs);
+
+    // Non-task coins: still read from earningHistory (referral, coupon, admin wallet, etc.)
     const history = user.earningHistory || [];
     for (const h of history) {
       const t = new Date(h.date).getTime();
-      if (t >= today.fromMs && t <= today.toMs) {
+      if (t >= today.fromMs && t <= today.toMs && h.reason !== "Task Completed") {
         todayCoinsEarned += h.amount;
-        if (h.reason === "Task Completed") todayTaskCoinsEarned += h.amount;
       }
     }
   }
+  todayCoinsEarned += todayTaskCoinsEarned;
 
   // Approved withdrawals (all time and today)
   const approved = getWithdrawals("approved");
