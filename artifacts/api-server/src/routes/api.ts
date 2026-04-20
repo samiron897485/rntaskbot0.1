@@ -47,6 +47,7 @@ import {
   getDateRangeTaskStats,
   getActiveUsers,
   getInactiveUsers,
+  getJoiningStats,
 } from "../db/mockDb.js";
 import { sendTaskCompletion } from "../bot/bot.js";
 import { bot } from "../bot/bot.js";
@@ -718,6 +719,29 @@ router.get("/admin/task-stats", adminAuthMiddleware, (req: Request, res: Respons
   }
   const stats = getDateRangeTaskStats(fromDate.getTime(), toDate.getTime());
   res.json({ success: true, from, to: to || from, ...stats });
+});
+
+router.get("/admin/joinings", adminAuthMiddleware, (req: Request, res: Response) => {
+  const { from, to } = req.query as { from?: string; to?: string };
+  if (!from) {
+    res.status(400).json({ success: false, message: "from date is required (YYYY-MM-DD)" });
+    return;
+  }
+  const fromDate = new Date(from + "T00:00:00.000+05:30");
+  const toDate = to ? new Date(to + "T23:59:59.999+05:30") : new Date(from + "T23:59:59.999+05:30");
+  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    res.status(400).json({ success: false, message: "Invalid date format. Use YYYY-MM-DD" });
+    return;
+  }
+  const stats = getJoiningStats(fromDate.getTime(), toDate.getTime());
+  res.json({
+    success: true,
+    from,
+    to: to || from,
+    totalUsers: stats.totalUsers,
+    joinedCount: stats.joinedUsers.length,
+    users: stats.joinedUsers,
+  });
 });
 
 router.get("/admin/active-users", adminAuthMiddleware, (_req: Request, res: Response) => {

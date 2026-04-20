@@ -6,8 +6,11 @@ pnpm workspace monorepo using TypeScript. L1 Telegram Bot Earning System with tr
 
 ## Recent Feature Additions
 
-- **Balance Breakdown fix**: `getBalanceBreakdown` now uses direct per-category earned coins (not proportional), labels updated to "Total Earned" in admin panel.
-- **Date Range Task Stats**: New `/api/admin/task-stats?from=YYYY-MM-DD&to=YYYY-MM-DD` endpoint. Admin panel "👥 Activity" tab has date picker UI. Telegram bot has `📅 Date Stats` admin menu button accepting `YYYY-MM-DD` or `YYYY-MM-DD to YYYY-MM-DD`.
+- **Unlimited balance/stat safety**: `user.coins` remains the authoritative unlimited balance. Balance breakdown now uses accumulated earning categories where available so long-running users do not lose totals due to the 100-item transaction log cap.
+- **IST daily completed counters**: Bot task menu, balance menu, completion message, check-in eligibility, task date stats, payment stats, CCR stats, and daily reports use IST day windows and unlimited `taskCompletionDates` where available.
+- **Date Range Task Stats**: `/api/admin/task-stats?from=YYYY-MM-DD&to=YYYY-MM-DD` endpoint. Admin panel "👥 Activity" tab has date picker UI. Telegram bot has `📅 Date Stats` admin menu button accepting `YYYY-MM-DD` or `YYYY-MM-DD to YYYY-MM-DD`.
+- **Joinings Admin Tab**: New `/api/admin/joinings?from=YYYY-MM-DD&to=YYYY-MM-DD` endpoint and admin panel "🧾 Joinings" tab show total users, selected-range joins, join time, balance, task counts, and referrals using IST date filters.
+- **Withdraw amount formatting**: Telegram withdraw option buttons format large coin values as `1k`, `1.2k`, etc.
 - **Active/Inactive Users**: `/api/admin/active-users` and `/api/admin/inactive-users` endpoints (30-day threshold). Admin panel Activity tab shows both sections with User ID search.
 
 ## Stack
@@ -62,14 +65,16 @@ artifacts-monorepo/
 - **Withdraw Cooldown** — withdrawal এর পর নির্ধারিত ঘন্টা পর্যন্ত আবার withdraw করা যায় না
 - **Referral** — শুধুমাত্র Level 1 referral commission (multi-level নেই)
 - **Earning History** — task, referral, coupon, admin wallet থেকে earning track হয়
+- **Completed Today** — bot task/balance counters show today's IST completed task count, while lifetime tasks remain available in admin analytics.
 
 ### Admin Features
-- Admin Panel: `/public/admin.html` (Stats, Tasks, Users, Withdraw, Broadcast, Settings, Wallet, Analytics, Coupons ট্যাব)
+- Admin Panel: `/public/admin.html` (Stats, Tasks, Users, Withdraw, Broadcast, Settings, Wallet, Analytics, Coupons, Payments, Pending Withdrawals, Activity, Joinings ট্যাব)
 - Bot Admin Menu: User Analytics, Withdraw Cooldown, Coupon Link, Create Coupon Code, List Coupons
 - **User Analytics** — user এর total tasks, referrals, withdrawals, join date দেখা যায়
 - **Coupon Management** — admin coupon code তৈরি করতে পারে (code, maxUsers, rewardCoins সহ)
 - **Withdraw Cooldown Settings** — `withdrawCooldownHours` (0 = disabled)
 - **Coupon Link Settings** — free coupon Telegram group লিংক সেট করা যায়
+- **Joinings** — date range অনুযায়ী joined users, balance, task counts, referrals দেখা যায়
 
 ### API Endpoints
 - `GET  /api/tasks` — সক্রিয় টাস্ক তালিকা
@@ -80,6 +85,8 @@ artifacts-monorepo/
 - `POST /api/complete-task` — টাস্ক সম্পন্ন করুন (taskId, userId)
 - `POST /api/add-task` — নতুন টাস্ক যোগ করুন (link)
 - `GET  /api/admin/user-analytics/:userId` — user analytics
+- `GET  /api/admin/task-stats?from=YYYY-MM-DD&to=YYYY-MM-DD` — IST date range task stats
+- `GET  /api/admin/joinings?from=YYYY-MM-DD&to=YYYY-MM-DD` — IST date range joining stats
 - `POST /api/admin/coupon/create` — coupon তৈরি করুন
 - `GET  /api/admin/coupons` — সব coupons দেখুন
 - `POST /api/claim-coupon` — coupon claim করুন

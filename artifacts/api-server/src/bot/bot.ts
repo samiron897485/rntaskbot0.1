@@ -100,19 +100,19 @@ const T = {
     help_btn: "💬 Help",
     referral_btn: "👥 Referral",
     no_task: (avail: number, done: number) =>
-      `😔 No tasks available right now.\n\n📊 Available: ${avail} | ✅ Completed: ${done}\n\nCheck back later.`,
+      `😔 No tasks available right now.\n\n📊 Available: ${avail} | ✅ Completed Today: ${done}\n\nCheck back later.`,
     task_title: "📋 *Current Task*",
     task_link: "🆔 Task ID",
     task_expire: "⏰ Expires in",
     task_reward: "💰 Reward: 1 Coin",
-    task_counter: (avail: number, done: number) => `📊 Available: ${avail} | ✅ Completed: ${done}`,
+    task_counter: (avail: number, done: number) => `📊 Available: ${avail} | ✅ Completed Today: ${done}`,
     start_task_btn: "✅ Start Task",
     skip_task_btn: "⏭️ Skip Task",
     next_task_btn: "⏭️ Next Task",
     task_skipped: "⏭️ Task skipped.",
-    all_done: (done: number) => `✅ All tasks done! Total completed: ${done}\n\nWait for new tasks.`,
+    all_done: (done: number) => `✅ All tasks done! Completed today: ${done}\n\nWait for new tasks.`,
     balance_title: "💰 *Your Balance*",
-    completed: "✅ Completed Tasks",
+    completed: "✅ Completed Today",
     skipped: "⏭️ Skipped",
     withdraw_btn: "💸 Withdraw",
     history_btn: "📜 History",
@@ -143,7 +143,7 @@ const T = {
         : `💬 *Help*\n\n📋 Tasks - View and complete tasks\n💰 Balance - View coins & withdraw\n⚙️ Settings - Change language`,
     help_btn_contact: "📩 Contact Support",
     task_complete: (coins: number, avail: number, done: number) =>
-      `🎉 Task completed! +1 Coin!\n\n💰 Total coins: ${coins}\n📊 Available: ${avail} | ✅ Completed: ${done}`,
+      `🎉 Task completed! +1 Coin!\n\n💰 Total coins: ${coins}\n📊 Available: ${avail} | ✅ Completed Today: ${done}`,
     min_time: "seconds left",
     withdraw_cancelled: "❌ Withdrawal cancelled.",
     withdraw_approved: (amount: number) => `✅ Your withdrawal of ${amount} coins has been approved!`,
@@ -192,19 +192,19 @@ const T = {
     help_btn: "💬 Help",
     referral_btn: "👥 Referral",
     no_task: (avail: number, done: number) =>
-      `😔 No tasks available right now.\n\n📊 Available: ${avail} | ✅ Completed: ${done}\n\nCheck back later.`,
+      `😔 No tasks available right now.\n\n📊 Available: ${avail} | ✅ Completed Today: ${done}\n\nCheck back later.`,
     task_title: "📋 *Current Task*",
     task_link: "🆔 Task ID",
     task_expire: "⏰ Expires in",
     task_reward: "💰 Reward: 1 Coin",
-    task_counter: (avail: number, done: number) => `📊 Available: ${avail} | ✅ Completed: ${done}`,
+    task_counter: (avail: number, done: number) => `📊 Available: ${avail} | ✅ Completed Today: ${done}`,
     start_task_btn: "✅ Start Task",
     skip_task_btn: "⏭️ Skip Task",
     next_task_btn: "⏭️ Next Task",
     task_skipped: "⏭️ Task skipped.",
-    all_done: (done: number) => `✅ All tasks done! Total completed: ${done}\n\nWait for new tasks.`,
+    all_done: (done: number) => `✅ All tasks done! Completed today: ${done}\n\nWait for new tasks.`,
     balance_title: "💰 *Your Balance*",
-    completed: "✅ Completed Tasks",
+    completed: "✅ Completed Today",
     skipped: "⏭️ Skipped",
     withdraw_btn: "💸 Withdraw",
     history_btn: "📜 History",
@@ -235,7 +235,7 @@ const T = {
         : `💬 *Help*\n\n📋 Tasks - View and complete tasks\n💰 Balance - View coins & withdraw\n⚙️ Settings - Change language`,
     help_btn_contact: "📩 Contact Support",
     task_complete: (coins: number, avail: number, done: number) =>
-      `🎉 Task completed! +1 Coin!\n\n💰 Total coins: ${coins}\n📊 Available: ${avail} | ✅ Completed: ${done}`,
+      `🎉 Task completed! +1 Coin!\n\n💰 Total coins: ${coins}\n📊 Available: ${avail} | ✅ Completed Today: ${done}`,
     min_time: "seconds left",
     withdraw_cancelled: "❌ Withdrawal cancelled.",
     withdraw_approved: (amount: number) => `✅ Your withdrawal of ${amount} coins has been approved!`,
@@ -308,6 +308,15 @@ function formatTimeLeft(ms: number): string {
   const m = Math.floor((totalSecs % 3600) / 60);
   const s = totalSecs % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function formatWithdrawCoinAmount(amount: number): string {
+  if (amount < 1000) return String(amount);
+  const thousands = amount / 1000;
+  const formatted = Number.isInteger(thousands)
+    ? String(thousands)
+    : thousands.toFixed(2).replace(/\.?0+$/, "");
+  return `${formatted}k`;
 }
 
 function persistentMenuKeyboard(userId: string) {
@@ -527,7 +536,7 @@ async function showTaskMenu(chatId: number, userId: string) {
   const txt = t(userId);
   const task = getCurrentTaskForUser(userId);
   const available = getAvailableTaskCount(userId);
-  const done = getUser(userId).completedTasks.length;
+  const done = countTasksCompletedTodayIST(userId);
 
   if (!task) {
     const msgId = await sendOrEdit(chatId, userId, txt.no_task(available, done), {
@@ -570,7 +579,7 @@ async function showBalanceMenu(chatId: number, userId: string) {
   const text =
     `${txt.balance_title}\n\n` +
     `💰 Coins: ${user.coins}\n` +
-    `${txt.completed}: ${user.completedTasks.length}\n` +
+    `${txt.completed}: ${countTasksCompletedTodayIST(userId)}\n` +
     `${txt.skipped}: ${user.skippedTasks.length}\n\n` +
     `💱 Rate: ${cfg.minWithdraw} coins = ₹${inrAmount} INR\n` +
     `📌 Min Withdraw: ${cfg.minWithdraw} coins`;
@@ -992,7 +1001,7 @@ export function sendTaskCompletion(userId: string, coins: number): void {
   const chatId = parseInt(userId);
   const txt = t(userId);
   const available = getAvailableTaskCount(userId);
-  const done = getUser(userId).completedTasks.length;
+  const done = countTasksCompletedTodayIST(userId);
 
   const text = txt.task_complete(coins, available, done);
   const user = getUser(userId);
@@ -1416,7 +1425,7 @@ export function initBot(token: string, baseUrl: string): void {
       for (let i = 0; i < allOptions.length; i += rowSize) {
         optRows.push(
           allOptions.slice(i, i + rowSize).map((o) => ({
-            text: `${o} 🪙 = ₹${Math.round(o / cfg.coinToMoneyRate)}`,
+            text: `${formatWithdrawCoinAmount(o)} 🪙 = ₹${Math.round(o / cfg.coinToMoneyRate)}`,
             callback_data: `withdraw_opt_${o}`,
           }))
         );
@@ -3418,8 +3427,12 @@ export function initBot(token: string, baseUrl: string): void {
     function sendDailyReport(): void {
       if (!bot) return;
       const now = Date.now();
+      const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+      const DAY_MS = 24 * 60 * 60 * 1000;
+      const nowIST = now + IST_OFFSET_MS;
+      const istDayStart = nowIST - (nowIST % DAY_MS);
+      const fromMs = istDayStart - IST_OFFSET_MS;
       const toMs = now;
-      const fromMs = now - 24 * 60 * 60 * 1000;
       const { totalTasks, uniqueUsers } = getTasksCompletedAllUsersBetween(fromMs, toMs);
       const fromDate = new Date(fromMs);
       const toDate = new Date(toMs);

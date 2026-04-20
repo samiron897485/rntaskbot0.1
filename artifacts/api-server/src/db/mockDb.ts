@@ -91,6 +91,22 @@ const tasks: Task[] = [];
 const users: Record<string, UserData> = {};
 const withdrawals: WithdrawalRequest[] = [];
 const couponCodes: Record<string, CouponCode> = {};
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function getISTDayWindow(dateMs = Date.now()): { fromMs: number; toMs: number; date: string } {
+  const istMs = dateMs + IST_OFFSET_MS;
+  const startIST = istMs - (istMs % DAY_MS);
+  const fromMs = startIST - IST_OFFSET_MS;
+  const toMs = fromMs + DAY_MS - 1;
+  const date = new Date(startIST).toISOString().split("T")[0]!;
+  return { fromMs, toMs, date };
+}
+
+function toISTDateKey(dateMs: number): string {
+  const startIST = dateMs + IST_OFFSET_MS;
+  return new Date(startIST).toISOString().split("T")[0]!;
+}
 
 export type WithdrawStep = "amount" | "name" | "qr";
 const pendingWithdrawInput: Record<string, {
@@ -357,12 +373,9 @@ export function getEarningBreakdown(userId: string): {
 } {
   const user = getUser(userId);
 
-  // Always use authoritative sources for task and referral earnings
   const taskEarnings = user.completedTasks.length;
   const referralEarnings = user.referralEarnings || 0;
 
-  // Always scan earningHistory for accurate totals — earningsByCategory accumulators
-  // can be incomplete for users who earned coins before the accumulator feature existed.
   let couponEarnings = 0, adminWalletEarnings = 0, checkInEarnings = 0;
   const history = user.earningHistory || [];
   for (const h of history) {
@@ -371,6 +384,12 @@ export function getEarningBreakdown(userId: string): {
     if (h.reason.startsWith("Coupon:")) { couponEarnings += h.amount; continue; }
     if (h.reason === "Daily Check-In" || h.reason === "Daily Check-in") { checkInEarnings += h.amount; continue; }
     adminWalletEarnings += h.amount;
+  }
+  const byCategory = user.earningsByCategory;
+  if (byCategory) {
+    couponEarnings = Math.max(couponEarnings, byCategory.coupon || 0);
+    adminWalletEarnings = Math.max(adminWalletEarnings, byCategory.adminWallet || 0);
+    checkInEarnings = Math.max(checkInEarnings, byCategory.checkIn || 0);
   }
 
   return {
@@ -433,10 +452,7 @@ export function getCCRStats(): {
   }
 
   // IST midnight today
-  const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-  const nowIST = Date.now() + IST_OFFSET_MS;
-  const todayMidnightIST = nowIST - (nowIST % (24 * 60 * 60 * 1000));
-  const todayMidnightUTC = todayMidnightIST - IST_OFFSET_MS;
+  const today = getISTDayWindow();
 
   // Today's earnings by source
   let todayCoinsEarned = 0;
@@ -445,7 +461,7 @@ export function getCCRStats(): {
     const history = user.earningHistory || [];
     for (const h of history) {
       const t = new Date(h.date).getTime();
-      if (t >= todayMidnightUTC) {
+      if (t >= today.fromMs && t <= today.toMs) {
         todayCoinsEarned += h.amount;
         if (h.reason === "Task Completed") todayTaskCoinsEarned += h.amount;
       }
@@ -459,7 +475,7 @@ export function getCCRStats(): {
   for (const w of approved) {
     const money = w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100;
     totalPaidINR += money;
-    if (new Date(w.createdAt).getTime() >= todayMidnightUTC) {
+    if (new Date(w.createdAt).getTime() >= today.fromMs && new Date(w.createdAt).getTime() <= today.toMs) {
       todayPaidINR += money;
     }
   }
@@ -598,6 +614,41 @@ export function getDateRangeTaskStats(fromMs: number, toMs: number): {
   };
 }
 
+export function getJoiningStats(fromMs: number, toMs: number): {
+  totalUsers: number;
+  joinedUsers: {
+    userId: string;
+    joinDate: Date;
+    currentBalance: number;
+    totalTasksCompleted: number;
+    todayTasksCompleted: number;
+    periodTasksCompleted: number;
+    totalReferrals: number;
+  }[];
+} {
+  const today = getISTDayWindow();
+  const joinedUsers = Object.entries(users)
+    .filter(([, user]) => {
+      const joinedAt = new Date(user.joinDate).getTime();
+      return joinedAt >= fromMs && joinedAt <= toMs;
+    })
+    .map(([userId, user]) => ({
+      userId,
+      joinDate: user.joinDate,
+      currentBalance: user.coins,
+      totalTasksCompleted: user.completedTasks.length,
+      todayTasksCompleted: countTasksInDateWindow(user, today.fromMs, today.toMs),
+      periodTasksCompleted: countTasksInDateWindow(user, fromMs, toMs),
+      totalReferrals: user.totalReferrals || 0,
+    }))
+    .sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime());
+
+  return {
+    totalUsers: Object.keys(users).length,
+    joinedUsers,
+  };
+}
+
 export function getActiveUsers(days = 30): { userId: string; coins: number; completedTasks: number; lastActive: number }[] {
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   return Object.entries(users)
@@ -632,14 +683,14 @@ export function getPaymentStats(): {
 } {
   const allWithdrawals = getWithdrawals("approved");
   const cfg = adminConfig;
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const today = getISTDayWindow();
   let todayPayment = 0, totalPayment = 0, todayMoney = 0, totalMoney = 0;
   for (const w of allWithdrawals) {
     const money = w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100;
     totalPayment += w.amount;
     totalMoney += money;
-    if (new Date(w.createdAt).getTime() >= todayStart) {
+    const createdAt = new Date(w.createdAt).getTime();
+    if (createdAt >= today.fromMs && createdAt <= today.toMs) {
       todayPayment += w.amount;
       todayMoney += money;
     }
@@ -661,8 +712,7 @@ export function getPaymentLogs(): { date: string; totalAmount: number; totalMone
     const ts = new Date(w.createdAt).getTime();
     if (ts < thirtyDaysAgo) continue;
     const money = w.moneyAmount ?? Math.round((w.amount / cfg.coinToMoneyRate) * 100) / 100;
-    const d = new Date(w.createdAt);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const key = toISTDateKey(new Date(w.createdAt).getTime());
     if (!byDate[key]) byDate[key] = { totalAmount: 0, totalMoney: 0, userIds: new Set() };
     byDate[key].totalAmount += w.amount;
     byDate[key].totalMoney += money;
@@ -1025,11 +1075,8 @@ export function checkRapidEarning(userId: string): { isRapid: boolean; count: nu
 export function countTasksInWindow(userId: string, hours: number): number {
   if (hours <= 0) return 0;
   const user = getUser(userId);
-  const history = user.earningHistory || [];
   const cutoff = Date.now() - hours * 60 * 60 * 1000;
-  return history.filter(
-    (h) => h.reason === "Task Completed" && new Date(h.date).getTime() > cutoff
-  ).length;
+  return countTasksInDateWindow(user, cutoff, Date.now());
 }
 
 export function checkWithdrawEligibility(userId: string): { allowed: boolean; requiredTasks: number; requiredHours: number } {
@@ -1054,21 +1101,13 @@ export function updateWithdrawEligibility(hours: number, tasks: number): void {
 }
 
 export function getISTDateString(): string {
-  const now = new Date();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  const ist = new Date(now.getTime() + istOffset);
-  return ist.toISOString().split("T")[0];
+  return getISTDayWindow().date;
 }
 
 export function countTasksCompletedTodayIST(userId: string): number {
   const user = getUser(userId);
-  const todayIST = getISTDateString();
-  const istOffset = 5.5 * 60 * 60 * 1000;
-  return (user.earningHistory || []).filter((h) => {
-    if (h.reason !== "Task Completed") return false;
-    const ist = new Date(new Date(h.date).getTime() + istOffset);
-    return ist.toISOString().split("T")[0] === todayIST;
-  }).length;
+  const today = getISTDayWindow();
+  return countTasksInDateWindow(user, today.fromMs, today.toMs);
 }
 
 export function performCheckIn(userId: string): { success: boolean; message: string; coinsAdded?: number } {
@@ -1095,11 +1134,7 @@ export function performCheckIn(userId: string): { success: boolean; message: str
 
 export function getTasksCompletedBetween(userId: string, fromMs: number, toMs: number): number {
   const user = getUser(userId);
-  return (user.earningHistory || []).filter((h) => {
-    if (h.reason !== "Task Completed") return false;
-    const t = new Date(h.date).getTime();
-    return t >= fromMs && t <= toMs;
-  }).length;
+  return countTasksInDateWindow(user, fromMs, toMs);
 }
 
 export function runCleanup(): {

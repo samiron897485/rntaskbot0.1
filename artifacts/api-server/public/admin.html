@@ -88,6 +88,7 @@
   <div class="tab" onclick="switchTab('pending-wd')">⏳ Pending Withdrawals</div>
   <div class="tab" onclick="switchTab('stats')" data-i18n="tab_stats">📈 Stats</div>
   <div class="tab" onclick="switchTab('activity')">👥 Activity</div>
+  <div class="tab" onclick="switchTab('joinings')">🧾 Joinings</div>
 </div>
 
 <div class="content">
@@ -353,6 +354,28 @@
     </div>
   </div>
 
+  <div class="panel" id="panel-joinings">
+    <div class="stat-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
+      <div class="stat-box"><div class="val" id="join-total">-</div><div class="lbl">Total Joined Users</div></div>
+      <div class="stat-box"><div class="val" id="join-period">-</div><div class="lbl">Selected Range Joins</div></div>
+    </div>
+    <div class="card">
+      <h3>🧾 Joinings by Date Range</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label>From Date (IST)</label>
+          <input type="date" id="joiningFrom" />
+        </div>
+        <div>
+          <label>To Date (IST) — leave blank for single day</label>
+          <input type="date" id="joiningTo" />
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="loadJoinings()" style="margin-top:4px">🔍 Show Joinings</button>
+      <div id="joiningTable" style="margin-top:12px"><div class="empty">Select date range and load</div></div>
+    </div>
+  </div>
+
   <div class="panel" id="panel-coupons">
     <div class="card">
       <h3>🎟️ Create Coupon Code</h3>
@@ -588,7 +611,7 @@
     applyLang();
   }
 
-  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','payments','pending-wd','stats','activity'];
+  const tabNames = ['tasks','users','withdraw','broadcast','settings','wallet','analytics','coupons','payments','pending-wd','stats','activity','joinings'];
 
   function switchTab(name) {
     document.querySelectorAll('.tab').forEach((t, i) => {
@@ -604,6 +627,7 @@
     if (name === 'payments') loadPaymentStats();
     if (name === 'pending-wd') loadPendingWd();
     if (name === 'activity') { loadActivityUsers(); setDefaultDateStatsDate(); }
+    if (name === 'joinings') { setDefaultJoiningDate(); loadJoinings(); }
   }
 
   let _coinRate = 10;
@@ -1315,10 +1339,26 @@
     } catch(e) {}
   }
 
+  function getTodayISTDate() {
+    const now = new Date();
+    const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const y = ist.getFullYear();
+    const m = String(ist.getMonth() + 1).padStart(2, '0');
+    const d = String(ist.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   function setDefaultDateStatsDate() {
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = getTodayISTDate();
     if (!document.getElementById('dateStatsFrom').value) {
       document.getElementById('dateStatsFrom').value = today;
+    }
+  }
+
+  function setDefaultJoiningDate() {
+    const today = getTodayISTDate();
+    if (!document.getElementById('joiningFrom').value) {
+      document.getElementById('joiningFrom').value = today;
     }
   }
 
@@ -1448,6 +1488,60 @@
 
   function filterCurrentActivityTable() {
     renderCurrentActivityTable();
+  }
+
+  async function loadJoinings() {
+    const from = document.getElementById('joiningFrom').value;
+    const to = document.getElementById('joiningTo').value;
+    const el = document.getElementById('joiningTable');
+    if (!from) { el.innerHTML = '<div class="empty" style="color:#ff4444">Please select a From date</div>'; return; }
+    el.innerHTML = '<div class="empty">Loading...</div>';
+    try {
+      const url = to ? `/api/admin/joinings?from=${from}&to=${to}` : `/api/admin/joinings?from=${from}`;
+      const r = await apiFetch(url);
+      const d = await r.json();
+      if (!d.success) { el.innerHTML = `<div class="empty" style="color:#ff4444">${d.message || 'Error'}</div>`; return; }
+      document.getElementById('join-total').textContent = d.totalUsers ?? 0;
+      document.getElementById('join-period').textContent = d.joinedCount ?? 0;
+      const label = d.from === d.to ? `📅 ${d.from}` : `📅 ${d.from} → ${d.to}`;
+      if (!d.users || d.users.length === 0) {
+        el.innerHTML = `<div style="padding:12px;background:#0f172a;border-radius:10px;border:1px solid #334155"><div style="color:#00d4aa;font-weight:600;margin-bottom:10px">${label}</div><div class="empty">No users joined in this range</div></div>`;
+        return;
+      }
+      el.innerHTML = `
+        <div style="padding:12px;background:#0f172a;border-radius:10px;border:1px solid #334155">
+          <div style="color:#00d4aa;font-weight:600;margin-bottom:12px">${label}</div>
+          <div style="max-height:480px;overflow-y:auto;border-radius:6px;border:1px solid #334155">
+            <table style="margin:0">
+              <thead><tr>
+                <th style="position:sticky;top:0;background:#111827">User ID</th>
+                <th style="position:sticky;top:0;background:#111827">Joined (IST)</th>
+                <th style="position:sticky;top:0;background:#111827">Balance</th>
+                <th style="position:sticky;top:0;background:#111827">Total Tasks</th>
+                <th style="position:sticky;top:0;background:#111827">Today Tasks</th>
+                <th style="position:sticky;top:0;background:#111827">Range Tasks</th>
+                <th style="position:sticky;top:0;background:#111827">Referrals</th>
+              </tr></thead>
+              <tbody>
+                ${d.users.map(u => {
+                  const joined = new Date(u.joinDate).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+                  return `<tr>
+                    <td style="color:#60a5fa">${u.userId}</td>
+                    <td style="color:#94a3b8;font-size:0.8rem">${joined}</td>
+                    <td style="color:#00d4aa;font-weight:bold">${u.currentBalance}</td>
+                    <td>${u.totalTasksCompleted}</td>
+                    <td>${u.todayTasksCompleted}</td>
+                    <td>${u.periodTasksCompleted}</td>
+                    <td>${u.totalReferrals}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    } catch(e) {
+      el.innerHTML = '<div class="empty" style="color:#ff4444">Error loading joinings</div>';
+    }
   }
 
   applyLang();
