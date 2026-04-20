@@ -101,6 +101,9 @@
       <div class="stat-box"><div class="val" id="s-completed">-</div><div class="lbl" data-i18n="stat_completed">Completed Tasks</div></div>
       <div class="stat-box"><div class="val" id="s-pending-wd">-</div><div class="lbl" data-i18n="stat_pending_wd">Pending Withdraw</div></div>
       <div class="stat-box"><div class="val" id="s-approved-wd">-</div><div class="lbl" data-i18n="stat_approved_wd">Approved Withdraw</div></div>
+      <div class="stat-box"><div class="val" id="s-today-all-coins" style="color:#f59e0b">-</div><div class="lbl">🪙 Today's Coins (all)</div></div>
+      <div class="stat-box"><div class="val" id="s-today-task-coins" style="color:#f59e0b">-</div><div class="lbl">☑️ Today's Task Coins</div></div>
+      <div class="stat-box"><div class="val" id="s-today-extra-coins" style="color:#f59e0b">-</div><div class="lbl">➕ Today's Extra Coins</div></div>
     </div>
     <div class="card">
       <h3>📋 Active Queue Preview <span style="font-size:0.75rem;color:#64748b;font-weight:400">(first 3 tasks currently waiting for users)</span></h3>
@@ -642,14 +645,16 @@
 
   async function loadStats() {
     try {
-      const [tasksRes, usersRes, wdRes] = await Promise.all([
+      const [tasksRes, usersRes, wdRes, ccrRes] = await Promise.all([
         apiFetch('/api/tasks'),
         apiFetch('/api/admin/users'),
         apiFetch('/api/admin/withdrawals'),
+        apiFetch('/api/admin/ccr-stats'),
       ]);
       const tasks = await tasksRes.json();
       const users = await usersRes.json();
       const wd = await wdRes.json();
+      const ccr = await ccrRes.json();
 
       document.getElementById('s-tasks').textContent = tasks.tasks?.length ?? 0;
       document.getElementById('s-users').textContent = users.count ?? 0;
@@ -660,6 +665,10 @@
       const approved = wd.withdrawals?.filter(w => w.status === 'approved').length ?? 0;
       document.getElementById('s-pending-wd').textContent = pending;
       document.getElementById('s-approved-wd').textContent = approved;
+
+      document.getElementById('s-today-all-coins').textContent = ccr.todayCoinsEarned ?? '-';
+      document.getElementById('s-today-task-coins').textContent = ccr.todayTaskCoinsEarned ?? '-';
+      document.getElementById('s-today-extra-coins').textContent = '+' + (ccr.todayExtraCoinsEarned ?? 0);
 
       if (pending > 0) {
         document.getElementById('pendingBadge').textContent = `${pending} Pending`;
