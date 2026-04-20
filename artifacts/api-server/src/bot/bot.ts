@@ -1632,7 +1632,7 @@ export function initBot(token: string, baseUrl: string): void {
     if (data === "admin_broadcast") {
       if (!isAdmin(userId)) return;
       pendingBroadcast[userId] = true;
-      await bot!.sendMessage(chatId, "📢 *Broadcast Message*\n\nType your message to send to ALL users:", {
+      await bot!.sendMessage(chatId, "📢 *Broadcast Message*\n\nSend any message to broadcast to ALL users:\n\n_Supports: text, photo, video, audio, voice, document, sticker, animation, links, Telegram username — any message type_", {
         parse_mode: "Markdown",
         reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "admin_cancel" }]] },
       });
