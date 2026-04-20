@@ -38,6 +38,8 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+const host = process.env["HOST"] || "0.0.0.0";
+
 const telegramToken = process.env["TELEGRAM_BOT_TOKEN"];
 
 const replitDomains = process.env["REPLIT_DOMAINS"] || "";
@@ -91,13 +93,13 @@ async function main() {
   const dbData = await loadAllData();
   populateFromDb(dbData);
 
-  app.listen(port, (err) => {
+  app.listen(port, host, (err) => {
     if (err) {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
 
-    logger.info({ port, baseUrl }, "Server listening");
+    logger.info({ host, port, baseUrl }, "Server listening");
 
     scheduleCleanup();
 

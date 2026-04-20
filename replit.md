@@ -13,11 +13,11 @@ pnpm workspace monorepo using TypeScript. L1 Telegram Bot Earning System with tr
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
+- **Node.js version**: 20
 - **Package manager**: pnpm
 - **TypeScript version**: 5.9
 - **API framework**: Express 5
-- **Database**: In-memory mock (JS objects) — Firebase Firestore ready
+- **Database**: PostgreSQL when `DATABASE_URL` is set, with in-memory fallback
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (ESM bundle)
@@ -124,8 +124,9 @@ All `/api/admin/*` routes also require the token via `x-admin-token` header or `
 
 ## Replit Setup
 
-- **Workflow**: "Start application" — runs `pnpm --filter @workspace/api-server run dev` on port 5000 (webview)
-- **Database**: Replit PostgreSQL provisioned; schema pushed via Drizzle (`lib/db`)
+- **Workflow**: "Start application" — runs `PORT=5000 pnpm --filter @workspace/api-server run dev` on port 5000 (webview)
+- **Server bind**: Express listens on `0.0.0.0` for Replit preview/proxy compatibility
+- **Database**: Uses `DATABASE_URL` when available; otherwise logs a warning and runs memory-only
 - **Deployment**: VM target (always-running for Telegram bot)
 
 ## Setup
