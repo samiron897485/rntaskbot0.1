@@ -3453,22 +3453,45 @@ export function initBot(token: string, baseUrl: string): void {
       const istDayStart = nowIST - (nowIST % DAY_MS);
       const fromMs = istDayStart - IST_OFFSET_MS;
       const toMs = now;
-      const { totalTasks, uniqueUsers } = getTasksCompletedAllUsersBetween(fromMs, toMs);
+
+      const stats = getDateRangeTaskStats(fromMs, toMs);
+      const ccr = stats.ccrStats;
+
       const fromDate = new Date(fromMs);
       const toDate = new Date(toMs);
       const fmt = (d: Date) => {
         const ist = new Date(d.getTime() + IST_OFFSET_MS);
         return `${ist.getUTCDate()}/${ist.getUTCMonth() + 1}/${ist.getUTCFullYear()} ${String(ist.getUTCHours()).padStart(2, "0")}:${String(ist.getUTCMinutes()).padStart(2, "0")} IST`;
       };
+
+      let topTxt = "";
+      if (stats.topUsers.length > 0) {
+        const top5 = stats.topUsers.slice(0, 5);
+        topTxt = "\n\n🏆 *Top Users:*\n" + top5.map((u, i) => `${i + 1}. \`${u.userId}\` — ${u.tasksCompleted} tasks`).join("\n");
+      }
+
       const msg =
-        `📊 *Daily Task Report*\n\n` +
-        `⏰ Period: ${fmt(fromDate)} → ${fmt(toDate)}\n\n` +
-        `✅ Total Tasks Completed: *${totalTasks}*\n` +
-        `👥 Unique Users: *${uniqueUsers}*`;
+        `📊 *Daily Task Report*\n` +
+        `⏰ ${fmt(fromDate)} → ${fmt(toDate)}\n` +
+        `\n` +
+        `✅ Tasks Completed: *${stats.totalTasks}*\n` +
+        `👥 Unique Users: *${stats.uniqueUsers}*\n` +
+        `\n` +
+        `💰 *Earnings (IST Day)*\n` +
+        `🪙 Coins Earned (all): *${ccr.allCoins}*\n` +
+        `☑️ Coins Earned (task): *${ccr.taskCoins}*\n` +
+        `➕ Extra Coins (non-task): *+${ccr.extraCoins}*\n` +
+        `\n` +
+        `📈 *CCR = ${ccr.companyCoinRate} coins/₹1*\n` +
+        `🏢 Company Income: *₹${ccr.companyIncomeINR}*\n` +
+        `💸 Paid to Users: *₹${ccr.paidINR}*\n` +
+        `${ccr.profitLossINR >= 0 ? "✅" : "❌"} Profit/Loss: *₹${ccr.profitLossINR}*` +
+        topTxt;
+
       for (const adminId of ADMIN_IDS) {
         bot.sendMessage(adminId, msg, { parse_mode: "Markdown" }).catch(() => {});
       }
-      logger.info({ totalTasks, uniqueUsers }, "Daily 11 PM IST report sent to admins");
+      logger.info({ totalTasks: stats.totalTasks, uniqueUsers: stats.uniqueUsers }, "Daily 11 PM IST report sent to admins");
     }
 
     function scheduleNext(): void {
