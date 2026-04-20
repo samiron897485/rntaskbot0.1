@@ -656,19 +656,31 @@
       const wd = await wdRes.json();
       const ccr = await ccrRes.json();
 
+      const rate = await getCoinRate();
+      const inr = (coins) => {
+        if (coins == null || isNaN(coins)) return '';
+        const v = Math.round((coins / rate) * 100) / 100;
+        return `<span style="font-size:0.6em;color:#94a3b8;font-weight:400"> (₹${v})</span>`;
+      };
+
       document.getElementById('s-tasks').textContent = tasks.tasks?.length ?? 0;
       document.getElementById('s-users').textContent = users.count ?? 0;
-      document.getElementById('s-coins').textContent = users.totalCoins ?? 0;
       document.getElementById('s-completed').textContent = users.totalCompleted ?? 0;
+
+      const totalCoins = users.totalCoins ?? 0;
+      document.getElementById('s-coins').innerHTML = totalCoins + inr(totalCoins);
 
       const pending = wd.withdrawals?.filter(w => w.status === 'pending').length ?? 0;
       const approved = wd.withdrawals?.filter(w => w.status === 'approved').length ?? 0;
       document.getElementById('s-pending-wd').textContent = pending;
       document.getElementById('s-approved-wd').textContent = approved;
 
-      document.getElementById('s-today-all-coins').textContent = ccr.todayCoinsEarned ?? '-';
-      document.getElementById('s-today-task-coins').textContent = ccr.todayTaskCoinsEarned ?? '-';
-      document.getElementById('s-today-extra-coins').textContent = '+' + (ccr.todayExtraCoinsEarned ?? 0);
+      const todayAll = ccr.todayCoinsEarned ?? 0;
+      const todayTask = ccr.todayTaskCoinsEarned ?? 0;
+      const todayExtra = ccr.todayExtraCoinsEarned ?? 0;
+      document.getElementById('s-today-all-coins').innerHTML = todayAll + inr(todayAll);
+      document.getElementById('s-today-task-coins').innerHTML = todayTask + inr(todayTask);
+      document.getElementById('s-today-extra-coins').innerHTML = '+' + todayExtra + inr(todayExtra);
 
       if (pending > 0) {
         document.getElementById('pendingBadge').textContent = `${pending} Pending`;
