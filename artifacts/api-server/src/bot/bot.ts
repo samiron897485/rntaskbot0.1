@@ -3458,7 +3458,11 @@ export function initBot(token: string, baseUrl: string): void {
 
       const fmt = (ms: number) => {
         const ist = new Date(ms + IST_OFFSET_MS);
-        return `${ist.getUTCDate()}/${ist.getUTCMonth() + 1}/${ist.getUTCFullYear()} ${String(ist.getUTCHours()).padStart(2, "0")}:${String(ist.getUTCMinutes()).padStart(2, "0")} IST`;
+        const h24 = ist.getUTCHours();
+        const ampm = h24 >= 12 ? "PM" : "AM";
+        const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+        const min = String(ist.getUTCMinutes()).padStart(2, "0");
+        return `${ist.getUTCDate()}/${ist.getUTCMonth() + 1}/${ist.getUTCFullYear()} ${h12}:${min} ${ampm} IST`;
       };
 
       const msg =
