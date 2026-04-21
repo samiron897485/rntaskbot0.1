@@ -801,13 +801,22 @@
     } catch(e) { showResult(res, 'error', L('error_occurred')); }
   }
 
-  async function loadTasks() {
+  let _tasksSig = '';
+  async function loadTasks(silent) {
     const el = document.getElementById('taskTable');
-    el.innerHTML = `<div class="empty">${L('loading')}</div>`;
+    if (!silent && !_tasksSig) el.innerHTML = `<div class="empty">${L('loading')}</div>`;
     try {
       const r = await apiFetch('/api/tasks');
       const d = await r.json();
-      if (!d.tasks || d.tasks.length === 0) { el.innerHTML = `<div class="empty">${L('no_tasks')}</div>`; return; }
+      if (!d.tasks || d.tasks.length === 0) {
+        const empty = `<div class="empty">${L('no_tasks')}</div>`;
+        if (_tasksSig !== 'EMPTY') { el.innerHTML = empty; _tasksSig = 'EMPTY'; }
+        return;
+      }
+      // Signature excludes countdown so it doesn't trigger re-render every poll
+      const sig = d.tasks.map(t => t.id + '|' + t.link + '|' + t.expiresAt).join('~');
+      if (silent && sig === _tasksSig) return;
+      _tasksSig = sig;
       el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_link')}</th><th>${L('th_expires')}</th><th>${L('th_action')}</th></tr></thead><tbody>
         ${d.tasks.map(t => {
           const msLeft = new Date(t.expiresAt) - Date.now();
@@ -823,7 +832,7 @@
           </tr>`;
         }).join('')}
       </tbody></table>`;
-    } catch(e) { el.innerHTML = `<div class="empty">${L('load_failed')}</div>`; }
+    } catch(e) { if (!_tasksSig) el.innerHTML = `<div class="empty">${L('load_failed')}</div>`; }
   }
 
   async function deleteTask(id) {
@@ -836,13 +845,20 @@
     } catch(e) { alert(L('error_occurred')); }
   }
 
-  async function loadUsers() {
+  let _usersSig = '';
+  async function loadUsers(silent) {
     const el = document.getElementById('userTable');
-    el.innerHTML = `<div class="empty">${L('loading')}</div>`;
+    if (!silent && !_usersSig) el.innerHTML = `<div class="empty">${L('loading')}</div>`;
     try {
       const r = await apiFetch('/api/admin/users');
       const d = await r.json();
-      if (!d.users || d.users.length === 0) { el.innerHTML = `<div class="empty">${L('no_users')}</div>`; return; }
+      if (!d.users || d.users.length === 0) {
+        if (_usersSig !== 'EMPTY') { el.innerHTML = `<div class="empty">${L('no_users')}</div>`; _usersSig = 'EMPTY'; }
+        return;
+      }
+      const sig = d.users.map(u => u.id + '|' + u.coins + '|' + (u.completedTasks?.length ?? 0) + '|' + (u.skippedTasks?.length ?? 0) + '|' + (u.totalReferrals ?? 0) + '|' + u.language).join('~');
+      if (silent && sig === _usersSig) return;
+      _usersSig = sig;
       el.innerHTML = `<table><thead><tr><th>${L('th_user_id')}</th><th>${L('th_coins')}</th><th>${L('th_done')}</th><th>${L('th_skip')}</th><th>${L('th_referrals')}</th><th>${L('th_lang')}</th></tr></thead><tbody>
         ${d.users.map(u => `<tr>
           <td style="color:#60a5fa">${u.id}</td>
@@ -853,7 +869,7 @@
           <td>${u.language === 'bn' ? '🇧🇩' : '🇬🇧'}</td>
         </tr>`).join('')}
       </tbody></table>`;
-    } catch(e) { el.innerHTML = `<div class="empty">${L('load_failed')}</div>`; }
+    } catch(e) { if (!_usersSig) el.innerHTML = `<div class="empty">${L('load_failed')}</div>`; }
   }
 
   async function lookupUser() {
@@ -870,14 +886,21 @@
     } catch(e) { showResult(res, 'error', L('error_occurred')); }
   }
 
-  async function loadWithdrawals() {
+  let _wdSig = '';
+  async function loadWithdrawals(silent) {
     const el = document.getElementById('withdrawTable');
-    el.innerHTML = `<div class="empty">${L('loading')}</div>`;
+    if (!silent && !_wdSig) el.innerHTML = `<div class="empty">${L('loading')}</div>`;
     try {
       const rate = await getCoinRate();
       const r = await apiFetch('/api/admin/withdrawals');
       const d = await r.json();
-      if (!d.withdrawals || d.withdrawals.length === 0) { el.innerHTML = `<div class="empty">${L('no_withdrawals')}</div>`; return; }
+      if (!d.withdrawals || d.withdrawals.length === 0) {
+        if (_wdSig !== 'EMPTY') { el.innerHTML = `<div class="empty">${L('no_withdrawals')}</div>`; _wdSig = 'EMPTY'; }
+        return;
+      }
+      const sig = d.withdrawals.map(w => w.id + '|' + w.amount + '|' + w.status).join('~') + '|r=' + rate;
+      if (silent && sig === _wdSig) return;
+      _wdSig = sig;
       el.innerHTML = `<table><thead><tr><th>${L('th_id')}</th><th>${L('th_user')}</th><th>${L('th_amount')}</th><th>${L('th_inr')}</th><th>${L('th_status')}</th><th>${L('th_action')}</th></tr></thead><tbody>
         ${d.withdrawals.slice().reverse().map(w => {
           const inr = Math.round((w.amount / rate) * 100) / 100;
@@ -900,7 +923,7 @@
           </div>` : '-'}</td>
         </tr>`;}).join('')}
       </tbody></table>`;
-    } catch(e) { el.innerHTML = `<div class="empty">${L('load_failed')}</div>`; }
+    } catch(e) { if (!_wdSig) el.innerHTML = `<div class="empty">${L('load_failed')}</div>`; }
   }
 
   async function processWithdrawal(id, action) {
@@ -1393,11 +1416,14 @@
     } catch(e) { document.getElementById('couponList').innerHTML = '<div class="empty">Error loading coupons</div>'; }
   }
 
-  async function loadPendingWd() {
+  let _pendingWdSig = '';
+  async function loadPendingWd(silent) {
     const summary = document.getElementById('pendingWdSummary');
     const table = document.getElementById('pendingWdTable');
-    summary.innerHTML = '';
-    table.innerHTML = '<div class="empty">Loading...</div>';
+    if (!silent && !_pendingWdSig) {
+      summary.innerHTML = '';
+      table.innerHTML = '<div class="empty">Loading...</div>';
+    }
     try {
       const [wdRes, cfgRes] = await Promise.all([
         apiFetch('/api/admin/withdrawals'),
@@ -1409,10 +1435,17 @@
       const pending = (wdData.withdrawals || []).filter(w => w.status === 'pending');
 
       if (pending.length === 0) {
-        summary.innerHTML = `<div style="padding:12px;background:#0f172a;border-radius:8px;color:#00d4aa;font-weight:600">✅ No pending withdrawals right now</div>`;
-        table.innerHTML = '';
+        if (_pendingWdSig !== 'EMPTY') {
+          summary.innerHTML = `<div style="padding:12px;background:#0f172a;border-radius:8px;color:#00d4aa;font-weight:600">✅ No pending withdrawals right now</div>`;
+          table.innerHTML = '';
+          _pendingWdSig = 'EMPTY';
+        }
         return;
       }
+
+      const sig = pending.map(w => w.id + '|' + w.amount + '|' + w.createdAt).join('~') + '|r=' + rate;
+      if (silent && sig === _pendingWdSig) return;
+      _pendingWdSig = sig;
 
       const totalCoins = pending.reduce((s, w) => s + w.amount, 0);
       const totalINR = Math.round((totalCoins / rate) * 100) / 100;
@@ -1460,8 +1493,10 @@
       html += '</tbody></table>';
       table.innerHTML = html;
     } catch(e) {
-      summary.innerHTML = '';
-      table.innerHTML = '<div class="empty">Error loading pending withdrawals</div>';
+      if (!_pendingWdSig) {
+        summary.innerHTML = '';
+        table.innerHTML = '<div class="empty">Error loading pending withdrawals</div>';
+      }
     }
   }
 
@@ -1702,6 +1737,10 @@
     if (document.hidden) return;
     if (currentTab === 'stats') loadStats();
     else if (currentTab === 'payments') loadPaymentStats(true);
+    else if (currentTab === 'tasks') loadTasks(true);
+    else if (currentTab === 'users') loadUsers(true);
+    else if (currentTab === 'withdraw') loadWithdrawals(true);
+    else if (currentTab === 'pending-wd') loadPendingWd(true);
   }, 6000);
 </script>
 </body>

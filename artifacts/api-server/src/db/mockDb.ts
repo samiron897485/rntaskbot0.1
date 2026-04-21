@@ -567,9 +567,17 @@ export function getDateRangeTaskStats(fromMs: number, toMs: number): {
   let taskCoins = 0;
   let allCoins = 0;
 
+  // When the window starts at 0 and ends at/after "now", treat as all-time and use
+  // user.completedTasks.length as the source of truth (matches getCCRStats). This
+  // includes legacy tasks that predate taskCompletionDates AND fall outside the
+  // 100-item earningHistory cap.
+  const isAllTimeWindow = fromMs === 0 && toMs >= Date.now();
+
   for (const [userId, user] of Object.entries(users)) {
     // Use accurate unlimited count (no 100-item cap)
-    const tasksInWindowCount = countTasksInDateWindow(user, fromMs, toMs);
+    const tasksInWindowCount = isAllTimeWindow
+      ? user.completedTasks.length
+      : countTasksInDateWindow(user, fromMs, toMs);
 
     // 1 coin earned per task
     const taskCoinsInWindow = tasksInWindowCount;
