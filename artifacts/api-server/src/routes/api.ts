@@ -104,6 +104,7 @@ router.post("/admin/config", adminAuthMiddleware, (req: Request, res: Response) 
     "referralEnabled", "referralBonus", "perTaskCommission",
     "lifetimeCommission", "supportLink", "defaultLanguage",
     "withdrawCooldownHours", "couponLink", "referralTaskRequirement", "policy",
+    "legacyTaskCoinOffset",
   ];
   const update: Record<string, unknown> = {};
   for (const key of allowed) {

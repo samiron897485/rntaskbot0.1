@@ -19,6 +19,7 @@ export interface AdminConfig {
   withdrawEligibility: { hours: number; tasks: number };
   checkInDailyReward: number;
   checkInRequiredTasks: number;
+  legacyTaskCoinOffset?: number;
 }
 
 export interface Task {

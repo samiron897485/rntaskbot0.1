@@ -60,6 +60,7 @@ export const adminConfig: AdminConfig = {
   withdrawEligibility: { hours: 0, tasks: 0 },
   checkInDailyReward: 1,
   checkInRequiredTasks: 0,
+  legacyTaskCoinOffset: 0,
 };
 
 export function addWithdrawOption(amount: number): boolean {
@@ -451,6 +452,13 @@ export function getCCRStats(): {
     totalTaskCoinsEarned += bd.taskEarnings;
   }
 
+  // One-time legacy adjustment for historical over-counting (applies to all-time
+  // totals only; today's stats and per-day stats are unaffected). Typically a
+  // negative number set by admin once.
+  const legacyOffset = cfg.legacyTaskCoinOffset || 0;
+  totalTaskCoinsEarned = Math.max(0, totalTaskCoinsEarned + legacyOffset);
+  totalCoinsEarned = Math.max(0, totalCoinsEarned + legacyOffset);
+
   // IST midnight today
   const today = getISTDayWindow();
 
@@ -620,6 +628,15 @@ export function getDateRangeTaskStats(fromMs: number, toMs: number): {
     }
   }
   paidINR = Math.round(paidINR * 100) / 100;
+
+  // Apply legacy adjustment to cumulative-since-beginning windows only.
+  // Per-day or specific-range windows reflect actual recorded activity for that period.
+  if (fromMs === 0) {
+    const legacyOffset = cfg.legacyTaskCoinOffset || 0;
+    taskCoins = Math.max(0, taskCoins + legacyOffset);
+    allCoins = Math.max(0, allCoins + legacyOffset);
+  }
+
   const companyIncomeINR = Math.round((taskCoins / ccr) * 100) / 100;
 
   return {

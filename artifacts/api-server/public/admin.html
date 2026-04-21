@@ -193,6 +193,28 @@
     </div>
 
     <div class="card">
+      <h3>🛠️ Legacy Income Adjustment (one-time correction)</h3>
+      <div style="font-size:0.85rem;color:#94a3b8;margin-bottom:10px;line-height:1.5">
+        Use this only to correct historical over-counting of company income (e.g. ₹1573.29 → ₹1373).
+        Enter a <b>negative</b> task-coin number to reduce all-time totals.
+        Today's stats and per-day stats are <b>unaffected</b> — only "All Time" / "Cumulative since beginning" cards.
+        <br>Formula: <code>income_reduction_INR = |offset| ÷ CCR</code>. Example: offset = <code>-1402</code>, CCR = 7 → reduces all-time income by ₹200.29.
+      </div>
+      <div class="settings-grid">
+        <div class="settings-field">
+          <label>Legacy Task Coin Offset (negative to subtract)</label>
+          <input type="number" id="cfg-legacyTaskCoinOffset" placeholder="0" />
+        </div>
+        <div class="settings-field">
+          <label style="color:#fbbf24">Live preview (after save)</label>
+          <div id="legacyOffsetPreview" style="padding:10px;background:#0f172a;border-radius:6px;color:#00d4aa;font-size:0.9rem">—</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveConfig(['legacyTaskCoinOffset'])">💾 Save Legacy Adjustment</button>
+      <div class="result" id="legacyAdjustResult"></div>
+    </div>
+
+    <div class="card">
       <h3 data-i18n="referral_settings">👥 Referral Settings</h3>
       <div class="toggle-row">
         <label data-i18n="referral_enable_label">Enable Referral System</label>
@@ -974,6 +996,18 @@
       document.getElementById('cfg-perTaskCommission').value = cfg.perTaskCommission;
       document.getElementById('cfg-supportLink').value = cfg.supportLink || '';
       document.getElementById('cfg-defaultLanguage').value = cfg.defaultLanguage || 'en';
+      const offset = Number(cfg.legacyTaskCoinOffset || 0);
+      document.getElementById('cfg-legacyTaskCoinOffset').value = offset;
+      const ccr = Number(cfg.companyCoinRate || 100);
+      const preview = document.getElementById('legacyOffsetPreview');
+      if (offset === 0) {
+        preview.innerHTML = '<span style="color:#94a3b8">No adjustment applied</span>';
+      } else {
+        const inrEffect = Math.round((offset / ccr) * 100) / 100;
+        const sign = offset < 0 ? 'Reduces' : 'Increases';
+        const color = offset < 0 ? '#ff6b6b' : '#00d4aa';
+        preview.innerHTML = `<span style="color:${color}">${sign} all-time income by ₹${Math.abs(inrEffect)}</span><br><span style="color:#94a3b8;font-size:0.8rem">${offset} coins ÷ CCR(${ccr})</span>`;
+      }
     } catch(e) {}
   }
 
@@ -983,6 +1017,7 @@
     minWithdraw: 'withdrawSettingsResult',
     coinToMoneyRate: 'withdrawSettingsResult',
     companyCoinRate: 'withdrawSettingsResult',
+    legacyTaskCoinOffset: 'legacyAdjustResult',
     referralEnabled: 'referralSettingsResult',
     referralBonus: 'referralSettingsResult',
     perTaskCommission: 'referralSettingsResult',
@@ -1009,8 +1044,10 @@
         body: JSON.stringify(payload)
       });
       const d = await r.json();
-      if (d.success) showResult(res, 'success', L('settings_saved'));
-      else showResult(res, 'error', d.message || L('error_occurred'));
+      if (d.success) {
+        showResult(res, 'success', L('settings_saved'));
+        if (keys.includes('legacyTaskCoinOffset') || keys.includes('companyCoinRate')) loadSettings();
+      } else showResult(res, 'error', d.message || L('error_occurred'));
     } catch(e) { showResult(res, 'error', L('error_occurred')); }
   }
 
