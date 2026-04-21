@@ -516,18 +516,33 @@ function countTasksInDateWindow(user: UserData, fromMs: number, toMs: number): n
   const dates = user.taskCompletionDates ?? [];
   const firstNewDate = dates.length > 0 ? Math.min(...dates) : Infinity;
 
-  // Count from taskCompletionDates (no 100-item cap)
+  // 1) Count from taskCompletionDates (no 100-item cap, exact timestamps)
   const fromDates = dates.filter(ts => ts >= fromMs && ts <= toMs).length;
 
-  // Count from earningHistory only for entries that predate taskCompletionDates
-  // (avoids double-counting tasks recorded in both after the fix)
-  const fromHistory = (user.earningHistory ?? []).filter(h => {
+  // 2) Count from earningHistory only for entries that predate taskCompletionDates
+  //    (avoids double-counting tasks recorded in both after the fix)
+  const historyTaskEntries = (user.earningHistory ?? []).filter(h => {
     if (h.reason !== "Task Completed") return false;
+    return new Date(h.date).getTime() < firstNewDate;
+  });
+  const fromHistory = historyTaskEntries.filter(h => {
     const t = new Date(h.date).getTime();
-    return t >= fromMs && t <= toMs && t < firstNewDate;
+    return t >= fromMs && t <= toMs;
   }).length;
 
-  return fromDates + fromHistory;
+  // 3) Legacy completions: present in completedTasks but with NO timestamp at all
+  //    (older data predates both taskCompletionDates AND fell outside the 100-item
+  //    earningHistory cap). Allocate them to the user's joinDate so cumulative
+  //    totals match getCCRStats and any date window stays internally consistent.
+  const accountedFor = dates.length + historyTaskEntries.length;
+  const legacyCount = Math.max(0, user.completedTasks.length - accountedFor);
+  let fromLegacy = 0;
+  if (legacyCount > 0) {
+    const joinMs = user.joinDate ? new Date(user.joinDate).getTime() : 0;
+    if (joinMs >= fromMs && joinMs <= toMs) fromLegacy = legacyCount;
+  }
+
+  return fromDates + fromHistory + fromLegacy;
 }
 
 export function getTasksCompletedAllUsersBetween(fromMs: number, toMs: number): { totalTasks: number; uniqueUsers: number } {
@@ -567,17 +582,13 @@ export function getDateRangeTaskStats(fromMs: number, toMs: number): {
   let taskCoins = 0;
   let allCoins = 0;
 
-  // When the window starts at 0 and ends at/after "now", treat as all-time and use
-  // user.completedTasks.length as the source of truth (matches getCCRStats). This
-  // includes legacy tasks that predate taskCompletionDates AND fall outside the
-  // 100-item earningHistory cap.
-  const isAllTimeWindow = fromMs === 0 && toMs >= Date.now();
-
   for (const [userId, user] of Object.entries(users)) {
-    // Use accurate unlimited count (no 100-item cap)
-    const tasksInWindowCount = isAllTimeWindow
-      ? user.completedTasks.length
-      : countTasksInDateWindow(user, fromMs, toMs);
+    // countTasksInDateWindow now handles all three sources accurately:
+    //   1) taskCompletionDates (new entries, exact timestamps)
+    //   2) earningHistory (older entries that predate taskCompletionDates)
+    //   3) legacy completions with no timestamp — allocated to user.joinDate
+    // Sum across all-time will equal user.completedTasks.length (matches getCCRStats).
+    const tasksInWindowCount = countTasksInDateWindow(user, fromMs, toMs);
 
     // 1 coin earned per task
     const taskCoinsInWindow = tasksInWindowCount;
