@@ -1660,14 +1660,13 @@
     }
   })();
 
-  // Live polling — auto-refresh value changes for read-mostly sections every 6 seconds.
-  // Form-driven sections (broadcast, settings, wallet, coupons, activity, joinings, profit-loss)
-  // are skipped to avoid disrupting user input.
-  const livePollTabs = new Set(['stats','tasks','users','withdraw','payments','pending-wd','analytics']);
+  // Live polling — silently update Stats values only.
+  // Other tabs re-render full lists which causes visible flicker, so polling is
+  // limited to the Stats section where only individual numbers change in place.
   setInterval(() => {
     if (document.hidden) return;
-    if (!livePollTabs.has(currentTab)) return;
-    runTabLoader(currentTab);
+    if (currentTab !== 'stats') return;
+    loadStats();
   }, 6000);
 </script>
 </body>
