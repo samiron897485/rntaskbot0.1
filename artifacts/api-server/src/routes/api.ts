@@ -721,6 +721,47 @@ router.get("/admin/task-stats", adminAuthMiddleware, (req: Request, res: Respons
   res.json({ success: true, from, to: to || from, ...stats });
 });
 
+router.get("/admin/profit-loss", adminAuthMiddleware, (req: Request, res: Response) => {
+  const { date } = req.query as { date?: string };
+  if (!date) {
+    res.status(400).json({ success: false, message: "date is required (YYYY-MM-DD)" });
+    return;
+  }
+  const dayStart = new Date(date + "T00:00:00.000+05:30");
+  const dayEnd = new Date(date + "T23:59:59.999+05:30");
+  if (isNaN(dayStart.getTime()) || isNaN(dayEnd.getTime())) {
+    res.status(400).json({ success: false, message: "Invalid date format. Use YYYY-MM-DD" });
+    return;
+  }
+  const day = getDateRangeTaskStats(dayStart.getTime(), dayEnd.getTime());
+  const cumulative = getDateRangeTaskStats(0, dayEnd.getTime());
+  res.json({
+    success: true,
+    date,
+    day: {
+      taskCoins: day.ccrStats.taskCoins,
+      extraCoins: day.ccrStats.extraCoins,
+      allCoins: day.ccrStats.allCoins,
+      companyIncomeINR: day.ccrStats.companyIncomeINR,
+      paidINR: day.ccrStats.paidINR,
+      profitLossINR: day.ccrStats.profitLossINR,
+      tasksCompleted: day.totalTasks,
+      uniqueUsers: day.uniqueUsers,
+    },
+    cumulative: {
+      taskCoins: cumulative.ccrStats.taskCoins,
+      extraCoins: cumulative.ccrStats.extraCoins,
+      allCoins: cumulative.ccrStats.allCoins,
+      companyIncomeINR: cumulative.ccrStats.companyIncomeINR,
+      paidINR: cumulative.ccrStats.paidINR,
+      profitLossINR: cumulative.ccrStats.profitLossINR,
+      tasksCompleted: cumulative.totalTasks,
+      uniqueUsers: cumulative.uniqueUsers,
+    },
+    companyCoinRate: day.ccrStats.companyCoinRate,
+  });
+});
+
 router.get("/admin/joinings", adminAuthMiddleware, (req: Request, res: Response) => {
   const { from, to } = req.query as { from?: string; to?: string };
   if (!from) {
