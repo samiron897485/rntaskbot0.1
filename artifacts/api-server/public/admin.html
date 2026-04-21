@@ -1055,7 +1055,7 @@
   let _paymentLogsPage = 0;
   const PAGE_SIZE = 5;
 
-  async function loadPaymentStats() {
+  async function loadPaymentStats(silent) {
     try {
       const r = await apiFetch('/api/admin/payment-stats');
       const d = await r.json();
@@ -1064,80 +1064,115 @@
         document.getElementById('pay-total').textContent = `${d.totalPayment} coins | ₹${d.totalMoney ?? '—'}`;
       }
     } catch(e) {}
-    await loadPaymentLogs();
-    await loadCCRStats();
+    await loadCCRStats(silent);
+    await loadPaymentLogs(silent);
   }
 
-  async function loadCCRStats() {
+  let _ccrTableBuilt = false;
+  async function loadCCRStats(silent) {
     const el = document.getElementById('ccrStatsContainer');
-    el.innerHTML = '<div class="empty">Loading...</div>';
+    if (!_ccrTableBuilt && !silent) el.innerHTML = '<div class="empty">Loading...</div>';
     try {
       const r = await apiFetch('/api/admin/ccr-stats');
       const d = await r.json();
-      if (!d.success) { el.innerHTML = '<div class="empty">Failed to load CCR stats</div>'; return; }
-      const pl = (n) => n >= 0
+      if (!d.success) {
+        if (!_ccrTableBuilt) el.innerHTML = '<div class="empty">Failed to load CCR stats</div>';
+        return;
+      }
+      if (!_ccrTableBuilt) {
+        el.innerHTML = `
+          <p style="color:#94a3b8;font-size:0.82rem;margin-bottom:12px">
+            CCR = <b id="ccr-rate">-</b> coins/₹1 &nbsp;(internal rate — separate from user coin rate)
+          </p>
+          <table>
+            <thead><tr><th>Metric</th><th>Today (IST)</th><th>All Time</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>🪙 Coins Earned (all users)</td>
+                <td style="color:#60a5fa" id="ccr-today-all">-</td>
+                <td style="color:#60a5fa" id="ccr-total-all">-</td>
+              </tr>
+              <tr>
+                <td>✅ Coins Earned (task only)</td>
+                <td style="color:#38bdf8" id="ccr-today-task">-</td>
+                <td style="color:#38bdf8" id="ccr-total-task">-</td>
+              </tr>
+              <tr style="background:rgba(251,191,36,0.05)">
+                <td style="font-size:0.8rem;color:#94a3b8">↳ Extra coins (non-task) vs task-only</td>
+                <td style="font-size:0.85rem" id="ccr-today-extra">-</td>
+                <td style="font-size:0.85rem" id="ccr-total-extra">-</td>
+              </tr>
+              <tr>
+                <td>💹 Company Income (task coins ÷ CCR)</td>
+                <td style="color:#00d4aa" id="ccr-today-income">-</td>
+                <td style="color:#00d4aa" id="ccr-total-income">-</td>
+              </tr>
+              <tr>
+                <td>💸 Amount Paid to Users</td>
+                <td style="color:#a78bfa" id="ccr-today-paid">-</td>
+                <td style="color:#a78bfa" id="ccr-total-paid">-</td>
+              </tr>
+              <tr style="border-top:2px solid #334155">
+                <td><b>📊 Profit / Loss</b></td>
+                <td id="ccr-today-pl">-</td>
+                <td id="ccr-total-pl">-</td>
+              </tr>
+            </tbody>
+          </table>`;
+        _ccrTableBuilt = true;
+      }
+      const setText = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+      const setHTML = (id, v) => { const e = document.getElementById(id); if (e) e.innerHTML = v; };
+      const plHtml = (n) => n >= 0
         ? `<span style="color:#22c55e;font-weight:bold">+₹${n}</span>`
         : `<span style="color:#ef4444;font-weight:bold">-₹${Math.abs(n)}</span>`;
-      const diff = (n) => n > 0
+      const diffHtml = (n) => n > 0
         ? `<span style="color:#fbbf24">+${n}</span>`
         : `<span style="color:#94a3b8">${n}</span>`;
-      el.innerHTML = `
-        <p style="color:#94a3b8;font-size:0.82rem;margin-bottom:12px">
-          CCR = <b>${d.companyCoinRate}</b> coins/₹1 &nbsp;(internal rate — separate from user coin rate)
-        </p>
-        <table>
-          <thead><tr><th>Metric</th><th>Today (IST)</th><th>All Time</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>🪙 Coins Earned (all users)</td>
-              <td style="color:#60a5fa">${d.todayCoinsEarned}</td>
-              <td style="color:#60a5fa">${d.totalCoinsEarned}</td>
-            </tr>
-            <tr>
-              <td>✅ Coins Earned (task only)</td>
-              <td style="color:#38bdf8">${d.todayTaskCoinsEarned}</td>
-              <td style="color:#38bdf8">${d.totalTaskCoinsEarned}</td>
-            </tr>
-            <tr style="background:rgba(251,191,36,0.05)">
-              <td style="font-size:0.8rem;color:#94a3b8">↳ Extra coins (non-task) vs task-only</td>
-              <td style="font-size:0.85rem">${diff(d.todayExtraCoinsEarned)}</td>
-              <td style="font-size:0.85rem">${diff(d.extraCoinsEarned)}</td>
-            </tr>
-            <tr>
-              <td>💹 Company Income (task coins ÷ CCR)</td>
-              <td style="color:#00d4aa">₹${d.todayIncomeINR}</td>
-              <td style="color:#00d4aa">₹${d.companyIncomeINR}</td>
-            </tr>
-            <tr>
-              <td>💸 Amount Paid to Users</td>
-              <td style="color:#a78bfa">₹${d.todayPaidINR}</td>
-              <td style="color:#a78bfa">₹${d.totalPaidINR}</td>
-            </tr>
-            <tr style="border-top:2px solid #334155">
-              <td><b>📊 Profit / Loss</b></td>
-              <td>${pl(d.todayProfitLossINR)}</td>
-              <td>${pl(d.profitLossINR)}</td>
-            </tr>
-          </tbody>
-        </table>`;
-    } catch(e) { el.innerHTML = '<div class="empty">Error loading CCR stats</div>'; }
+      setText('ccr-rate', d.companyCoinRate);
+      setText('ccr-today-all', d.todayCoinsEarned);
+      setText('ccr-total-all', d.totalCoinsEarned);
+      setText('ccr-today-task', d.todayTaskCoinsEarned);
+      setText('ccr-total-task', d.totalTaskCoinsEarned);
+      setHTML('ccr-today-extra', diffHtml(d.todayExtraCoinsEarned));
+      setHTML('ccr-total-extra', diffHtml(d.extraCoinsEarned));
+      setText('ccr-today-income', '₹' + d.todayIncomeINR);
+      setText('ccr-total-income', '₹' + d.companyIncomeINR);
+      setText('ccr-today-paid', '₹' + d.todayPaidINR);
+      setText('ccr-total-paid', '₹' + d.totalPaidINR);
+      setHTML('ccr-today-pl', plHtml(d.todayProfitLossINR));
+      setHTML('ccr-total-pl', plHtml(d.profitLossINR));
+    } catch(e) {
+      if (!_ccrTableBuilt) el.innerHTML = '<div class="empty">Error loading CCR stats</div>';
+    }
   }
 
-  async function loadPaymentLogs() {
+  function paymentLogsKey(logs) {
+    return logs.map(l => l.date + ':' + l.totalAmount + ':' + l.userCount).join('|');
+  }
+
+  async function loadPaymentLogs(silent) {
     const container = document.getElementById('paymentLogsContainer');
-    container.innerHTML = '<div class="empty">Loading...</div>';
+    if (!silent && _paymentLogs.length === 0) container.innerHTML = '<div class="empty">Loading...</div>';
     try {
       const r = await apiFetch('/api/admin/payment-logs');
       const d = await r.json();
       if (!d.success || d.logs.length === 0) {
-        container.innerHTML = '<div class="empty">No payment logs in the last 30 days</div>';
-        document.getElementById('paymentLogsPagination').innerHTML = '';
+        if (!silent || _paymentLogs.length > 0) {
+          container.innerHTML = '<div class="empty">No payment logs in the last 30 days</div>';
+          document.getElementById('paymentLogsPagination').innerHTML = '';
+          _paymentLogs = [];
+        }
         return;
       }
+      // Skip re-render if data identical (silent polling no-op)
+      if (silent && paymentLogsKey(_paymentLogs) === paymentLogsKey(d.logs)) return;
       _paymentLogs = d.logs;
-      _paymentLogsPage = 0;
+      if (!silent) _paymentLogsPage = 0;
       renderPaymentLogsPage();
-    } catch(e) { container.innerHTML = '<div class="empty">Failed to load</div>'; }
+    } catch(e) {
+      if (!silent && _paymentLogs.length === 0) container.innerHTML = '<div class="empty">Failed to load</div>';
+    }
   }
 
   function renderPaymentLogsPage() {
@@ -1660,13 +1695,13 @@
     }
   })();
 
-  // Live polling — silently update Stats values only.
-  // Other tabs re-render full lists which causes visible flicker, so polling is
-  // limited to the Stats section where only individual numbers change in place.
+  // Live polling — silently update values without flicker.
+  // Each polled loader uses an in-place "silent" update path that only
+  // changes individual cell/text values rather than rebuilding DOM.
   setInterval(() => {
     if (document.hidden) return;
-    if (currentTab !== 'stats') return;
-    loadStats();
+    if (currentTab === 'stats') loadStats();
+    else if (currentTab === 'payments') loadPaymentStats(true);
   }, 6000);
 </script>
 </body>
