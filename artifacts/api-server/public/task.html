@@ -3,10 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="monetag" content="e601350209aa0221703ddc57ca3091de">
   <title>Complete Task - RN Task Bot</title>
-  <!-- MONETAG_INPAGE_CODE -->
-  <!-- MONETAG_PUSH_CODE -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -138,6 +135,12 @@
       display: flex; align-items: center; justify-content: center;
       min-height: 52px; max-height: 60px; overflow: hidden;
     }
+    .ad-banner-bar:empty { display: none; }
+    .inline-banner-wrap:empty { display: none; }
+    .ad-loading-hint {
+      font-size: 0.72rem; color: rgba(255,255,255,0.45);
+      text-align: center; margin-top: 4px; min-height: 14px;
+    }
 
     .error-box {
       display: none; padding: 18px;
@@ -181,6 +184,7 @@
         <div id="taskLinkText" style="display:none"></div>
         <button id="openLinkBtn" class="open-link-btn" disabled>📰 Open News Page</button>
         <div class="browser-tip">⚠️ Will open in your default browser</div>
+        <div class="ad-loading-hint" id="adLoadHint"></div>
       </div>
 
       <div class="info-box" id="infoBox">
@@ -196,7 +200,7 @@
       <div class="warn-box" id="warnBox"></div>
 
       <div class="inline-banner-wrap" id="inlineBannerWrap">
-        <!-- MONETAG_INLINE_BANNER -->
+        <!-- ADSTERRA_BANNER_300 -->
       </div>
 
       <button class="claim-btn" id="claimBtn">🎁 Claim Reward</button>
@@ -216,8 +220,10 @@
   </div>
 
   <div class="ad-banner-bar" id="adBannerBar">
-    <!-- MONETAG_BANNER_CODE -->
+    <!-- ADSTERRA_BANNER_320 -->
   </div>
+
+  <!-- ADSTERRA_SOCIAL_BAR -->
 
   <script>
     // ── Mobile Detection ──────────────────────────────────────────────────────
@@ -347,6 +353,29 @@
     let taskLink         = '';
     let tickInterval     = null;
 
+    // ── Ad load gating ────────────────────────────────────────────────────────
+    // While Adsterra ad scripts are loading, keep action buttons unclickable so
+    // users don't accidentally tap the buttons before the ads render.
+    const ADS_ENABLED   = (__ADS_ENABLED__);
+    const AD_LOAD_DELAY = 2000;
+    let adsLoaded       = !ADS_ENABLED; // if no ads, treat as already loaded
+    let taskLoaded      = false;
+    const adLoadHint    = document.getElementById('adLoadHint');
+
+    function tryEnableOpenBtn() {
+      if (!adsLoaded || !taskLoaded || completed) return;
+      openLinkBtn.disabled = false;
+      adLoadHint.textContent = '';
+    }
+
+    if (ADS_ENABLED) {
+      adLoadHint.textContent = '⏳ Loading sponsor… please wait';
+      setTimeout(() => {
+        adsLoaded = true;
+        tryEnableOpenBtn();
+      }, AD_LOAD_DELAY);
+    }
+
     // ── Display helpers ──────────────────────────────────────────────────────
     function formatHMS(secs) {
       secs = Math.max(0, Math.round(secs));
@@ -439,6 +468,15 @@
         claimBtn.classList.add('show');
         warnBox.classList.remove('show');
         infoBox.style.display = 'none';
+        // Lock claim button briefly so any returning ad scripts settle first.
+        if (ADS_ENABLED) {
+          claimBtn.disabled = true;
+          claimBtn.dataset.locked = '1';
+          setTimeout(() => {
+            claimBtn.disabled = false;
+            delete claimBtn.dataset.locked;
+          }, AD_LOAD_DELAY);
+        }
       } else if (timeAccumulated > 0) {
         // User returned early — cancel task
         sendCancelTask();
@@ -449,12 +487,22 @@
         claimBtn.classList.remove('show');
         errorText.textContent = '❌ Task Cancelled\nYou returned before completing the required time.';
         errorBox.classList.add('show');
-        openLinkBtn.disabled = false;
         openLinkBtn.textContent = '🔄 Retry Task';
         taskOpened = false;
         timeAccumulated = 0;
         cancelSent = false;
         updateDisplay();
+        // Lock retry briefly so ads settle on the new attempt
+        openLinkBtn.disabled = true;
+        if (ADS_ENABLED) {
+          adLoadHint.textContent = '⏳ Loading sponsor… please wait';
+          setTimeout(() => {
+            openLinkBtn.disabled = false;
+            adLoadHint.textContent = '';
+          }, AD_LOAD_DELAY);
+        } else {
+          openLinkBtn.disabled = false;
+        }
       }
     }
 
@@ -580,7 +628,8 @@
         const data = await res.json();
         if (data.success && data.task) {
           taskLink = data.task.link;
-          openLinkBtn.disabled = false;
+          taskLoaded = true;
+          tryEnableOpenBtn();
           updateDisplay();
         } else {
           taskLinkText.textContent = 'Task not found';

@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="monetag" content="e601350209aa0221703ddc57ca3091de">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Panel - RN Task Bot</title>
   <style>
@@ -265,38 +264,37 @@
     </div>
 
     <div class="card">
-      <h3>📢 Monetag Ad Codes (Task Page)</h3>
+      <h3>📢 Adsterra Ad Codes (Task Page)</h3>
       <p style="font-size:0.82rem;color:#94a3b8;margin-bottom:14px;line-height:1.6">
-        Monetag থেকে কোড কপি করে এখানে পেস্ট করুন। খালি রাখলে সেই অ্যাডটি দেখাবে না।
+        Adsterra থেকে কোড কপি করে এখানে পেস্ট করুন। খালি রাখলে সেই অ্যাডটি দেখাবে না।<br>
+        💡 অ্যাড লোড হওয়ার সময় ইউজারের "Open News Page" ও "Claim Reward" বাটন ২ সেকেন্ডের জন্য নিষ্ক্রিয় থাকবে যাতে ভুল ক্লিক না হয়।
       </p>
       <div class="toggle-row" style="margin-bottom:14px;padding:12px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:8px">
         <label style="font-weight:600;color:#00d4aa">🟢 Task Page Ads On/Off</label>
         <label class="toggle">
-          <input type="checkbox" id="cfg-monetagAdsEnabled" />
+          <input type="checkbox" id="cfg-adsterraAdsEnabled" />
           <span class="slider"></span>
         </label>
       </div>
-      <button class="btn btn-primary" onclick="saveConfig(['monetagAdsEnabled'])" style="margin-bottom:14px;background:linear-gradient(135deg,#00d4aa,#00a07c)">💾 Save On/Off</button>
-      <div class="result" id="monetagToggleResult" style="margin-bottom:10px"></div>
+      <button class="btn btn-primary" onclick="saveConfig(['adsterraAdsEnabled'])" style="margin-bottom:14px;background:linear-gradient(135deg,#00d4aa,#00a07c)">💾 Save On/Off</button>
+      <div class="result" id="adsterraToggleResult" style="margin-bottom:10px"></div>
       <div class="settings-field" style="margin-bottom:12px">
-        <label>🔔 In-Page Push Code (Monetag → Ad Units → In-Page Push → Get Code)</label>
-        <textarea id="cfg-monetagInPageCode" rows="3" placeholder="Monetag In-Page Push script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+        <label>💬 Social Bar Code (Adsterra → Ad Units → Social Bar → Get Code)</label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের কোণায় ছোট চ্যাট-স্টাইল পপ-আপ। সম্পূর্ণ <code>&lt;script ...&gt;&lt;/script&gt;</code> ট্যাগ পেস্ট করুন।</p>
+        <textarea id="cfg-adsterraSocialBarCode" rows="3" placeholder="Adsterra Social Bar script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
       <div class="settings-field" style="margin-bottom:12px">
-        <label>📲 Push Notification Code (Monetag → Ad Units → Push Notifications → Get Code)</label>
-        <textarea id="cfg-monetagPushCode" rows="3" placeholder="Monetag Push Notification script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+        <label>📱 Mobile Banner 320×50 Code (Adsterra → Ad Units → Banner → 320×50 → Get Code)</label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের একদম নিচে ফিক্সড ব্যানার হিসেবে দেখাবে।</p>
+        <textarea id="cfg-adsterraBanner320Code" rows="4" placeholder="Adsterra 320×50 Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
       <div class="settings-field" style="margin-bottom:12px">
-        <label>🖼️ Bottom Bar Banner Code (Monetag → পেজের নিচে ফিক্সড ব্যানার)</label>
-        <textarea id="cfg-monetagBannerCode" rows="3" placeholder="Monetag Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
-      </div>
-      <div class="settings-field" style="margin-bottom:12px">
-        <label>📦 Inline Banner Code — বাটনের মাঝে (Monetag → Ad Units → Banner → 300×250 → Get Code)</label>
+        <label>📦 Medium Rectangle 300×250 Code (Adsterra → Ad Units → Banner → 300×250 → Get Code)</label>
         <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">এই ব্যানারটি "Open News Page" ও "Claim Reward" বাটনের মাঝামাঝিতে দেখাবে।</p>
-        <textarea id="cfg-monetagInlineBannerCode" rows="4" placeholder="Monetag 300×250 Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+        <textarea id="cfg-adsterraBanner300Code" rows="4" placeholder="Adsterra 300×250 Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
-      <button class="btn btn-primary" onclick="saveConfig(['monetagInPageCode','monetagPushCode','monetagBannerCode','monetagInlineBannerCode'])">💾 Save Ad Codes</button>
-      <div class="result" id="monetagSettingsResult"></div>
+      <button class="btn btn-primary" onclick="saveConfig(['adsterraSocialBarCode','adsterraBanner320Code','adsterraBanner300Code'])">💾 Save Ad Codes</button>
+      <div class="result" id="adsterraSettingsResult"></div>
     </div>
 
   </div>
@@ -1034,11 +1032,10 @@
       document.getElementById('cfg-defaultLanguage').value = cfg.defaultLanguage || 'en';
       const offset = Number(cfg.legacyTaskCoinOffset || 0);
       document.getElementById('cfg-legacyTaskCoinOffset').value = offset;
-      document.getElementById('cfg-monetagAdsEnabled').checked = cfg.monetagAdsEnabled === true;
-      document.getElementById('cfg-monetagInPageCode').value = cfg.monetagInPageCode || '';
-      document.getElementById('cfg-monetagPushCode').value = cfg.monetagPushCode || '';
-      document.getElementById('cfg-monetagBannerCode').value = cfg.monetagBannerCode || '';
-      document.getElementById('cfg-monetagInlineBannerCode').value = cfg.monetagInlineBannerCode || '';
+      document.getElementById('cfg-adsterraAdsEnabled').checked = cfg.adsterraAdsEnabled === true;
+      document.getElementById('cfg-adsterraSocialBarCode').value = cfg.adsterraSocialBarCode || '';
+      document.getElementById('cfg-adsterraBanner320Code').value = cfg.adsterraBanner320Code || '';
+      document.getElementById('cfg-adsterraBanner300Code').value = cfg.adsterraBanner300Code || '';
       const ccr = Number(cfg.companyCoinRate || 100);
       const preview = document.getElementById('legacyOffsetPreview');
       if (offset === 0) {
@@ -1065,11 +1062,10 @@
     lifetimeCommission: 'referralSettingsResult',
     supportLink: 'supportSettingsResult',
     defaultLanguage: 'languageSettingsResult',
-    monetagAdsEnabled: 'monetagToggleResult',
-    monetagInPageCode: 'monetagSettingsResult',
-    monetagPushCode: 'monetagSettingsResult',
-    monetagBannerCode: 'monetagSettingsResult',
-    monetagInlineBannerCode: 'monetagSettingsResult',
+    adsterraAdsEnabled: 'adsterraToggleResult',
+    adsterraSocialBarCode: 'adsterraSettingsResult',
+    adsterraBanner320Code: 'adsterraSettingsResult',
+    adsterraBanner300Code: 'adsterraSettingsResult',
   };
 
   async function saveConfig(keys) {

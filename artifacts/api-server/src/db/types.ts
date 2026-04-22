@@ -20,11 +20,10 @@ export interface AdminConfig {
   checkInDailyReward: number;
   checkInRequiredTasks: number;
   legacyTaskCoinOffset?: number;
-  monetagAdsEnabled?: boolean;
-  monetagInPageCode?: string;
-  monetagPushCode?: string;
-  monetagBannerCode?: string;
-  monetagInlineBannerCode?: string;
+  adsterraAdsEnabled?: boolean;
+  adsterraSocialBarCode?: string;
+  adsterraBanner320Code?: string;
+  adsterraBanner300Code?: string;
 }
 
 export interface Task {

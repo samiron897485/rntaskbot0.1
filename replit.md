@@ -6,6 +6,7 @@ pnpm workspace monorepo using TypeScript. L1 Telegram Bot Earning System with tr
 
 ## Recent Feature Additions
 
+- **Adsterra ads on task page**: Replaced Monetag with Adsterra. Admin panel Settings tab has on/off toggle and 3 paste-in script slots — Social Bar, 320×50 Mobile Banner (bottom fixed bar), and 300×250 Medium Rectangle (between Open News and Claim buttons). Config keys: `adsterraAdsEnabled`, `adsterraSocialBarCode`, `adsterraBanner320Code`, `adsterraBanner300Code`. While ads are enabled, the "Open News Page" and "Claim Reward" buttons are locked for ~2s after they would normally enable, so users can't tap before ad scripts settle.
 - **Unlimited balance/stat safety**: `user.coins` remains the authoritative unlimited balance. Balance breakdown now uses accumulated earning categories where available so long-running users do not lose totals due to the 100-item transaction log cap.
 - **IST daily completed counters**: Bot task menu, balance menu, completion message, check-in eligibility, task date stats, payment stats, CCR stats, and daily reports use IST day windows and unlimited `taskCompletionDates` where available.
 - **Date Range Task Stats**: `/api/admin/task-stats?from=YYYY-MM-DD&to=YYYY-MM-DD` endpoint. Admin panel "👥 Activity" tab has date picker UI. Telegram bot has `📅 Date Stats` admin menu button accepting `YYYY-MM-DD` or `YYYY-MM-DD to YYYY-MM-DD`.

@@ -72,12 +72,17 @@ app.use("/public", express.static(publicDir, { index: false }));
 app.get("/task", (_req, res) => {
   try {
     const cfg = getAdminConfig();
-    const adsEnabled = cfg.monetagAdsEnabled === true;
+    const adsEnabled = cfg.adsterraAdsEnabled === true;
     let html = fs.readFileSync(path.join(publicDir, "task.html"), "utf-8");
-    html = html.replace("<!-- MONETAG_INPAGE_CODE -->", adsEnabled ? (cfg.monetagInPageCode || "") : "");
-    html = html.replace("<!-- MONETAG_PUSH_CODE -->", adsEnabled ? (cfg.monetagPushCode || "") : "");
-    html = html.replace("<!-- MONETAG_BANNER_CODE -->", adsEnabled ? (cfg.monetagBannerCode || "") : "");
-    html = html.replace("<!-- MONETAG_INLINE_BANNER -->", adsEnabled ? (cfg.monetagInlineBannerCode || "") : "");
+    const hasAnyAd =
+      adsEnabled &&
+      ((cfg.adsterraSocialBarCode || "").trim() !== "" ||
+        (cfg.adsterraBanner320Code || "").trim() !== "" ||
+        (cfg.adsterraBanner300Code || "").trim() !== "");
+    html = html.replace("<!-- ADSTERRA_SOCIAL_BAR -->", adsEnabled ? (cfg.adsterraSocialBarCode || "") : "");
+    html = html.replace("<!-- ADSTERRA_BANNER_320 -->", adsEnabled ? (cfg.adsterraBanner320Code || "") : "");
+    html = html.replace("<!-- ADSTERRA_BANNER_300 -->", adsEnabled ? (cfg.adsterraBanner300Code || "") : "");
+    html = html.replace("__ADS_ENABLED__", hasAnyAd ? "true" : "false");
     res.setHeader("Content-Type", "text/html");
     res.send(html);
   } catch {
