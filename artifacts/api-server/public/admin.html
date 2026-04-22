@@ -269,6 +269,15 @@
       <p style="font-size:0.82rem;color:#94a3b8;margin-bottom:14px;line-height:1.6">
         Monetag থেকে কোড কপি করে এখানে পেস্ট করুন। খালি রাখলে সেই অ্যাডটি দেখাবে না।
       </p>
+      <div class="toggle-row" style="margin-bottom:14px;padding:12px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:8px">
+        <label style="font-weight:600;color:#00d4aa">🟢 Task Page Ads On/Off</label>
+        <label class="toggle">
+          <input type="checkbox" id="cfg-monetagAdsEnabled" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="btn btn-primary" onclick="saveConfig(['monetagAdsEnabled'])" style="margin-bottom:14px;background:linear-gradient(135deg,#00d4aa,#00a07c)">💾 Save On/Off</button>
+      <div class="result" id="monetagToggleResult" style="margin-bottom:10px"></div>
       <div class="settings-field" style="margin-bottom:12px">
         <label>🔔 In-Page Push Code (Monetag → Ad Units → In-Page Push → Get Code)</label>
         <textarea id="cfg-monetagInPageCode" rows="3" placeholder="Monetag In-Page Push script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
@@ -1020,6 +1029,7 @@
       document.getElementById('cfg-defaultLanguage').value = cfg.defaultLanguage || 'en';
       const offset = Number(cfg.legacyTaskCoinOffset || 0);
       document.getElementById('cfg-legacyTaskCoinOffset').value = offset;
+      document.getElementById('cfg-monetagAdsEnabled').checked = cfg.monetagAdsEnabled === true;
       document.getElementById('cfg-monetagInPageCode').value = cfg.monetagInPageCode || '';
       document.getElementById('cfg-monetagPushCode').value = cfg.monetagPushCode || '';
       document.getElementById('cfg-monetagBannerCode').value = cfg.monetagBannerCode || '';
@@ -1049,6 +1059,7 @@
     lifetimeCommission: 'referralSettingsResult',
     supportLink: 'supportSettingsResult',
     defaultLanguage: 'languageSettingsResult',
+    monetagAdsEnabled: 'monetagToggleResult',
     monetagInPageCode: 'monetagSettingsResult',
     monetagPushCode: 'monetagSettingsResult',
     monetagBannerCode: 'monetagSettingsResult',

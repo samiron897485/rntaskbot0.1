@@ -72,10 +72,11 @@ app.use("/public", express.static(publicDir, { index: false }));
 app.get("/task", (_req, res) => {
   try {
     const cfg = getAdminConfig();
+    const adsEnabled = cfg.monetagAdsEnabled === true;
     let html = fs.readFileSync(path.join(publicDir, "task.html"), "utf-8");
-    html = html.replace("<!-- MONETAG_INPAGE_CODE -->", cfg.monetagInPageCode || "");
-    html = html.replace("<!-- MONETAG_PUSH_CODE -->", cfg.monetagPushCode || "");
-    html = html.replace("<!-- MONETAG_BANNER_CODE -->", cfg.monetagBannerCode || "");
+    html = html.replace("<!-- MONETAG_INPAGE_CODE -->", adsEnabled ? (cfg.monetagInPageCode || "") : "");
+    html = html.replace("<!-- MONETAG_PUSH_CODE -->", adsEnabled ? (cfg.monetagPushCode || "") : "");
+    html = html.replace("<!-- MONETAG_BANNER_CODE -->", adsEnabled ? (cfg.monetagBannerCode || "") : "");
     res.setHeader("Content-Type", "text/html");
     res.send(html);
   } catch {

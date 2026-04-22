@@ -105,7 +105,7 @@ router.post("/admin/config", adminAuthMiddleware, (req: Request, res: Response) 
     "lifetimeCommission", "supportLink", "defaultLanguage",
     "withdrawCooldownHours", "couponLink", "referralTaskRequirement", "policy",
     "legacyTaskCoinOffset",
-    "monetagInPageCode", "monetagPushCode", "monetagBannerCode",
+    "monetagAdsEnabled", "monetagInPageCode", "monetagPushCode", "monetagBannerCode",
   ];
   const update: Record<string, unknown> = {};
   for (const key of allowed) {
