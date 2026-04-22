@@ -24,6 +24,7 @@ export interface AdminConfig {
   monetagInPageCode?: string;
   monetagPushCode?: string;
   monetagBannerCode?: string;
+  monetagInlineBannerCode?: string;
 }
 
 export interface Task {

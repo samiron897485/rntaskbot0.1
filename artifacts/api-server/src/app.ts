@@ -77,6 +77,7 @@ app.get("/task", (_req, res) => {
     html = html.replace("<!-- MONETAG_INPAGE_CODE -->", adsEnabled ? (cfg.monetagInPageCode || "") : "");
     html = html.replace("<!-- MONETAG_PUSH_CODE -->", adsEnabled ? (cfg.monetagPushCode || "") : "");
     html = html.replace("<!-- MONETAG_BANNER_CODE -->", adsEnabled ? (cfg.monetagBannerCode || "") : "");
+    html = html.replace("<!-- MONETAG_INLINE_BANNER -->", adsEnabled ? (cfg.monetagInlineBannerCode || "") : "");
     res.setHeader("Content-Type", "text/html");
     res.send(html);
   } catch {

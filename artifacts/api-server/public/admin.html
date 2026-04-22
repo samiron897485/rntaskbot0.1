@@ -287,10 +287,15 @@
         <textarea id="cfg-monetagPushCode" rows="3" placeholder="Monetag Push Notification script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
       <div class="settings-field" style="margin-bottom:12px">
-        <label>🖼️ Banner Code (Monetag → Ad Units → Banner → 320×50 Mobile → Get Code)</label>
+        <label>🖼️ Bottom Bar Banner Code (Monetag → পেজের নিচে ফিক্সড ব্যানার)</label>
         <textarea id="cfg-monetagBannerCode" rows="3" placeholder="Monetag Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
-      <button class="btn btn-primary" onclick="saveConfig(['monetagInPageCode','monetagPushCode','monetagBannerCode'])">💾 Save Ad Codes</button>
+      <div class="settings-field" style="margin-bottom:12px">
+        <label>📦 Inline Banner Code — বাটনের মাঝে (Monetag → Ad Units → Banner → 300×250 → Get Code)</label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">এই ব্যানারটি "Open News Page" ও "Claim Reward" বাটনের মাঝামাঝিতে দেখাবে।</p>
+        <textarea id="cfg-monetagInlineBannerCode" rows="4" placeholder="Monetag 300×250 Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveConfig(['monetagInPageCode','monetagPushCode','monetagBannerCode','monetagInlineBannerCode'])">💾 Save Ad Codes</button>
       <div class="result" id="monetagSettingsResult"></div>
     </div>
 
@@ -1033,6 +1038,7 @@
       document.getElementById('cfg-monetagInPageCode').value = cfg.monetagInPageCode || '';
       document.getElementById('cfg-monetagPushCode').value = cfg.monetagPushCode || '';
       document.getElementById('cfg-monetagBannerCode').value = cfg.monetagBannerCode || '';
+      document.getElementById('cfg-monetagInlineBannerCode').value = cfg.monetagInlineBannerCode || '';
       const ccr = Number(cfg.companyCoinRate || 100);
       const preview = document.getElementById('legacyOffsetPreview');
       if (offset === 0) {
@@ -1063,6 +1069,7 @@
     monetagInPageCode: 'monetagSettingsResult',
     monetagPushCode: 'monetagSettingsResult',
     monetagBannerCode: 'monetagSettingsResult',
+    monetagInlineBannerCode: 'monetagSettingsResult',
   };
 
   async function saveConfig(keys) {
