@@ -263,6 +263,27 @@
       <div class="result" id="supportSettingsResult"></div>
     </div>
 
+    <div class="card">
+      <h3>📢 Monetag Ad Codes (Task Page)</h3>
+      <p style="font-size:0.82rem;color:#94a3b8;margin-bottom:14px;line-height:1.6">
+        Monetag থেকে কোড কপি করে এখানে পেস্ট করুন। খালি রাখলে সেই অ্যাডটি দেখাবে না।
+      </p>
+      <div class="settings-field" style="margin-bottom:12px">
+        <label>🔔 In-Page Push Code (Monetag → Ad Units → In-Page Push → Get Code)</label>
+        <textarea id="cfg-monetagInPageCode" rows="3" placeholder="Monetag In-Page Push script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+      <div class="settings-field" style="margin-bottom:12px">
+        <label>📲 Push Notification Code (Monetag → Ad Units → Push Notifications → Get Code)</label>
+        <textarea id="cfg-monetagPushCode" rows="3" placeholder="Monetag Push Notification script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+      <div class="settings-field" style="margin-bottom:12px">
+        <label>🖼️ Banner Code (Monetag → Ad Units → Banner → 320×50 Mobile → Get Code)</label>
+        <textarea id="cfg-monetagBannerCode" rows="3" placeholder="Monetag Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveConfig(['monetagInPageCode','monetagPushCode','monetagBannerCode'])">💾 Save Ad Codes</button>
+      <div class="result" id="monetagSettingsResult"></div>
+    </div>
+
   </div>
 
   <div class="panel" id="panel-wallet">
@@ -998,6 +1019,9 @@
       document.getElementById('cfg-defaultLanguage').value = cfg.defaultLanguage || 'en';
       const offset = Number(cfg.legacyTaskCoinOffset || 0);
       document.getElementById('cfg-legacyTaskCoinOffset').value = offset;
+      document.getElementById('cfg-monetagInPageCode').value = cfg.monetagInPageCode || '';
+      document.getElementById('cfg-monetagPushCode').value = cfg.monetagPushCode || '';
+      document.getElementById('cfg-monetagBannerCode').value = cfg.monetagBannerCode || '';
       const ccr = Number(cfg.companyCoinRate || 100);
       const preview = document.getElementById('legacyOffsetPreview');
       if (offset === 0) {
@@ -1024,6 +1048,9 @@
     lifetimeCommission: 'referralSettingsResult',
     supportLink: 'supportSettingsResult',
     defaultLanguage: 'languageSettingsResult',
+    monetagInPageCode: 'monetagSettingsResult',
+    monetagPushCode: 'monetagSettingsResult',
+    monetagBannerCode: 'monetagSettingsResult',
   };
 
   async function saveConfig(keys) {

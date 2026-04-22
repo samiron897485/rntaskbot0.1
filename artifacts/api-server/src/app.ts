@@ -1,12 +1,14 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 import { adminAuthMiddleware } from "./middleware/adminAuth.js";
 import { validateSession } from "./middleware/session.js";
+import { getAdminConfig } from "./db/mockDb.js";
 
 const app: Express = express();
 
@@ -68,7 +70,17 @@ app.get("/public/admin.html", adminAuthMiddleware, (_req, res) => {
 app.use("/public", express.static(publicDir, { index: false }));
 
 app.get("/task", (_req, res) => {
-  res.sendFile(path.join(publicDir, "task.html"));
+  try {
+    const cfg = getAdminConfig();
+    let html = fs.readFileSync(path.join(publicDir, "task.html"), "utf-8");
+    html = html.replace("<!-- MONETAG_INPAGE_CODE -->", cfg.monetagInPageCode || "");
+    html = html.replace("<!-- MONETAG_PUSH_CODE -->", cfg.monetagPushCode || "");
+    html = html.replace("<!-- MONETAG_BANNER_CODE -->", cfg.monetagBannerCode || "");
+    res.setHeader("Content-Type", "text/html");
+    res.send(html);
+  } catch {
+    res.sendFile(path.join(publicDir, "task.html"));
+  }
 });
 
 app.use("/api", router);

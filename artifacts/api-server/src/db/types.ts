@@ -20,6 +20,9 @@ export interface AdminConfig {
   checkInDailyReward: number;
   checkInRequiredTasks: number;
   legacyTaskCoinOffset?: number;
+  monetagInPageCode?: string;
+  monetagPushCode?: string;
+  monetagBannerCode?: string;
 }
 
 export interface Task {
