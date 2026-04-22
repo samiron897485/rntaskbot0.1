@@ -265,9 +265,9 @@
     </div>
 
     <div class="card">
-      <h3>📢 Adsterra Ad Codes (Task Page)</h3>
+      <h3>📢 Mondiad Ad Codes (Task Page)</h3>
       <p style="font-size:0.82rem;color:#94a3b8;margin-bottom:14px;line-height:1.6">
-        Adsterra থেকে কোড কপি করে এখানে পেস্ট করুন। খালি রাখলে সেই অ্যাডটি দেখাবে না।<br>
+        Mondiad ড্যাশবোর্ডে Ad Zone তৈরি করার পর "How to integrate" পপ-আপ থেকে <b>script ট্যাগ + div ট্যাগ দুটোই একসাথে কপি</b> করে নিচের সংশ্লিষ্ট বক্সে পেস্ট করুন। খালি রাখলে সেই অ্যাডটি দেখাবে না।<br>
         💡 অ্যাড লোড হওয়ার সময় ইউজারের "Open News Page" ও "Claim Reward" বাটন ২ সেকেন্ডের জন্য নিষ্ক্রিয় থাকবে যাতে ভুল ক্লিক না হয়।
       </p>
       <div class="toggle-row" style="margin-bottom:14px;padding:12px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:8px">
@@ -279,21 +279,25 @@
       </div>
       <button class="btn btn-primary" onclick="saveConfig(['adsterraAdsEnabled'])" style="margin-bottom:14px;background:linear-gradient(135deg,#00d4aa,#00a07c)">💾 Save On/Off</button>
       <div class="result" id="adsterraToggleResult" style="margin-bottom:10px"></div>
+
       <div class="settings-field" style="margin-bottom:12px">
-        <label>💬 Social Bar Code (Adsterra → Ad Units → Social Bar → Get Code)</label>
-        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের কোণায় ছোট চ্যাট-স্টাইল পপ-আপ। সম্পূর্ণ <code>&lt;script ...&gt;&lt;/script&gt;</code> ট্যাগ পেস্ট করুন।</p>
-        <textarea id="cfg-adsterraSocialBarCode" rows="3" placeholder="Adsterra Social Bar script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+        <label>📱 Banner 320×50 Code <span style="color:#94a3b8;font-weight:400">(Mondiad → Create Ad Zone → Banner → 320×50)</span></label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের একদম নিচে ফিক্সড ব্যানার হিসেবে দেখাবে। script + div দুটোই একসাথে পেস্ট করুন।</p>
+        <textarea id="cfg-adsterraBanner320Code" rows="4" placeholder="&lt;script async src=&quot;https://ss.mrmnd.com/banner.js&quot;&gt;&lt;/script&gt;&#10;&lt;div data-mndbanid=&quot;your-zone-id-here&quot;&gt;&lt;/div&gt;" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
+
       <div class="settings-field" style="margin-bottom:12px">
-        <label>📱 Mobile Banner 320×50 Code (Adsterra → Ad Units → Banner → 320×50 → Get Code)</label>
-        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের একদম নিচে ফিক্সড ব্যানার হিসেবে দেখাবে।</p>
-        <textarea id="cfg-adsterraBanner320Code" rows="4" placeholder="Adsterra 320×50 Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+        <label>📦 Banner 300×250 Code <span style="color:#94a3b8;font-weight:400">(Mondiad → Create Ad Zone → Banner → 300×250)</span></label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">এই ব্যানারটি "Open News Page" ও "Claim Reward" বাটনের মাঝামাঝিতে দেখাবে। script + div দুটোই একসাথে পেস্ট করুন।</p>
+        <textarea id="cfg-adsterraBanner300Code" rows="4" placeholder="&lt;script async src=&quot;https://ss.mrmnd.com/banner.js&quot;&gt;&lt;/script&gt;&#10;&lt;div data-mndbanid=&quot;your-zone-id-here&quot;&gt;&lt;/div&gt;" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
+
       <div class="settings-field" style="margin-bottom:12px">
-        <label>📦 Medium Rectangle 300×250 Code (Adsterra → Ad Units → Banner → 300×250 → Get Code)</label>
-        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">এই ব্যানারটি "Open News Page" ও "Claim Reward" বাটনের মাঝামাঝিতে দেখাবে।</p>
-        <textarea id="cfg-adsterraBanner300Code" rows="4" placeholder="Adsterra 300×250 Banner script/iframe code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+        <label>💬 In-Page Push Code <span style="color:#94a3b8;font-weight:400">(Mondiad → Create Ad Zone → In-Page Push)</span></label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের কোণায় নোটিফিকেশন-স্টাইল পপ-আপ। ইউজারের subscription লাগে না। Frequency cap (১০ মিনিটে ১) সেট করুন যাতে ইউজার বিরক্ত না হয়।</p>
+        <textarea id="cfg-adsterraSocialBarCode" rows="3" placeholder="Mondiad In-Page Push script + div code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
+
       <button class="btn btn-primary" onclick="saveConfig(['adsterraSocialBarCode','adsterraBanner320Code','adsterraBanner300Code'])">💾 Save Ad Codes</button>
       <div class="result" id="adsterraSettingsResult"></div>
     </div>
