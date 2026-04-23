@@ -354,7 +354,9 @@
       const clickHint = document.getElementById('tgClickHint');
       const finger    = document.getElementById('tgFinger');
 
+      let openClicked = false;
       openBtn.addEventListener('click', () => {
+        openClicked = true;
         if (isAndroid) {
           // Generic browser intent: opens in user's default browser, or shows
           // chooser drawer if no default is set.
@@ -367,6 +369,24 @@
           if (!w) window.location.href = fullUrl;
         }
       });
+
+      // ── "Please wait..." UI shown while we verify completion after the
+      //    user returns from the external browser. Hides every other element
+      //    so only the message is visible.
+      function showWaitingUI() {
+        msgBox.innerHTML = '⏳ Please wait...';
+        clickHint.style.display = 'none';
+        finger.style.display = 'none';
+        openBtn.style.display = 'none';
+        closeBtn.style.display = 'none';
+      }
+      function showOpenUI() {
+        msgBox.innerHTML = 'This task page works best in browser, tap the button below to open it externally and start earning. thank you 😊';
+        clickHint.style.display = '';
+        finger.style.display = '';
+        openBtn.style.display = '';
+        closeBtn.style.display = 'none';
+      }
 
       // ── Close handler — closes Telegram WebView and returns to bot chat ───
       function closeTelegramWebView() {
@@ -384,16 +404,24 @@
       closeBtn.addEventListener('click', closeTelegramWebView);
 
       // ── Auto-close the Telegram WebView once the user has completed this
-      //    task in the external browser. We poll the API both on load and
-      //    whenever the Telegram WebView becomes visible again (e.g. after
-      //    the user presses the back button from Chrome) — and close
-      //    automatically without requiring any extra tap.
+      //    task in the external browser. While verifying we show a
+      //    "Please wait..." message (no Open button) so the user does not
+      //    accidentally tap anything. If verification shows the task is not
+      //    yet complete we restore the original "Open in browser" UI.
       let autoClosed = false;
-      async function checkTaskCompletion() {
+      let checkInFlight = false;
+      async function checkTaskCompletion(opts) {
+        const showWait = !!(opts && opts.showWait);
         if (autoClosed || !tgTaskId || !tgUserId) return;
+        if (checkInFlight) return;
+        checkInFlight = true;
+        if (showWait) showWaitingUI();
         try {
           const r = await fetch('/api/current-task/' + encodeURIComponent(tgUserId), { cache: 'no-store' });
-          if (!r.ok) return;
+          if (!r.ok) {
+            if (showWait) showOpenUI();
+            return;
+          }
           const data = await r.json();
           // If user has no current task OR the current task is no longer the
           // one this page was opened for, treat it as completed/skipped and
@@ -402,16 +430,51 @@
           if (!currentId || currentId !== tgTaskId) {
             autoClosed = true;
             closeTelegramWebView();
+          } else if (showWait) {
+            // Not yet complete — bring back the Open-in-browser UI so the
+            // user can keep going. Then keep polling briefly in case the
+            // server is still finalizing the claim.
+            showOpenUI();
+            schedulePollWhileVisible();
           }
-        } catch (e) {}
+        } catch (e) {
+          if (showWait) showOpenUI();
+        } finally {
+          checkInFlight = false;
+        }
       }
 
+      // Poll a few times right after the user returns from the browser, so
+      // that a claim that finalizes a moment late still triggers an auto
+      // close without requiring another tap.
+      let pollTimer = null;
+      function schedulePollWhileVisible() {
+        if (pollTimer) return;
+        let n = 0;
+        pollTimer = setInterval(() => {
+          n++;
+          if (autoClosed || document.hidden || n > 6) {
+            clearInterval(pollTimer); pollTimer = null; return;
+          }
+          checkTaskCompletion();
+        }, 500);
+      }
+
+      // Initial silent check (no waiting UI on first load — we want the
+      // "Open in browser" button visible immediately).
       checkTaskCompletion();
+
       document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) checkTaskCompletion();
+        if (!document.hidden && openClicked) {
+          checkTaskCompletion({ showWait: true });
+        }
       });
-      window.addEventListener('focus', checkTaskCompletion);
-      window.addEventListener('pageshow', checkTaskCompletion);
+      window.addEventListener('focus', () => {
+        if (openClicked) checkTaskCompletion({ showWait: true });
+      });
+      window.addEventListener('pageshow', () => {
+        if (openClicked) checkTaskCompletion({ showWait: true });
+      });
 
       // Stop further task page execution while in Telegram WebView
       throw new Error('TG_WEBVIEW_BLOCK');
