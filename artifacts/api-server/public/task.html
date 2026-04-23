@@ -452,9 +452,12 @@
           const data = await r.json();
           // If user has no current task OR the current task is no longer the
           // one this page was opened for, treat it as completed/skipped and
-          // close the WebView immediately.
+          // close the WebView. IMPORTANT: only auto-close AFTER the user has
+          // actually tapped "Open in browser" — otherwise an unrelated/stale
+          // taskId in the URL would close the WebView the moment it opens,
+          // before the user can click anything.
           const currentId = data && data.task && data.task.id;
-          if (!currentId || currentId !== tgTaskId) {
+          if (openClicked && (!currentId || currentId !== tgTaskId)) {
             autoClosed = true;
             closeTelegramWebView();
           } else if (showWait) {
