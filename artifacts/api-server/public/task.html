@@ -105,39 +105,30 @@
 
     .claim-row {
       display: none; align-items: center; gap: 8px;
-      width: 100%; justify-content: flex-start;
-      position: relative; min-height: 40px;
+      width: 100%;
     }
     .claim-row.show { display: flex; }
-    .claim-finger-track {
-      flex: 1 1 auto; position: relative;
-      height: 36px; overflow: hidden;
-      pointer-events: none;
-    }
     .claim-finger {
-      position: absolute; top: 50%; right: 4px;
+      flex: 0 0 auto;
       font-size: 1.7rem; line-height: 1;
-      transform: translateY(-50%);
-      animation: claimSwipe 1.4s ease-in-out infinite;
+      display: inline-block; transform-origin: center right;
+      animation: claimPoint 0.85s ease-in-out infinite;
       pointer-events: none;
       filter: drop-shadow(0 0 6px rgba(255,215,0,0.55));
       will-change: transform;
     }
-    @keyframes claimSwipe {
-      0%   { transform: translate(0, -50%) scale(1); }
-      45%  { transform: translate(-160px, -50%) scale(1.18); }
-      55%  { transform: translate(-160px, -50%) scale(1.18); }
-      100% { transform: translate(0, -50%) scale(1); }
+    @keyframes claimPoint {
+      0%,100% { transform: translateX(-6px) scale(1); }
+      50%     { transform: translateX(0) scale(1.18); }
     }
     .claim-btn {
-      display: none; padding: 10px 16px;
-      width: auto; flex: 0 0 auto;
+      display: none; padding: 10px;
+      flex: 1 1 auto; width: auto;
       background: linear-gradient(135deg, #ffd700, #ffa500);
       color: #000; border: none; border-radius: 8px;
       font-size: 0.9rem; font-weight: 800; cursor: pointer;
       text-align: center; transition: opacity 0.2s, transform 0.1s;
       animation: pulse-gold 1.5s ease-in-out infinite;
-      white-space: nowrap;
     }
 
     /* Hidden compatibility elements (kept for JS references) */
@@ -368,10 +359,8 @@
       <div class="warn-box" id="warnBox"></div>
 
       <div class="claim-row" id="claimRow">
+        <span class="claim-finger" aria-hidden="true">👉</span>
         <button class="claim-btn" id="claimBtn">🎁 Claim Reward</button>
-        <span class="claim-finger-track" aria-hidden="true">
-          <span class="claim-finger">👈</span>
-        </span>
       </div>
 
       <div class="success-box" id="successBox">
