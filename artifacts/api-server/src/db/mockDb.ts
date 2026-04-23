@@ -199,9 +199,13 @@ export function getUserByReferralCode(code: string): string | null {
   return null;
 }
 
+// Tasks that will expire within this many milliseconds are NOT given out to
+// users, so nobody starts a task they cannot finish in time.
+const EXPIRY_SAFETY_MARGIN_MS = 30 * 1000;
+
 export function getActiveTasks(): Task[] {
-  const now = new Date();
-  return tasks.filter((t) => t.expiresAt > now);
+  const cutoff = new Date(Date.now() + EXPIRY_SAFETY_MARGIN_MS);
+  return tasks.filter((t) => t.expiresAt > cutoff);
 }
 
 export function getTaskById(taskId: string): Task | undefined {
