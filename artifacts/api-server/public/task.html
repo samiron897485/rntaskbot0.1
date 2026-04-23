@@ -181,6 +181,16 @@
       background: linear-gradient(135deg, #ffd700, #ffa500);
       color: #000; border-radius: 12px; font-weight: bold; font-size: 0.78rem; margin-left: 4px;
     }
+    .success-box .back-wrap { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .success-box .point-finger {
+      display: inline-block; font-size: 1.15rem; line-height: 1;
+      animation: pointPulse 0.9s ease-in-out infinite;
+      transform-origin: center;
+    }
+    @keyframes pointPulse {
+      0%,100% { transform: translateX(0) scale(1); }
+      50%     { transform: translateX(6px) scale(1.15); }
+    }
     .success-box .back-btn {
       flex-shrink: 0; padding: 6px 14px; font-size: 0.82rem;
       background: #00d4aa; color: #000; border: none; border-radius: 6px;
@@ -289,7 +299,10 @@
           🎉 <b>Done!</b> <span id="successReward">+1 Coin</span>
           <span class="coin-badge" id="coinBadge">0 💰</span>
         </div>
-        <button class="back-btn" id="backToBotBtn">⬅ Back</button>
+        <span class="back-wrap">
+          <span class="point-finger" aria-hidden="true">👉</span>
+          <button class="back-btn" id="backToBotBtn">Back</button>
+        </span>
       </div>
 
       <div class="error-box" id="errorBox">
