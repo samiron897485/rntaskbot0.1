@@ -174,6 +174,10 @@
       border-radius: 8px; text-align: center;
     }
     .success-box.show { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .success-box.failed { background: rgba(255,80,80,0.10); border-color: rgba(255,80,80,0.5); }
+    .success-box.failed .success-text { color: #ffd1d1; }
+    .success-box.failed .success-text b { color: #ff7070; }
+    .success-box.failed .back-btn { background: #ff7070; }
     .success-box .success-text { flex: 1; min-width: 0; text-align: left; font-size: 0.85rem; color: #d8fff5; line-height: 1.3; }
     .success-box .success-text b { color: #00d4aa; }
     .success-box .coin-badge {
@@ -900,43 +904,61 @@
           }
           coinBadge.textContent = `${data.coins} 💰`;
           timerHMS.textContent = '00:00:00';
-          const backBtn = document.getElementById('backToBotBtn');
-          if (backBtn && !backBtn.dataset.bound) {
-            backBtn.dataset.bound = '1';
-            backBtn.addEventListener('click', () => {
-              const username = (window.__BOT_USERNAME__ || '').replace(/^@/, '');
-              const botUrl = username ? `https://t.me/${username}` : null;
-              try {
-                if (window.Telegram && window.Telegram.WebApp) {
-                  if (botUrl && typeof window.Telegram.WebApp.openTelegramLink === 'function') {
-                    window.Telegram.WebApp.openTelegramLink(botUrl);
-                  }
-                  if (typeof window.Telegram.WebApp.close === 'function') {
-                    window.Telegram.WebApp.close();
-                  }
-                  return;
-                }
-              } catch (e) {}
-              if (botUrl) {
-                window.location.href = botUrl;
-                return;
-              }
-              try { window.close(); } catch (e) {}
-              try { history.back(); } catch (e) {}
-            });
-          }
+          bindBackToBotBtn();
         } else {
-          completed = false;
-          claimBtn.disabled = false;
-          claimBtn.textContent = '🎁 Claim Reward';
-          showError(data.message || 'Failed to complete task.');
+          // Claim failed (task expired, already completed, etc.) — hide the
+          // claim button and show a "No reward" version of the success row
+          // so the user has a clear path back to the bot chat.
+          showNoReward(data.message || 'No reward');
         }
       } catch (e) {
-        completed = false;
-        claimBtn.disabled = false;
-        claimBtn.textContent = '🎁 Claim Reward';
-        showError('Failed to reach server. Please try again.');
+        showNoReward('Failed to reach server.');
       }
+    }
+
+    function bindBackToBotBtn() {
+      const backBtn = document.getElementById('backToBotBtn');
+      if (!backBtn || backBtn.dataset.bound) return;
+      backBtn.dataset.bound = '1';
+      backBtn.addEventListener('click', () => {
+        const username = (window.__BOT_USERNAME__ || '').replace(/^@/, '');
+        const botUrl = username ? `https://t.me/${username}` : null;
+        try {
+          if (window.Telegram && window.Telegram.WebApp) {
+            if (botUrl && typeof window.Telegram.WebApp.openTelegramLink === 'function') {
+              window.Telegram.WebApp.openTelegramLink(botUrl);
+            }
+            if (typeof window.Telegram.WebApp.close === 'function') {
+              window.Telegram.WebApp.close();
+            }
+            return;
+          }
+        } catch (e) {}
+        if (botUrl) {
+          window.location.href = botUrl;
+          return;
+        }
+        try { window.close(); } catch (e) {}
+        try { history.back(); } catch (e) {}
+      });
+    }
+
+    function showNoReward(_msg) {
+      // Lock the flow so the user can only go back to the bot chat.
+      completed = true;
+      claimBtn.style.display = 'none';
+      warnBox.classList.remove('show');
+      progressBarWrap.style.display = 'none';
+      errorBox.classList.remove('show');
+      // Repurpose the success box as a "no reward" row with the same layout.
+      const successText = successBox.querySelector('.success-text');
+      if (successText) {
+        successText.innerHTML = '❌ <b>No reward</b>';
+      }
+      successBox.classList.add('failed');
+      successBox.classList.add('show');
+      timerHMS.textContent = '00:00:00';
+      bindBackToBotBtn();
     }
 
     function showError(msg) {
