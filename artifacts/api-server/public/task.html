@@ -181,15 +181,16 @@
       background: linear-gradient(135deg, #ffd700, #ffa500);
       color: #000; border-radius: 12px; font-weight: bold; font-size: 0.78rem; margin-left: 4px;
     }
-    .success-box .back-wrap { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .success-box .back-wrap { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .success-box .point-finger {
-      display: inline-block; font-size: 1.15rem; line-height: 1;
+      display: inline-block; font-size: 1.05rem; line-height: 1;
       animation: pointPulse 0.9s ease-in-out infinite;
       transform-origin: center;
+      pointer-events: none;
     }
     @keyframes pointPulse {
-      0%,100% { transform: translateX(0) scale(1); }
-      50%     { transform: translateX(6px) scale(1.15); }
+      0%,100% { transform: translateX(-4px) scale(1); }
+      50%     { transform: translateX(0) scale(1.1); }
     }
     .success-box .back-btn {
       flex-shrink: 0; padding: 6px 14px; font-size: 0.82rem;
@@ -297,7 +298,7 @@
       <div class="success-box" id="successBox">
         <div class="success-text">
           🎉 <b>Done!</b> <span id="successReward">+1 Coin</span>
-          <span class="coin-badge" id="coinBadge">0 💰</span>
+          <span class="coin-badge" id="coinBadge" style="display:none">0 💰</span>
         </div>
         <span class="back-wrap">
           <span class="point-finger" aria-hidden="true">👉</span>
@@ -628,7 +629,7 @@
     // While Adsterra ad scripts are loading, keep action buttons unclickable so
     // users don't accidentally tap the buttons before the ads render.
     const ADS_ENABLED   = (__ADS_ENABLED__);
-    const AD_LOAD_DELAY = 2000;
+    const AD_LOAD_DELAY = 3000;
     let adsLoaded       = !ADS_ENABLED; // if no ads, treat as already loaded
     let taskLoaded      = false;
     const adLoadHint    = document.getElementById('adLoadHint');
