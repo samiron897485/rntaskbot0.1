@@ -383,29 +383,25 @@
       }
       closeBtn.addEventListener('click', closeTelegramWebView);
 
-      // ── Swap UI to "Close" once the user has completed this task in the
-      //    external browser. We poll the API both on load and whenever the
-      //    Telegram WebView becomes visible again (e.g. after the user
-      //    presses the back button from Chrome).
-      function showCloseUI() {
-        msgBox.innerHTML = '🎉 Task complete! Tap below to close this window and return to the bot.';
-        clickHint.style.display = 'none';
-        finger.style.display = 'none';
-        openBtn.style.display = 'none';
-        closeBtn.style.display = 'inline-block';
-      }
-
+      // ── Auto-close the Telegram WebView once the user has completed this
+      //    task in the external browser. We poll the API both on load and
+      //    whenever the Telegram WebView becomes visible again (e.g. after
+      //    the user presses the back button from Chrome) — and close
+      //    automatically without requiring any extra tap.
+      let autoClosed = false;
       async function checkTaskCompletion() {
-        if (!tgTaskId || !tgUserId) return;
+        if (autoClosed || !tgTaskId || !tgUserId) return;
         try {
           const r = await fetch('/api/current-task/' + encodeURIComponent(tgUserId), { cache: 'no-store' });
           if (!r.ok) return;
           const data = await r.json();
           // If user has no current task OR the current task is no longer the
-          // one this page was opened for, treat it as completed/skipped.
+          // one this page was opened for, treat it as completed/skipped and
+          // close the WebView immediately.
           const currentId = data && data.task && data.task.id;
           if (!currentId || currentId !== tgTaskId) {
-            showCloseUI();
+            autoClosed = true;
+            closeTelegramWebView();
           }
         } catch (e) {}
       }
