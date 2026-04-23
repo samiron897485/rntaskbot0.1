@@ -1165,7 +1165,7 @@
       });
     }
 
-    function showNoReward(_msg) {
+    function showNoReward(msg) {
       // Lock the flow so the user can only go back to the bot chat.
       completed = true;
       claimBtn.style.display = 'none';
@@ -1181,6 +1181,17 @@
       successBox.classList.add('failed');
       successBox.classList.add('show');
       timerHMS.textContent = '00:00:00';
+      // Show the reason in a small box below so the user knows why.
+      const reasonText = (msg && String(msg).trim()) ? String(msg).trim() : 'Reward could not be given for this task.';
+      let reasonBox = document.getElementById('noRewardReason');
+      if (!reasonBox) {
+        reasonBox = document.createElement('div');
+        reasonBox.id = 'noRewardReason';
+        reasonBox.style.cssText = 'margin-top:8px;padding:8px 10px;background:rgba(255,80,80,0.12);border:1px solid rgba(255,80,80,0.35);border-radius:8px;color:#ffd0d0;font-size:0.78rem;line-height:1.35;text-align:center;';
+        successBox.parentNode.insertBefore(reasonBox, successBox.nextSibling);
+      }
+      reasonBox.innerHTML = '<b>Reason:</b> ' + reasonText.replace(/[<>]/g, '');
+      reasonBox.style.display = 'block';
       bindBackToBotBtn();
     }
 
