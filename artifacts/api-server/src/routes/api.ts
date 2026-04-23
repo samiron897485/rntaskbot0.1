@@ -50,7 +50,7 @@ import {
   getJoiningStats,
 } from "../db/mockDb.js";
 import { sendTaskCompletion } from "../bot/bot.js";
-import { bot } from "../bot/bot.js";
+import { bot, getBotUsername } from "../bot/bot.js";
 import { validateAdminCredentials, createSession, destroySession } from "../middleware/session.js";
 
 const router: IRouter = Router();
@@ -90,6 +90,7 @@ router.get("/config", (_req: Request, res: Response) => {
     taskExpiry: cfg.taskExpiry,
     minWithdraw: cfg.minWithdraw,
     coinToMoneyRate: cfg.coinToMoneyRate,
+    botUsername: getBotUsername(),
   });
 });
 

@@ -87,6 +87,21 @@ const _envAdminIds = (process.env.ADMIN_IDS || "").split(",").map((s) => s.trim(
 const ADMIN_IDS: string[] = [...new Set([...HARDCODED_ADMIN_IDS, ..._envAdminIds])];
 
 export let bot: TelegramBot | null = null;
+let cachedBotUsername: string | null = null;
+export function getBotUsername(): string | null {
+  return cachedBotUsername;
+}
+export async function fetchBotUsername(): Promise<string | null> {
+  if (cachedBotUsername) return cachedBotUsername;
+  if (!bot) return null;
+  try {
+    const me = await bot.getMe();
+    cachedBotUsername = me.username || null;
+    return cachedBotUsername;
+  } catch {
+    return null;
+  }
+}
 let BASE_URL = "";
 
 const T = {
@@ -1076,6 +1091,8 @@ export function initBot(token: string, baseUrl: string): void {
       bot!.startPolling({ restart: false }).catch(() => {});
     }, 8000);
   });
+
+  fetchBotUsername().catch(() => {});
 
   logger.info("Telegram bot started");
 

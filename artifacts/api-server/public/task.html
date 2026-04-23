@@ -169,18 +169,24 @@
     .warn-box.show { display: block; }
 
     .success-box {
-      display: none; padding: 14px 12px;
-      background: rgba(0,212,170,0.15); border: 2px solid #00d4aa;
-      border-radius: 10px; text-align: center;
+      display: none; padding: 8px 10px;
+      background: rgba(0,212,170,0.12); border: 1px solid rgba(0,212,170,0.5);
+      border-radius: 8px; text-align: center;
     }
-    .success-box.show { display: block; }
-    .success-icon { font-size: 2.2rem; margin-bottom: 6px; }
-    .success-box h2 { font-size: 1.05rem; color: #00d4aa; margin-bottom: 6px; }
-    .coin-badge {
-      display: inline-block; padding: 4px 14px;
+    .success-box.show { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .success-box .success-text { flex: 1; min-width: 0; text-align: left; font-size: 0.85rem; color: #d8fff5; line-height: 1.3; }
+    .success-box .success-text b { color: #00d4aa; }
+    .success-box .coin-badge {
+      display: inline-block; padding: 2px 8px;
       background: linear-gradient(135deg, #ffd700, #ffa500);
-      color: #000; border-radius: 20px; font-weight: bold; font-size: 0.95rem; margin-top: 6px;
+      color: #000; border-radius: 12px; font-weight: bold; font-size: 0.78rem; margin-left: 4px;
     }
+    .success-box .back-btn {
+      flex-shrink: 0; padding: 6px 14px; font-size: 0.82rem;
+      background: #00d4aa; color: #000; border: none; border-radius: 6px;
+      font-weight: 600; cursor: pointer;
+    }
+    .success-box .back-btn:active { opacity: 0.85; }
 
     .ad-banner-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
@@ -279,11 +285,11 @@
       <button class="claim-btn" id="claimBtn">🎁 Claim Reward</button>
 
       <div class="success-box" id="successBox">
-        <div class="success-icon">🎉</div>
-        <h2 id="successTitle">Congratulations!</h2>
-        <p id="successMsg">You got <span id="successReward">+1 Coin</span> 💰</p>
-        <div class="coin-badge" id="coinBadge">Total Coins: 0 💰</div>
-        <button class="open-link-btn" id="backToBotBtn" style="margin-top:14px;width:100%">⬅ Back</button>
+        <div class="success-text">
+          🎉 <b>Done!</b> <span id="successReward">+1 Coin</span>
+          <span class="coin-badge" id="coinBadge">0 💰</span>
+        </div>
+        <button class="back-btn" id="backToBotBtn">⬅ Back</button>
       </div>
 
       <div class="error-box" id="errorBox">
@@ -875,18 +881,29 @@
           if (rewardEl) {
             rewardEl.textContent = '+' + earned + ' Coin' + (earned === 1 ? '' : 's');
           }
-          coinBadge.textContent = `Total Coins: ${data.coins} 💰`;
+          coinBadge.textContent = `${data.coins} 💰`;
           timerHMS.textContent = '00:00:00';
           const backBtn = document.getElementById('backToBotBtn');
           if (backBtn && !backBtn.dataset.bound) {
             backBtn.dataset.bound = '1';
             backBtn.addEventListener('click', () => {
+              const username = (window.__BOT_USERNAME__ || '').replace(/^@/, '');
+              const botUrl = username ? `https://t.me/${username}` : null;
               try {
-                if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.close === 'function') {
-                  window.Telegram.WebApp.close();
+                if (window.Telegram && window.Telegram.WebApp) {
+                  if (botUrl && typeof window.Telegram.WebApp.openTelegramLink === 'function') {
+                    window.Telegram.WebApp.openTelegramLink(botUrl);
+                  }
+                  if (typeof window.Telegram.WebApp.close === 'function') {
+                    window.Telegram.WebApp.close();
+                  }
                   return;
                 }
               } catch (e) {}
+              if (botUrl) {
+                window.location.href = botUrl;
+                return;
+              }
               try { window.close(); } catch (e) {}
               try { history.back(); } catch (e) {}
             });
@@ -916,6 +933,7 @@
         const res  = await fetch('/api/config');
         const data = await res.json();
         if (data.success && data.taskDuration) TOTAL_TIME = data.taskDuration;
+        if (data && data.botUsername) window.__BOT_USERNAME__ = data.botUsername;
       } catch(e) {}
     }
 
