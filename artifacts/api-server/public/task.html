@@ -217,12 +217,13 @@
 
   <!-- Telegram WebView → Open in Browser screen -->
   <div class="tg-block" id="tgBlock">
-    <div class="tg-msg-box">
+    <div class="tg-msg-box" id="tgMsgBox">
       This task page works best in browser, tap the button below to open it externally and start earning. thank you 😊
     </div>
-    <div class="tg-click-hint">Click here</div>
-    <div class="tg-finger">👇</div>
+    <div class="tg-click-hint" id="tgClickHint">Click here</div>
+    <div class="tg-finger" id="tgFinger">👇</div>
     <button class="open-chrome-btn" id="openChromeBtn">Open in browser</button>
+    <button class="open-chrome-btn" id="tgCloseBtn" style="display:none; background:#ff5b5b;">✕ Close</button>
   </div>
 
   <!-- Hint Popup -->
@@ -343,7 +344,17 @@
       const fullUrl = window.location.href;
       const isAndroid = /Android/i.test(navigator.userAgent || '');
 
-      document.getElementById('openChromeBtn').addEventListener('click', () => {
+      const tgParams   = new URLSearchParams(window.location.search);
+      const tgTaskId   = tgParams.get('taskId');
+      const tgUserId   = tgParams.get('userId');
+
+      const openBtn   = document.getElementById('openChromeBtn');
+      const closeBtn  = document.getElementById('tgCloseBtn');
+      const msgBox    = document.getElementById('tgMsgBox');
+      const clickHint = document.getElementById('tgClickHint');
+      const finger    = document.getElementById('tgFinger');
+
+      openBtn.addEventListener('click', () => {
         if (isAndroid) {
           // Generic browser intent: opens in user's default browser, or shows
           // chooser drawer if no default is set.
@@ -356,6 +367,55 @@
           if (!w) window.location.href = fullUrl;
         }
       });
+
+      // ── Close handler — closes Telegram WebView and returns to bot chat ───
+      function closeTelegramWebView() {
+        try {
+          if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.close === 'function') {
+            window.Telegram.WebApp.close();
+            return;
+          }
+        } catch (e) {}
+        try { window.close(); } catch (e) {}
+        // Last-resort fallback for WebViews that ignore window.close():
+        // navigate back so the user sees the Telegram chat again.
+        try { history.back(); } catch (e) {}
+      }
+      closeBtn.addEventListener('click', closeTelegramWebView);
+
+      // ── Swap UI to "Close" once the user has completed this task in the
+      //    external browser. We poll the API both on load and whenever the
+      //    Telegram WebView becomes visible again (e.g. after the user
+      //    presses the back button from Chrome).
+      function showCloseUI() {
+        msgBox.innerHTML = '🎉 Task complete! Tap below to close this window and return to the bot.';
+        clickHint.style.display = 'none';
+        finger.style.display = 'none';
+        openBtn.style.display = 'none';
+        closeBtn.style.display = 'inline-block';
+      }
+
+      async function checkTaskCompletion() {
+        if (!tgTaskId || !tgUserId) return;
+        try {
+          const r = await fetch('/api/current-task/' + encodeURIComponent(tgUserId), { cache: 'no-store' });
+          if (!r.ok) return;
+          const data = await r.json();
+          // If user has no current task OR the current task is no longer the
+          // one this page was opened for, treat it as completed/skipped.
+          const currentId = data && data.task && data.task.id;
+          if (!currentId || currentId !== tgTaskId) {
+            showCloseUI();
+          }
+        } catch (e) {}
+      }
+
+      checkTaskCompletion();
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) checkTaskCompletion();
+      });
+      window.addEventListener('focus', checkTaskCompletion);
+      window.addEventListener('pageshow', checkTaskCompletion);
 
       // Stop further task page execution while in Telegram WebView
       throw new Error('TG_WEBVIEW_BLOCK');
