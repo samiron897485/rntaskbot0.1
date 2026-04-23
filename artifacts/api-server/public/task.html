@@ -613,6 +613,7 @@
     const errorText      = document.getElementById('errorText');
     const taskLinkText   = document.getElementById('taskLinkText');
     const openLinkBtn    = document.getElementById('openLinkBtn');
+    const taskLinkBox    = document.getElementById('taskLinkBox');
     const coinBadge      = document.getElementById('coinBadge');
     const infoBox        = document.getElementById('infoBox');
     const warnBox        = document.getElementById('warnBox');
@@ -761,6 +762,9 @@
         claimBtn.classList.add('show');
         warnBox.classList.remove('show');
         infoBox.style.display = 'none';
+        // News reading is over — hide the "News Task" box so the page is
+        // clean and the user only sees Claim Reward + back flow.
+        if (taskLinkBox) taskLinkBox.style.display = 'none';
         // Lock claim button briefly so any returning ad scripts settle first.
         // Important: do NOT disable the button — a disabled button drops
         // user taps, which is what was forcing users to tap twice. Instead,
