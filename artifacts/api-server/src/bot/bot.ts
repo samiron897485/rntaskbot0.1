@@ -1457,6 +1457,15 @@ export function initBot(token: string, baseUrl: string): void {
         if (newMsgId) updateUser(userId, { lastMessageId: newMsgId });
         return;
       }
+      const optPendingWds = getUserWithdrawals(userId).filter((w) => w.status === "pending");
+      if (optPendingWds.length > 0) {
+        clearPendingWithdraw(userId);
+        const newMsgId = await sendOrEdit(chatId, userId,
+          `⏳ *Withdrawal Already Pending*\n\nYou already have a withdrawal request waiting for review. Please wait until it is approved or rejected before submitting a new one.`,
+          { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] } });
+        if (newMsgId) updateUser(userId, { lastMessageId: newMsgId });
+        return;
+      }
       if (isNaN(amount) || amount < cfg.minWithdraw) {
         await bot!.sendMessage(chatId,
           `❌ *Invalid Withdrawal Amount*\n\n` +
@@ -3419,6 +3428,15 @@ export function initBot(token: string, baseUrl: string): void {
         reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] },
       });
       updateUser(userId, { lastMessageId: cdMsg.message_id });
+      return;
+    }
+    const finalPending = getUserWithdrawals(userId).filter((w) => w.status === "pending");
+    if (finalPending.length > 0) {
+      clearPendingWithdraw(userId);
+      const pdMsg = await bot!.sendMessage(chatId,
+        `⏳ *Withdrawal Already Pending*\n\nYou already have a withdrawal request waiting for review. Please wait until it is approved or rejected before submitting a new one.`,
+        { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: txt.back_btn, callback_data: "menu_balance" }]] } });
+      updateUser(userId, { lastMessageId: pdMsg.message_id });
       return;
     }
 
