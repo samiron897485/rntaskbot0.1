@@ -19,6 +19,38 @@
     .mobile-block h2 { font-size: 1.4rem; color: #ff5050; margin-bottom: 10px; }
     .mobile-block p { color: #94a3b8; font-size: 0.9rem; line-height: 1.6; }
 
+    /* Telegram WebView Block */
+    .tg-block {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(160deg, #0b1220 0%, #0f172a 100%);
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 28px 22px; text-align: center;
+    }
+    .tg-block.show { display: flex; }
+    .tg-block .tg-icon { font-size: 4.5rem; margin-bottom: 14px; }
+    .tg-block h2 { font-size: 1.4rem; color: #00d4aa; margin-bottom: 10px; }
+    .tg-block p { color: #cbd5e1; font-size: 0.92rem; line-height: 1.65; margin-bottom: 18px; max-width: 360px; }
+    .tg-block .open-chrome-btn {
+      display: inline-block; width: 100%; max-width: 320px;
+      padding: 14px 18px; background: linear-gradient(135deg, #00d4aa, #00a07c);
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 1.05rem; font-weight: 700; cursor: pointer;
+      text-decoration: none; margin-bottom: 10px;
+      box-shadow: 0 6px 20px rgba(0,212,170,0.35);
+    }
+    .tg-block .copy-link-btn {
+      display: inline-block; width: 100%; max-width: 320px;
+      padding: 11px 16px; background: rgba(255,255,255,0.06);
+      color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-bottom: 14px;
+    }
+    .tg-block .manual-tip {
+      font-size: 0.78rem; color: #94a3b8; line-height: 1.6; max-width: 340px;
+      background: rgba(255,255,255,0.04); padding: 12px 14px; border-radius: 10px;
+      border: 1px dashed rgba(255,255,255,0.12);
+    }
+    .tg-block .manual-tip strong { color: #ffd700; }
+
     .page-body {
       position: relative; min-height: 100vh;
       overflow-y: auto; display: flex; flex-direction: column; align-items: center;
@@ -179,6 +211,18 @@
     <p>This page is only accessible from real mobile devices.<br>Please open on your smartphone.</p>
   </div>
 
+  <!-- Telegram WebView → Open in Chrome screen -->
+  <div class="tg-block" id="tgBlock">
+    <div class="tg-icon">🌐</div>
+    <h2>Please Open in Chrome</h2>
+    <p>This task page works best in <strong style="color:#00d4aa">Chrome browser</strong>. Tap the button below to open it externally and start earning.</p>
+    <button class="open-chrome-btn" id="openChromeBtn">🚀 Open in Chrome</button>
+    <button class="copy-link-btn" id="copyLinkBtn">📋 Copy Link</button>
+    <div class="manual-tip">
+      <strong>Manual:</strong> Tap the <strong>⋮</strong> icon (top-right) → <strong>"Open in browser"</strong> / <strong>"Open in external browser"</strong>
+    </div>
+  </div>
+
   <!-- Hint Popup -->
   <div class="hint-overlay" id="hintOverlay">
     <div class="hint-popup" id="hintPopup">
@@ -260,6 +304,76 @@
 
     if (!isMobileDevice()) {
       document.getElementById('mobileBlock').classList.add('show');
+    }
+
+    // ── Telegram WebView Detection ───────────────────────────────────────────
+    function isTelegramWebView() {
+      const ua = navigator.userAgent || '';
+      if (/Telegram/i.test(ua)) return true;
+      try {
+        if (typeof window.TelegramWebviewProxy !== 'undefined') return true;
+        if (window.Telegram && window.Telegram.WebView) return true;
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) return true;
+      } catch (e) {}
+      // Heuristic: opened from Telegram link with no referrer + standalone-like navigation
+      try {
+        const noRef = !document.referrer || document.referrer === '';
+        const fromTgParam = /[?&](tgWebApp|tg_)/.test(location.search);
+        if (noRef && fromTgParam) return true;
+      } catch (e) {}
+      return false;
+    }
+
+    function buildChromeIntentUrl(fullUrl) {
+      // Android intent: forces Chrome instead of in-app WebView
+      const m = fullUrl.match(/^(https?):\/\/([^/]+)(.*)$/);
+      if (!m) return fullUrl;
+      const scheme = m[1];
+      const host = m[2];
+      const path = m[3] || '';
+      return `intent://${host}${path}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(fullUrl)};end`;
+    }
+
+    if (isTelegramWebView()) {
+      const tgBlock = document.getElementById('tgBlock');
+      tgBlock.classList.add('show');
+      const fullUrl = window.location.href;
+      const isAndroid = /Android/i.test(navigator.userAgent || '');
+
+      document.getElementById('openChromeBtn').addEventListener('click', () => {
+        if (isAndroid) {
+          // Try intent scheme first (Android Chrome)
+          window.location.href = buildChromeIntentUrl(fullUrl);
+          // Fallback: open in same tab so Telegram menu's "Open in browser" appears
+          setTimeout(() => { window.location.href = fullUrl; }, 800);
+        } else {
+          // iOS: window.open with _blank often escapes WebView to Safari
+          const w = window.open(fullUrl, '_blank');
+          if (!w) window.location.href = fullUrl;
+        }
+      });
+
+      document.getElementById('copyLinkBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('copyLinkBtn');
+        try {
+          await navigator.clipboard.writeText(fullUrl);
+          btn.textContent = '✅ Link Copied!';
+        } catch (e) {
+          // Fallback for older browsers
+          const ta = document.createElement('textarea');
+          ta.value = fullUrl;
+          ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); btn.textContent = '✅ Link Copied!'; }
+          catch (err) { btn.textContent = '❌ Copy failed — long-press URL bar'; }
+          document.body.removeChild(ta);
+        }
+        setTimeout(() => { btn.textContent = '📋 Copy Link'; }, 2500);
+      });
+
+      // Stop further task page execution while in Telegram WebView
+      throw new Error('TG_WEBVIEW_BLOCK');
     }
 
     // ── External Browser Helper ───────────────────────────────────────────────
