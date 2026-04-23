@@ -27,29 +27,33 @@
       padding: 28px 22px; text-align: center;
     }
     .tg-block.show { display: flex; }
-    .tg-block .tg-icon { font-size: 4.5rem; margin-bottom: 14px; }
-    .tg-block h2 { font-size: 1.4rem; color: #00d4aa; margin-bottom: 10px; }
-    .tg-block p { color: #cbd5e1; font-size: 0.92rem; line-height: 1.65; margin-bottom: 18px; max-width: 360px; }
+    .tg-msg-box {
+      max-width: 340px; padding: 16px 18px; margin-bottom: 28px;
+      background: rgba(0,212,170,0.08);
+      border: 1px solid rgba(0,212,170,0.35);
+      border-radius: 12px;
+      color: #e2e8f0; font-size: 0.95rem; line-height: 1.6;
+    }
+    .tg-click-hint {
+      font-size: 0.85rem; color: #ffd700; font-weight: 600;
+      margin-bottom: 4px; letter-spacing: 0.3px;
+    }
+    .tg-finger {
+      font-size: 1.8rem; margin-bottom: 8px;
+      animation: tg-bounce 1s ease-in-out infinite;
+    }
+    @keyframes tg-bounce {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(6px); }
+    }
     .tg-block .open-chrome-btn {
       display: inline-block; width: 100%; max-width: 320px;
       padding: 14px 18px; background: linear-gradient(135deg, #00d4aa, #00a07c);
       color: #fff; border: none; border-radius: 10px;
       font-size: 1.05rem; font-weight: 700; cursor: pointer;
-      text-decoration: none; margin-bottom: 10px;
+      text-decoration: none;
       box-shadow: 0 6px 20px rgba(0,212,170,0.35);
     }
-    .tg-block .copy-link-btn {
-      display: inline-block; width: 100%; max-width: 320px;
-      padding: 11px 16px; background: rgba(255,255,255,0.06);
-      color: #e2e8f0; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-bottom: 14px;
-    }
-    .tg-block .manual-tip {
-      font-size: 0.78rem; color: #94a3b8; line-height: 1.6; max-width: 340px;
-      background: rgba(255,255,255,0.04); padding: 12px 14px; border-radius: 10px;
-      border: 1px dashed rgba(255,255,255,0.12);
-    }
-    .tg-block .manual-tip strong { color: #ffd700; }
 
     .page-body {
       position: relative; min-height: 100vh;
@@ -211,16 +215,14 @@
     <p>This page is only accessible from real mobile devices.<br>Please open on your smartphone.</p>
   </div>
 
-  <!-- Telegram WebView → Open in Chrome screen -->
+  <!-- Telegram WebView → Open in Browser screen -->
   <div class="tg-block" id="tgBlock">
-    <div class="tg-icon">🌐</div>
-    <h2>Please Open in Chrome</h2>
-    <p>This task page works best in <strong style="color:#00d4aa">Chrome browser</strong>. Tap the button below to open it externally and start earning.</p>
-    <button class="open-chrome-btn" id="openChromeBtn">🚀 Open in Chrome</button>
-    <button class="copy-link-btn" id="copyLinkBtn">📋 Copy Link</button>
-    <div class="manual-tip">
-      <strong>Manual:</strong> Tap the <strong>⋮</strong> icon (top-right) → <strong>"Open in browser"</strong> / <strong>"Open in external browser"</strong>
+    <div class="tg-msg-box">
+      This task page works best in browser, tap the button below to open it externally and start earning. thank you 😊
     </div>
+    <div class="tg-click-hint">Click here</div>
+    <div class="tg-finger">👇</div>
+    <button class="open-chrome-btn" id="openChromeBtn">Open in browser</button>
   </div>
 
   <!-- Hint Popup -->
@@ -324,14 +326,15 @@
       return false;
     }
 
-    function buildChromeIntentUrl(fullUrl) {
-      // Android intent: forces Chrome instead of in-app WebView
+    function buildBrowserIntentUrl(fullUrl) {
+      // Android intent without package → uses user's default browser, or shows
+      // a chooser drawer if no default is set.
       const m = fullUrl.match(/^(https?):\/\/([^/]+)(.*)$/);
       if (!m) return fullUrl;
       const scheme = m[1];
       const host = m[2];
       const path = m[3] || '';
-      return `intent://${host}${path}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(fullUrl)};end`;
+      return `intent://${host}${path}#Intent;scheme=${scheme};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${encodeURIComponent(fullUrl)};end`;
     }
 
     if (isTelegramWebView()) {
@@ -342,8 +345,9 @@
 
       document.getElementById('openChromeBtn').addEventListener('click', () => {
         if (isAndroid) {
-          // Try intent scheme first (Android Chrome)
-          window.location.href = buildChromeIntentUrl(fullUrl);
+          // Generic browser intent: opens in user's default browser, or shows
+          // chooser drawer if no default is set.
+          window.location.href = buildBrowserIntentUrl(fullUrl);
           // Fallback: open in same tab so Telegram menu's "Open in browser" appears
           setTimeout(() => { window.location.href = fullUrl; }, 800);
         } else {
@@ -351,25 +355,6 @@
           const w = window.open(fullUrl, '_blank');
           if (!w) window.location.href = fullUrl;
         }
-      });
-
-      document.getElementById('copyLinkBtn').addEventListener('click', async () => {
-        const btn = document.getElementById('copyLinkBtn');
-        try {
-          await navigator.clipboard.writeText(fullUrl);
-          btn.textContent = '✅ Link Copied!';
-        } catch (e) {
-          // Fallback for older browsers
-          const ta = document.createElement('textarea');
-          ta.value = fullUrl;
-          ta.style.position = 'fixed'; ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.select();
-          try { document.execCommand('copy'); btn.textContent = '✅ Link Copied!'; }
-          catch (err) { btn.textContent = '❌ Copy failed — long-press URL bar'; }
-          document.body.removeChild(ta);
-        }
-        setTimeout(() => { btn.textContent = '📋 Copy Link'; }, 2500);
       });
 
       // Stop further task page execution while in Telegram WebView
