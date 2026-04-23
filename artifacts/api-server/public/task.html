@@ -362,20 +362,25 @@
     }
 
     // ── External Browser Helper ───────────────────────────────────────────────
+    // Open the news link in a new tab of the SAME browser the tracking page
+    // is running in. We intentionally do NOT use Android intent URLs here,
+    // because intent:// with a package= forces the system app chooser
+    // ("Choose activity" — Chrome / Chrome Beta) which we want to avoid.
+    // Using a real anchor click with target=_blank lets the user simply press
+    // the back button to return to this tracking page once the timer bell
+    // rings.
     function openInDefaultBrowser(url) {
-      const ua = navigator.userAgent || '';
-      const isAndroid = /Android/i.test(ua);
-      if (isAndroid) {
-        // Android intent URL forces Chrome / default browser instead of in-app WebView
-        const host = url.replace(/^https?:\/\//, '');
-        const scheme = url.startsWith('https') ? 'https' : 'http';
-        const intentUrl = `intent://${host}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url)};end`;
+      try {
         const a = document.createElement('a');
-        a.href = intentUrl;
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
         a.click();
-      } else {
-        // iOS and others — window.open with _blank works best
-        window.open(url, '_blank');
+        document.body.removeChild(a);
+      } catch (e) {
+        const w = window.open(url, '_blank', 'noopener');
+        if (!w) window.location.href = url;
       }
     }
 
