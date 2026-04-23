@@ -25,6 +25,9 @@ export interface AdminConfig {
   adsterraSocialBarCode?: string;
   adsterraBanner320Code?: string;
   adsterraBanner300Code?: string;
+  adsterraNativeCode?: string;
+  adsterraClassicPushCode?: string;
+  adsterraDynamicCode?: string;
 }
 
 export interface Task {

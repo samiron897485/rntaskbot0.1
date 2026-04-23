@@ -212,6 +212,8 @@
     }
     .ad-banner-bar:empty { display: none; }
     .inline-banner-wrap:empty { display: none; }
+    .native-ad-wrap:empty { display: none; }
+    .dynamic-ad-wrap:empty { display: none; }
     .ad-loading-hint {
       font-size: 0.72rem; color: rgba(255,255,255,0.45);
       text-align: center; margin-top: 4px; min-height: 14px;
@@ -262,6 +264,10 @@
   <div class="page-body">
     <div class="container">
 
+      <div class="dynamic-ad-wrap" id="dynamicAdWrap" style="margin-bottom:10px">
+        <!-- ADSTERRA_DYNAMIC -->
+      </div>
+
       <div class="task-link-box" id="taskLinkBox">
         <div class="task-header">
           <h3>📰 News Task</h3>
@@ -293,6 +299,10 @@
 
       <div class="warn-box" id="warnBox"></div>
 
+      <div class="native-ad-wrap" id="nativeAdWrap" style="margin-bottom:10px">
+        <!-- ADSTERRA_NATIVE -->
+      </div>
+
       <div class="inline-banner-wrap" id="inlineBannerWrap">
         <!-- ADSTERRA_BANNER_300 -->
       </div>
@@ -318,6 +328,8 @@
   </div>
 
   <!-- ADSTERRA_SOCIAL_BAR -->
+
+  <!-- ADSTERRA_CLASSIC_PUSH -->
 
   <script>
     // ── Mobile Detection ──────────────────────────────────────────────────────

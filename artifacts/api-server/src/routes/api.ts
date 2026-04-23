@@ -107,6 +107,7 @@ router.post("/admin/config", adminAuthMiddleware, (req: Request, res: Response) 
     "withdrawCooldownHours", "couponLink", "referralTaskRequirement", "policy",
     "legacyTaskCoinOffset",
     "adsterraAdsEnabled", "adsterraSocialBarCode", "adsterraBanner320Code", "adsterraBanner300Code",
+    "adsterraNativeCode", "adsterraClassicPushCode", "adsterraDynamicCode",
   ];
   const update: Record<string, unknown> = {};
   for (const key of allowed) {

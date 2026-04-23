@@ -78,10 +78,16 @@ app.get("/task", (_req, res) => {
       adsEnabled &&
       ((cfg.adsterraSocialBarCode || "").trim() !== "" ||
         (cfg.adsterraBanner320Code || "").trim() !== "" ||
-        (cfg.adsterraBanner300Code || "").trim() !== "");
+        (cfg.adsterraBanner300Code || "").trim() !== "" ||
+        (cfg.adsterraNativeCode || "").trim() !== "" ||
+        (cfg.adsterraClassicPushCode || "").trim() !== "" ||
+        (cfg.adsterraDynamicCode || "").trim() !== "");
     html = html.replace("<!-- ADSTERRA_SOCIAL_BAR -->", adsEnabled ? (cfg.adsterraSocialBarCode || "") : "");
     html = html.replace("<!-- ADSTERRA_BANNER_320 -->", adsEnabled ? (cfg.adsterraBanner320Code || "") : "");
     html = html.replace("<!-- ADSTERRA_BANNER_300 -->", adsEnabled ? (cfg.adsterraBanner300Code || "") : "");
+    html = html.replace("<!-- ADSTERRA_NATIVE -->", adsEnabled ? (cfg.adsterraNativeCode || "") : "");
+    html = html.replace("<!-- ADSTERRA_CLASSIC_PUSH -->", adsEnabled ? (cfg.adsterraClassicPushCode || "") : "");
+    html = html.replace("<!-- ADSTERRA_DYNAMIC -->", adsEnabled ? (cfg.adsterraDynamicCode || "") : "");
     html = html.replace("__ADS_ENABLED__", hasAnyAd ? "true" : "false");
     res.setHeader("Content-Type", "text/html");
     res.send(html);

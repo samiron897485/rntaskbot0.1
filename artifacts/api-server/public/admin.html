@@ -296,7 +296,25 @@
         <textarea id="cfg-adsterraSocialBarCode" rows="3" placeholder="Mondiad In-Page Push script + div code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
-      <button class="btn btn-primary" onclick="saveConfig(['adsterraSocialBarCode','adsterraBanner300Code'])">💾 Save Ad Codes</button>
+      <div class="settings-field" style="margin-bottom:12px">
+        <label>🧩 Native Ad Code <span style="color:#94a3b8;font-weight:400">(Mondiad/Adsterra → Native)</span></label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">News Task box ও Claim Reward বাটনের মাঝে content-style ad দেখাবে। script + div একসাথে পেস্ট করুন। খালি রাখলে দেখাবে না।</p>
+        <textarea id="cfg-adsterraNativeCode" rows="3" placeholder="Native ad script + div code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+
+      <div class="settings-field" style="margin-bottom:12px">
+        <label>🔔 Classic Push Code <span style="color:#94a3b8;font-weight:400">(Adsterra → Classic Push)</span></label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">Browser notification subscription ad — পেজে কোনো জায়গা নেয় না, background-এ চলে। script tag টা পেস্ট করুন। খালি রাখলে চলবে না।</p>
+        <textarea id="cfg-adsterraClassicPushCode" rows="3" placeholder="Classic Push script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+
+      <div class="settings-field" style="margin-bottom:12px">
+        <label>⚡ Dynamic Ad Code <span style="color:#94a3b8;font-weight:400">(Adsterra → Dynamic)</span></label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের একদম উপরে header strip-এ দেখাবে। sticky/footer code-ও এখানে দিতে পারেন (যেটাই পেস্ট করবেন সেটাই চলবে)। নিচের 320×50 banner-এর সাথে একসাথে দিলে double sticky হয়ে user-এর জন্য বিরক্তিকর হতে পারে — সাবধানে test করুন। খালি রাখলে দেখাবে না।</p>
+        <textarea id="cfg-adsterraDynamicCode" rows="3" placeholder="Dynamic ad script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveConfig(['adsterraSocialBarCode','adsterraBanner300Code','adsterraNativeCode','adsterraClassicPushCode','adsterraDynamicCode'])">💾 Save Ad Codes</button>
       <div class="result" id="adsterraSettingsResult"></div>
     </div>
 
@@ -1039,6 +1057,12 @@
       document.getElementById('cfg-adsterraAdsEnabled').checked = cfg.adsterraAdsEnabled === true;
       document.getElementById('cfg-adsterraSocialBarCode').value = cfg.adsterraSocialBarCode || '';
       document.getElementById('cfg-adsterraBanner300Code').value = cfg.adsterraBanner300Code || '';
+      const nativeEl = document.getElementById('cfg-adsterraNativeCode');
+      if (nativeEl) nativeEl.value = cfg.adsterraNativeCode || '';
+      const classicEl = document.getElementById('cfg-adsterraClassicPushCode');
+      if (classicEl) classicEl.value = cfg.adsterraClassicPushCode || '';
+      const dynEl = document.getElementById('cfg-adsterraDynamicCode');
+      if (dynEl) dynEl.value = cfg.adsterraDynamicCode || '';
       const ccr = Number(cfg.companyCoinRate || 100);
       const preview = document.getElementById('legacyOffsetPreview');
       if (offset === 0) {
@@ -1070,6 +1094,9 @@
     adsterraSocialBarCode: 'adsterraSettingsResult',
     adsterraBanner320Code: 'adsterraSettingsResult',
     adsterraBanner300Code: 'adsterraSettingsResult',
+    adsterraNativeCode: 'adsterraSettingsResult',
+    adsterraClassicPushCode: 'adsterraSettingsResult',
+    adsterraDynamicCode: 'adsterraSettingsResult',
   };
 
   async function saveConfig(keys) {
