@@ -284,37 +284,63 @@
       <button class="btn btn-primary" onclick="saveConfig(['adsterraAdsEnabled'])" style="margin-bottom:14px;background:linear-gradient(135deg,#00d4aa,#00a07c)">💾 Save On/Off</button>
       <div class="result" id="adsterraToggleResult" style="margin-bottom:10px"></div>
 
+      <div class="toggle-row" style="margin-bottom:14px;padding:12px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.3);border-radius:8px">
+        <label style="font-weight:600;color:#ff7070">🛡️ Block users with Ad-blocker / DNS Ad-block</label>
+        <label class="toggle">
+          <input type="checkbox" id="cfg-adblockBlockEnabled" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <p style="font-size:0.78rem;color:#94a3b8;margin:-6px 0 10px 0">On থাকলে ইউজারের ব্রাউজার বা DNS-এ ad-block detect হলে warning popup দেখাবে এবং কাজ করতে দেবে না।</p>
+      <button class="btn btn-primary" onclick="saveConfig(['adblockBlockEnabled'])" style="margin-bottom:14px;background:linear-gradient(135deg,#ff7070,#c64545)">💾 Save Adblock Setting</button>
+      <div class="result" id="adblockBlockResult" style="margin-bottom:14px"></div>
+
       <div class="settings-field" style="margin-bottom:12px">
-        <label>📦 Banner 300×100 Code <span style="color:#94a3b8;font-weight:400">(Mondiad → Create Ad Zone → Banner → 300×100)</span></label>
+        <div class="toggle-row" style="margin-bottom:6px">
+          <label style="font-weight:600">📦 Banner 300×100 Slot</label>
+          <label class="toggle"><input type="checkbox" id="cfg-adsterraBanner300SlotEnabled" /><span class="slider"></span></label>
+        </div>
         <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">এই ব্যানারটি "Open News" ও "Claim Reward" বাটনের মাঝামাঝিতে দেখাবে। script + div দুটোই একসাথে পেস্ট করুন।</p>
         <textarea id="cfg-adsterraBanner300Code" rows="4" placeholder="&lt;script async src=&quot;https://ss.mrmnd.com/banner.js&quot;&gt;&lt;/script&gt;&#10;&lt;div data-mndbanid=&quot;your-zone-id-here&quot;&gt;&lt;/div&gt;" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
       <div class="settings-field" style="margin-bottom:12px">
-        <label>💬 In-Page Push Code <span style="color:#94a3b8;font-weight:400">(Mondiad → Create Ad Zone → In-Page Push)</span></label>
+        <div class="toggle-row" style="margin-bottom:6px">
+          <label style="font-weight:600">💬 In-Page Push Slot</label>
+          <label class="toggle"><input type="checkbox" id="cfg-adsterraSocialBarSlotEnabled" /><span class="slider"></span></label>
+        </div>
         <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের কোণায় নোটিফিকেশন-স্টাইল পপ-আপ। ইউজারের subscription লাগে না। Frequency cap (১০ মিনিটে ১) সেট করুন যাতে ইউজার বিরক্ত না হয়।</p>
         <textarea id="cfg-adsterraSocialBarCode" rows="3" placeholder="Mondiad In-Page Push script + div code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
       <div class="settings-field" style="margin-bottom:12px">
-        <label>🧩 Native Ad Code <span style="color:#94a3b8;font-weight:400">(Mondiad/Adsterra → Native)</span></label>
+        <div class="toggle-row" style="margin-bottom:6px">
+          <label style="font-weight:600">🧩 Native Ad Slot</label>
+          <label class="toggle"><input type="checkbox" id="cfg-adsterraNativeSlotEnabled" /><span class="slider"></span></label>
+        </div>
         <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">News Task box ও Claim Reward বাটনের মাঝে content-style ad দেখাবে। script + div একসাথে পেস্ট করুন। খালি রাখলে দেখাবে না।</p>
         <textarea id="cfg-adsterraNativeCode" rows="3" placeholder="Native ad script + div code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
       <div class="settings-field" style="margin-bottom:12px">
-        <label>🔔 Classic Push Code <span style="color:#94a3b8;font-weight:400">(Adsterra → Classic Push)</span></label>
+        <div class="toggle-row" style="margin-bottom:6px">
+          <label style="font-weight:600">🔔 Classic Push Slot</label>
+          <label class="toggle"><input type="checkbox" id="cfg-adsterraClassicPushSlotEnabled" /><span class="slider"></span></label>
+        </div>
         <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">Browser notification subscription ad — পেজে কোনো জায়গা নেয় না, background-এ চলে। script tag টা পেস্ট করুন। খালি রাখলে চলবে না।</p>
         <textarea id="cfg-adsterraClassicPushCode" rows="3" placeholder="Classic Push script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
       <div class="settings-field" style="margin-bottom:12px">
-        <label>⚡ Dynamic Ad Code <span style="color:#94a3b8;font-weight:400">(Adsterra → Dynamic)</span></label>
-        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের একদম উপরে header strip-এ দেখাবে। sticky/footer code-ও এখানে দিতে পারেন (যেটাই পেস্ট করবেন সেটাই চলবে)। নিচের 320×50 banner-এর সাথে একসাথে দিলে double sticky হয়ে user-এর জন্য বিরক্তিকর হতে পারে — সাবধানে test করুন। খালি রাখলে দেখাবে না।</p>
+        <div class="toggle-row" style="margin-bottom:6px">
+          <label style="font-weight:600">⚡ Dynamic Ad Slot</label>
+          <label class="toggle"><input type="checkbox" id="cfg-adsterraDynamicSlotEnabled" /><span class="slider"></span></label>
+        </div>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">পেজের একদম উপরে header strip-এ দেখাবে। sticky/footer code-ও এখানে দিতে পারেন (যেটাই পেস্ট করবেন সেটাই চলবে)। খালি রাখলে দেখাবে না।</p>
         <textarea id="cfg-adsterraDynamicCode" rows="3" placeholder="Dynamic ad script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
-      <button class="btn btn-primary" onclick="saveConfig(['adsterraSocialBarCode','adsterraBanner300Code','adsterraNativeCode','adsterraClassicPushCode','adsterraDynamicCode'])">💾 Save Ad Codes</button>
+      <button class="btn btn-primary" onclick="saveConfig(['adsterraSocialBarCode','adsterraBanner300Code','adsterraNativeCode','adsterraClassicPushCode','adsterraDynamicCode','adsterraSocialBarSlotEnabled','adsterraBanner300SlotEnabled','adsterraNativeSlotEnabled','adsterraClassicPushSlotEnabled','adsterraDynamicSlotEnabled'])">💾 Save Ad Codes &amp; Slot Toggles</button>
       <div class="result" id="adsterraSettingsResult"></div>
     </div>
 
@@ -1063,6 +1089,14 @@
       if (classicEl) classicEl.value = cfg.adsterraClassicPushCode || '';
       const dynEl = document.getElementById('cfg-adsterraDynamicCode');
       if (dynEl) dynEl.value = cfg.adsterraDynamicCode || '';
+      const slotDefault = (v) => v !== false; // default ON unless explicitly false
+      const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+      setChk('cfg-adsterraSocialBarSlotEnabled', slotDefault(cfg.adsterraSocialBarSlotEnabled));
+      setChk('cfg-adsterraBanner300SlotEnabled', slotDefault(cfg.adsterraBanner300SlotEnabled));
+      setChk('cfg-adsterraNativeSlotEnabled', slotDefault(cfg.adsterraNativeSlotEnabled));
+      setChk('cfg-adsterraClassicPushSlotEnabled', slotDefault(cfg.adsterraClassicPushSlotEnabled));
+      setChk('cfg-adsterraDynamicSlotEnabled', slotDefault(cfg.adsterraDynamicSlotEnabled));
+      setChk('cfg-adblockBlockEnabled', slotDefault(cfg.adblockBlockEnabled));
       const ccr = Number(cfg.companyCoinRate || 100);
       const preview = document.getElementById('legacyOffsetPreview');
       if (offset === 0) {
@@ -1097,6 +1131,13 @@
     adsterraNativeCode: 'adsterraSettingsResult',
     adsterraClassicPushCode: 'adsterraSettingsResult',
     adsterraDynamicCode: 'adsterraSettingsResult',
+    adsterraSocialBarSlotEnabled: 'adsterraSettingsResult',
+    adsterraBanner320SlotEnabled: 'adsterraSettingsResult',
+    adsterraBanner300SlotEnabled: 'adsterraSettingsResult',
+    adsterraNativeSlotEnabled: 'adsterraSettingsResult',
+    adsterraClassicPushSlotEnabled: 'adsterraSettingsResult',
+    adsterraDynamicSlotEnabled: 'adsterraSettingsResult',
+    adblockBlockEnabled: 'adblockBlockResult',
   };
 
   async function saveConfig(keys) {

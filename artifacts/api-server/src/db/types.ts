@@ -28,6 +28,13 @@ export interface AdminConfig {
   adsterraNativeCode?: string;
   adsterraClassicPushCode?: string;
   adsterraDynamicCode?: string;
+  adsterraSocialBarSlotEnabled?: boolean;
+  adsterraBanner320SlotEnabled?: boolean;
+  adsterraBanner300SlotEnabled?: boolean;
+  adsterraNativeSlotEnabled?: boolean;
+  adsterraClassicPushSlotEnabled?: boolean;
+  adsterraDynamicSlotEnabled?: boolean;
+  adblockBlockEnabled?: boolean;
 }
 
 export interface Task {

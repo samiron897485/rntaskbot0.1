@@ -103,8 +103,26 @@
       margin-top: 6px; font-size: 0.7rem; color: rgba(255,255,255,0.4); text-align: center;
     }
 
+    .claim-row {
+      display: none; align-items: center; gap: 10px;
+      width: 100%; justify-content: flex-start;
+    }
+    .claim-row.show { display: flex; }
+    .claim-finger {
+      flex-shrink: 0;
+      font-size: 1.6rem; line-height: 1;
+      display: inline-block; transform-origin: center;
+      animation: claimPoint 0.85s ease-in-out infinite;
+      pointer-events: none;
+      filter: drop-shadow(0 0 4px rgba(255,215,0,0.5));
+    }
+    @keyframes claimPoint {
+      0%,100% { transform: translateX(0) scale(1); }
+      50%     { transform: translateX(6px) scale(1.12); }
+    }
     .claim-btn {
-      display: none; width: 100%; padding: 10px;
+      display: none; padding: 10px 14px;
+      width: auto; flex: 0 1 auto; max-width: 70%;
       background: linear-gradient(135deg, #ffd700, #ffa500);
       color: #000; border: none; border-radius: 8px;
       font-size: 0.9rem; font-weight: 800; cursor: pointer;
@@ -226,6 +244,42 @@
     }
     .error-box.show { display: block; }
 
+    .adblock-overlay {
+      display: none; position: fixed; inset: 0; z-index: 99999;
+      background: rgba(5,8,20,0.97);
+      align-items: center; justify-content: center;
+      padding: 24px; color: #fff;
+    }
+    .adblock-overlay.show { display: flex; }
+    .adblock-card {
+      width: 100%; max-width: 420px;
+      background: linear-gradient(135deg, #1a0f1f, #0f172a);
+      border: 1px solid rgba(255,80,80,0.5);
+      border-radius: 14px; padding: 22px 18px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+    }
+    .adblock-card .icon { font-size: 2.4rem; margin-bottom: 8px; }
+    .adblock-card h2 {
+      font-size: 1.1rem; color: #ff7070; margin-bottom: 10px; font-weight: 700;
+    }
+    .adblock-card p {
+      font-size: 0.9rem; line-height: 1.55; color: #e2e8f0; margin-bottom: 10px;
+    }
+    .adblock-card .steps {
+      text-align: left; font-size: 0.82rem; color: #b0c4de;
+      background: rgba(255,255,255,0.04);
+      padding: 10px 12px; border-radius: 8px; margin: 10px 0;
+    }
+    .adblock-card .steps li { margin: 4px 0; }
+    .adblock-card .retry-btn {
+      margin-top: 6px; padding: 10px 18px;
+      background: linear-gradient(135deg, #ff7070, #c64545);
+      color: #fff; border: none; border-radius: 8px;
+      font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .adblock-card .retry-btn:active { opacity: 0.85; }
+
     .progress-bar-wrap { background: rgba(255,255,255,0.08); border-radius: 8px; height: 8px; overflow: hidden; }
     .progress-bar { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #00d4aa, #ffd700); width: 0%; transition: width 0.5s linear; }
   </style>
@@ -303,7 +357,10 @@
 
       <div class="warn-box" id="warnBox"></div>
 
-      <button class="claim-btn" id="claimBtn">🎁 Claim Reward</button>
+      <div class="claim-row" id="claimRow">
+        <button class="claim-btn" id="claimBtn">🎁 Claim Reward</button>
+        <span class="claim-finger" aria-hidden="true">👉</span>
+      </div>
 
       <div class="success-box" id="successBox">
         <div class="success-text">
@@ -330,6 +387,139 @@
   <!-- ADSTERRA_SOCIAL_BAR -->
 
   <!-- ADSTERRA_CLASSIC_PUSH -->
+
+  <!-- Adblock / DNS Ad-block Detection Overlay -->
+  <div class="adblock-overlay" id="adblockOverlay" role="alertdialog" aria-modal="true">
+    <div class="adblock-card">
+      <div class="icon">🚫</div>
+      <h2>Ad-Blocker / Ad-Block DNS Detected</h2>
+      <p>To use this earning page you must <b>turn off your ad-blocker</b> and any ad-block DNS (such as <i>dns.adguard.com</i>, AdGuard, Brave Shields, NextDNS, etc.) on this site.</p>
+      <p>Ads are how we pay you for completing tasks — if ads are blocked, no reward can be given.</p>
+      <ul class="steps">
+        <li>1. Disable any ad-blocker extension (uBlock, AdBlock, Brave Shields, etc.) for this site.</li>
+        <li>2. Turn off ad-blocking DNS in your phone settings (Private DNS → Off / Automatic).</li>
+        <li>3. Reload the page.</li>
+      </ul>
+      <button class="retry-btn" id="adblockRetryBtn">🔄 I have disabled it — Retry</button>
+    </div>
+  </div>
+
+  <!-- Adblock detection bait (must look like real ads) -->
+  <div class="ads ad adsbygoogle ad-banner ad-placement" id="adblock-bait-1" style="position:absolute;left:-9999px;top:-9999px;width:300px;height:250px;pointer-events:none">&nbsp;</div>
+  <ins class="adsbygoogle" id="adblock-bait-2" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;display:block">&nbsp;</ins>
+
+  <script>
+    // ── Ad-blocker / DNS-level ad-block detection ────────────────────────────
+    // If the admin has enabled "Block users with Ad-blocker", we run multiple
+    // checks and show a full-screen warning that prevents the page from
+    // working until the user disables their blocker.
+    (function adblockDetector() {
+      const ADBLOCK_BLOCK_ENABLED = (__ADBLOCK_BLOCK_ENABLED__);
+      if (!ADBLOCK_BLOCK_ENABLED) return;
+
+      const overlay = document.getElementById('adblockOverlay');
+      const retryBtn = document.getElementById('adblockRetryBtn');
+
+      function blockPage(reason) {
+        try { console.warn('[adblock] detected:', reason); } catch (e) {}
+        overlay.classList.add('show');
+        // Disable interaction with task buttons just in case
+        try {
+          const ob = document.getElementById('openLinkBtn');
+          const cb = document.getElementById('claimBtn');
+          if (ob) ob.disabled = true;
+          if (cb) cb.disabled = true;
+        } catch (e) {}
+      }
+
+      function checkBaitElements() {
+        // If an extension hides ad-class elements, the bait will be 0px tall
+        // or have display:none / visibility:hidden / opacity:0.
+        const baits = ['adblock-bait-1', 'adblock-bait-2'];
+        for (const id of baits) {
+          const el = document.getElementById(id);
+          if (!el) return true; // removed by blocker
+          const cs = window.getComputedStyle(el);
+          if (
+            el.offsetHeight === 0 ||
+            el.offsetParent === null && cs.position !== 'fixed' && cs.position !== 'absolute' ||
+            cs.display === 'none' ||
+            cs.visibility === 'hidden' ||
+            parseFloat(cs.opacity || '1') === 0
+          ) {
+            // For our bait we set position:absolute so offsetParent can be null
+            // legitimately; rely on offsetHeight + display + visibility.
+            if (el.offsetHeight === 0 || cs.display === 'none' || cs.visibility === 'hidden') {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      function fetchWithTimeout(url, ms) {
+        return new Promise((resolve) => {
+          const ctrl = ('AbortController' in window) ? new AbortController() : null;
+          const t = setTimeout(() => {
+            try { ctrl && ctrl.abort(); } catch (e) {}
+            resolve({ ok: false, blocked: true });
+          }, ms);
+          fetch(url, {
+            method: 'GET',
+            mode: 'no-cors',
+            cache: 'no-store',
+            credentials: 'omit',
+            signal: ctrl ? ctrl.signal : undefined,
+          }).then(() => {
+            clearTimeout(t);
+            resolve({ ok: true, blocked: false });
+          }).catch(() => {
+            clearTimeout(t);
+            resolve({ ok: false, blocked: true });
+          });
+        });
+      }
+
+      async function checkNetworkBlocked() {
+        // Probe well-known ad/tracker hostnames. If ad-block DNS (AdGuard,
+        // NextDNS, Pi-hole) is active, all of these will fail.
+        const probes = [
+          'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+          'https://www.googletagservices.com/tag/js/gpt.js',
+          'https://static.doubleclick.net/instream/ad_status.js',
+        ];
+        const results = await Promise.all(probes.map((u) => fetchWithTimeout(u, 3500)));
+        const blockedCount = results.filter((r) => r.blocked).length;
+        // If 2 or more of 3 fail, we treat it as DNS/network-level blocking.
+        return blockedCount >= 2;
+      }
+
+      async function runDetection() {
+        // Small delay so extensions have time to manipulate the DOM.
+        await new Promise((r) => setTimeout(r, 250));
+        if (checkBaitElements()) {
+          blockPage('bait-element-hidden');
+          return;
+        }
+        const netBlocked = await checkNetworkBlocked();
+        if (netBlocked) {
+          blockPage('network-blocked');
+          return;
+        }
+      }
+
+      retryBtn.addEventListener('click', () => {
+        location.reload();
+      });
+
+      // Run after DOM ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runDetection);
+      } else {
+        runDetection();
+      }
+    })();
+  </script>
 
   <script>
     // ── Mobile Detection ──────────────────────────────────────────────────────
@@ -630,6 +820,21 @@
     const infoBox        = document.getElementById('infoBox');
     const warnBox        = document.getElementById('warnBox');
     const claimBtn       = document.getElementById('claimBtn');
+    const claimRow       = document.getElementById('claimRow');
+    // Mirror show/hide of the claim button onto its wrapping row so the
+    // pointing-finger animation appears/disappears together with the button.
+    (function patchClaimBtnShow() {
+      const origAdd = claimBtn.classList.add.bind(claimBtn.classList);
+      const origRemove = claimBtn.classList.remove.bind(claimBtn.classList);
+      claimBtn.classList.add = function(...names) {
+        if (names.includes('show')) claimRow.classList.add('show');
+        return origAdd(...names);
+      };
+      claimBtn.classList.remove = function(...names) {
+        if (names.includes('show')) claimRow.classList.remove('show');
+        return origRemove(...names);
+      };
+    })();
     const progressBarWrap= document.getElementById('progressBarWrap');
     const progressBar    = document.getElementById('progressBar');
 
@@ -963,6 +1168,7 @@
       // Lock the flow so the user can only go back to the bot chat.
       completed = true;
       claimBtn.style.display = 'none';
+      claimRow.classList.remove('show');
       warnBox.classList.remove('show');
       progressBarWrap.style.display = 'none';
       errorBox.classList.remove('show');

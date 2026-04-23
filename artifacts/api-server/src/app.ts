@@ -74,21 +74,26 @@ app.get("/task", (_req, res) => {
     const cfg = getAdminConfig();
     const adsEnabled = cfg.adsterraAdsEnabled === true;
     let html = fs.readFileSync(path.join(publicDir, "task.html"), "utf-8");
+    const slotOn = (slot: keyof typeof cfg) => cfg[slot] !== false;
+    const pick = (slotKey: keyof typeof cfg, code: string | undefined) =>
+      adsEnabled && slotOn(slotKey) ? (code || "") : "";
+    const socialBar = pick("adsterraSocialBarSlotEnabled", cfg.adsterraSocialBarCode);
+    const banner320 = pick("adsterraBanner320SlotEnabled", cfg.adsterraBanner320Code);
+    const banner300 = pick("adsterraBanner300SlotEnabled", cfg.adsterraBanner300Code);
+    const nativeAd  = pick("adsterraNativeSlotEnabled", cfg.adsterraNativeCode);
+    const classicPush = pick("adsterraClassicPushSlotEnabled", cfg.adsterraClassicPushCode);
+    const dynamicAd = pick("adsterraDynamicSlotEnabled", cfg.adsterraDynamicCode);
     const hasAnyAd =
-      adsEnabled &&
-      ((cfg.adsterraSocialBarCode || "").trim() !== "" ||
-        (cfg.adsterraBanner320Code || "").trim() !== "" ||
-        (cfg.adsterraBanner300Code || "").trim() !== "" ||
-        (cfg.adsterraNativeCode || "").trim() !== "" ||
-        (cfg.adsterraClassicPushCode || "").trim() !== "" ||
-        (cfg.adsterraDynamicCode || "").trim() !== "");
-    html = html.replace("<!-- ADSTERRA_SOCIAL_BAR -->", adsEnabled ? (cfg.adsterraSocialBarCode || "") : "");
-    html = html.replace("<!-- ADSTERRA_BANNER_320 -->", adsEnabled ? (cfg.adsterraBanner320Code || "") : "");
-    html = html.replace("<!-- ADSTERRA_BANNER_300 -->", adsEnabled ? (cfg.adsterraBanner300Code || "") : "");
-    html = html.replace("<!-- ADSTERRA_NATIVE -->", adsEnabled ? (cfg.adsterraNativeCode || "") : "");
-    html = html.replace("<!-- ADSTERRA_CLASSIC_PUSH -->", adsEnabled ? (cfg.adsterraClassicPushCode || "") : "");
-    html = html.replace("<!-- ADSTERRA_DYNAMIC -->", adsEnabled ? (cfg.adsterraDynamicCode || "") : "");
+      socialBar.trim() !== "" || banner320.trim() !== "" || banner300.trim() !== "" ||
+      nativeAd.trim() !== "" || classicPush.trim() !== "" || dynamicAd.trim() !== "";
+    html = html.replace("<!-- ADSTERRA_SOCIAL_BAR -->", socialBar);
+    html = html.replace("<!-- ADSTERRA_BANNER_320 -->", banner320);
+    html = html.replace("<!-- ADSTERRA_BANNER_300 -->", banner300);
+    html = html.replace("<!-- ADSTERRA_NATIVE -->", nativeAd);
+    html = html.replace("<!-- ADSTERRA_CLASSIC_PUSH -->", classicPush);
+    html = html.replace("<!-- ADSTERRA_DYNAMIC -->", dynamicAd);
     html = html.replace("__ADS_ENABLED__", hasAnyAd ? "true" : "false");
+    html = html.replace("__ADBLOCK_BLOCK_ENABLED__", cfg.adblockBlockEnabled !== false ? "true" : "false");
     res.setHeader("Content-Type", "text/html");
     res.send(html);
   } catch {
