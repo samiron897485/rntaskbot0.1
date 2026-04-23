@@ -20,6 +20,7 @@ export interface AdminConfig {
   checkInDailyReward: number;
   checkInRequiredTasks: number;
   legacyTaskCoinOffset?: number;
+  taskRewardCoins?: number;
   adsterraAdsEnabled?: boolean;
   adsterraSocialBarCode?: string;
   adsterraBanner320Code?: string;

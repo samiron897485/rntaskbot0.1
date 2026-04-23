@@ -328,7 +328,8 @@ router.post("/complete-task", (req: Request, res: Response) => {
   // Mark user as active
   updateUserLastActive(userId);
 
-  const newCoins = user.coins + 1;
+  const reward = Math.max(0, Math.floor(Number(cfg.taskRewardCoins ?? 1)) || 1);
+  const newCoins = user.coins + reward;
   const newCompleted = [...user.completedTasks, taskId];
   const taskCompletionDates = [...(user.taskCompletionDates ?? []), Date.now()];
   updateUser(userId, {
@@ -336,7 +337,7 @@ router.post("/complete-task", (req: Request, res: Response) => {
     completedTasks: newCompleted,
     taskCompletionDates,
   });
-  addEarningHistory(userId, 1, "Task Completed");
+  addEarningHistory(userId, reward, "Task Completed");
 
   // Level 1 referral commission only — no multi-level
   if (user.referredBy && cfg.referralEnabled) {
@@ -374,8 +375,9 @@ router.post("/complete-task", (req: Request, res: Response) => {
   req.log.info({ userId, taskId, coins: newCoins }, "Task completed");
   res.json({
     success: true,
-    message: "Task completed! +1 Coin!",
+    message: `Task completed! +${reward} Coin${reward === 1 ? "" : "s"}!`,
     coins: newCoins,
+    coinsEarned: reward,
     available: getAvailableTaskCount(userId),
     completed: newCompleted.length,
   });

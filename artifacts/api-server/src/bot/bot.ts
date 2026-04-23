@@ -391,6 +391,9 @@ function adminMenuKeyboard() {
         { text: "⏱️ Withdraw Cooldown", callback_data: "admin_set_withdrawCooldownHours" },
       ],
       [
+        { text: "🎁 Task Reward", callback_data: "admin_set_taskRewardCoins" },
+      ],
+      [
         { text: "🔗 Set Coupon Link", callback_data: "admin_set_couponLink" },
         { text: "🎟️ Create Coupon Code", callback_data: "admin_create_coupon" },
       ],
@@ -424,6 +427,7 @@ function adminMenuKeyboard() {
 const SETTING_META: Record<string, { label: string; unit: string; type: "number" | "text" }> = {
   taskDuration:             { label: "⏱️ Task Timer",               unit: "seconds",  type: "number" },
   taskExpiry:               { label: "📅 Task Expiry",               unit: "hours",    type: "number" },
+  taskRewardCoins:          { label: "🎁 Task Reward",               unit: "coins",    type: "number" },
   referralBonus:            { label: "🎁 Referral Bonus",            unit: "coins",    type: "number" },
   referralTaskRequirement:  { label: "🎯 Referral Task Requirement", unit: "tasks",    type: "number" },
   perTaskCommission:        { label: "💹 Per Task Commission",       unit: "coins",    type: "number" },

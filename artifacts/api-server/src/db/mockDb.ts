@@ -61,6 +61,7 @@ export const adminConfig: AdminConfig = {
   checkInDailyReward: 1,
   checkInRequiredTasks: 0,
   legacyTaskCoinOffset: 0,
+  taskRewardCoins: 1,
 };
 
 export function addWithdrawOption(amount: number): boolean {

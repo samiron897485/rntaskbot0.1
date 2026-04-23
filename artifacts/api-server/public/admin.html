@@ -168,8 +168,12 @@
           <label data-i18n="task_expiry_label">Task Expiry (hours)</label>
           <input type="number" id="cfg-taskExpiry" placeholder="12" min="1" />
         </div>
+        <div class="settings-field">
+          <label>🎁 Reward Coins per Task</label>
+          <input type="number" id="cfg-taskRewardCoins" placeholder="1" min="1" />
+        </div>
       </div>
-      <button class="btn btn-primary" onclick="saveConfig(['taskDuration','taskExpiry'])" data-i18n="btn_save_task">💾 Save Task Settings</button>
+      <button class="btn btn-primary" onclick="saveConfig(['taskDuration','taskExpiry','taskRewardCoins'])" data-i18n="btn_save_task">💾 Save Task Settings</button>
       <div class="result" id="taskSettingsResult"></div>
     </div>
 
@@ -1020,6 +1024,7 @@
       const cfg = d.config;
       document.getElementById('cfg-taskDuration').value = cfg.taskDuration;
       document.getElementById('cfg-taskExpiry').value = cfg.taskExpiry;
+      document.getElementById('cfg-taskRewardCoins').value = cfg.taskRewardCoins ?? 1;
       document.getElementById('cfg-minWithdraw').value = cfg.minWithdraw;
       document.getElementById('cfg-coinToMoneyRate').value = cfg.coinToMoneyRate;
       document.getElementById('cfg-companyCoinRate').value = cfg.companyCoinRate || 100;
@@ -1050,6 +1055,7 @@
   const resultMap = {
     taskDuration: 'taskSettingsResult',
     taskExpiry: 'taskSettingsResult',
+    taskRewardCoins: 'taskSettingsResult',
     minWithdraw: 'withdrawSettingsResult',
     coinToMoneyRate: 'withdrawSettingsResult',
     companyCoinRate: 'withdrawSettingsResult',

@@ -280,9 +280,10 @@
 
       <div class="success-box" id="successBox">
         <div class="success-icon">🎉</div>
-        <h2>Task Complete!</h2>
-        <p>You have successfully completed the task.</p>
-        <div class="coin-badge" id="coinBadge">+1 Coin Earned! 💰</div>
+        <h2 id="successTitle">Congratulations!</h2>
+        <p id="successMsg">You got <span id="successReward">+1 Coin</span> 💰</p>
+        <div class="coin-badge" id="coinBadge">Total Coins: 0 💰</div>
+        <button class="open-link-btn" id="backToBotBtn" style="margin-top:14px;width:100%">⬅ Back</button>
       </div>
 
       <div class="error-box" id="errorBox">
@@ -357,17 +358,23 @@
       let openClicked = false;
       openBtn.addEventListener('click', () => {
         openClicked = true;
+        // Show "Please wait..." right away so the user does not see the
+        // Open-in-browser button anymore once the launch has been triggered.
+        showWaitingUI();
         if (isAndroid) {
           // Generic browser intent: opens in user's default browser, or shows
           // chooser drawer if no default is set.
           window.location.href = buildBrowserIntentUrl(fullUrl);
-          // Fallback: open in same tab so Telegram menu's "Open in browser" appears
-          setTimeout(() => { window.location.href = fullUrl; }, 800);
         } else {
           // iOS: window.open with _blank often escapes WebView to Safari
           const w = window.open(fullUrl, '_blank');
           if (!w) window.location.href = fullUrl;
         }
+        // Close the Telegram WebView shortly after firing the launch so
+        // that, when the user later returns from the external browser,
+        // they land directly in the bot chat (no need to see this page
+        // again or tap any button).
+        setTimeout(() => { closeTelegramWebView(); }, 1200);
       });
 
       // ── "Please wait..." UI shown while we verify completion after the
@@ -728,12 +735,18 @@
         warnBox.classList.remove('show');
         infoBox.style.display = 'none';
         // Lock claim button briefly so any returning ad scripts settle first.
+        // Important: do NOT disable the button — a disabled button drops
+        // user taps, which is what was forcing users to tap twice. Instead,
+        // leave it enabled and let the click handler queue the action.
         if (ADS_ENABLED) {
-          claimBtn.disabled = true;
           claimBtn.dataset.locked = '1';
           setTimeout(() => {
-            claimBtn.disabled = false;
             delete claimBtn.dataset.locked;
+            // If the user already tapped during the lock, fire it now.
+            if (claimBtn.dataset.pending === '1') {
+              delete claimBtn.dataset.pending;
+              claimBtn.click();
+            }
           }, AD_LOAD_DELAY);
         }
       } else if (timeAccumulated > 0) {
@@ -789,6 +802,13 @@
     // ── Claim button ──────────────────────────────────────────────────────────
     claimBtn.addEventListener('click', async () => {
       if (completed || !claimReady) return;
+      // If the button is still in its post-ad lock window, queue the tap
+      // so the user only ever needs to press once.
+      if (claimBtn.dataset.locked === '1') {
+        claimBtn.dataset.pending = '1';
+        claimBtn.textContent = '⏳ Claiming...';
+        return;
+      }
       playRewardSound();
       claimBtn.disabled = true;
       claimBtn.textContent = '⏳ Claiming...';
@@ -850,8 +870,27 @@
           warnBox.classList.remove('show');
           progressBarWrap.style.display = 'none';
           successBox.classList.add('show');
+          const earned = Number(data.coinsEarned ?? 1);
+          const rewardEl = document.getElementById('successReward');
+          if (rewardEl) {
+            rewardEl.textContent = '+' + earned + ' Coin' + (earned === 1 ? '' : 's');
+          }
           coinBadge.textContent = `Total Coins: ${data.coins} 💰`;
           timerHMS.textContent = '00:00:00';
+          const backBtn = document.getElementById('backToBotBtn');
+          if (backBtn && !backBtn.dataset.bound) {
+            backBtn.dataset.bound = '1';
+            backBtn.addEventListener('click', () => {
+              try {
+                if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.close === 'function') {
+                  window.Telegram.WebApp.close();
+                  return;
+                }
+              } catch (e) {}
+              try { window.close(); } catch (e) {}
+              try { history.back(); } catch (e) {}
+            });
+          }
         } else {
           completed = false;
           claimBtn.disabled = false;
