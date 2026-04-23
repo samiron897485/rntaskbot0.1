@@ -340,7 +340,16 @@
         <textarea id="cfg-adsterraDynamicCode" rows="3" placeholder="Dynamic ad script code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
-      <button class="btn btn-primary" onclick="saveConfig(['adsterraSocialBarCode','adsterraBanner300Code','adsterraNativeCode','adsterraClassicPushCode','adsterraDynamicCode','adsterraSocialBarSlotEnabled','adsterraBanner300SlotEnabled','adsterraNativeSlotEnabled','adsterraClassicPushSlotEnabled','adsterraDynamicSlotEnabled'])">💾 Save Ad Codes &amp; Slot Toggles</button>
+      <div class="settings-field" style="margin-bottom:12px">
+        <div class="toggle-row" style="margin-bottom:6px">
+          <label style="font-weight:600">🖼️ Banner 468×60 Slot</label>
+          <label class="toggle"><input type="checkbox" id="cfg-adsterraBanner468SlotEnabled" /><span class="slider"></span></label>
+        </div>
+        <p style="font-size:0.78rem;color:#94a3b8;margin-bottom:6px">এই ব্যানারটি News Task ও Claim Reward সেকশনের ঠিক নিচে দেখাবে। script + div দুটোই একসাথে পেস্ট করুন।</p>
+        <textarea id="cfg-adsterraBanner468Code" rows="4" placeholder="468x60 banner script + div code এখানে পেস্ট করুন" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveConfig(['adsterraSocialBarCode','adsterraBanner300Code','adsterraNativeCode','adsterraClassicPushCode','adsterraDynamicCode','adsterraBanner468Code','adsterraSocialBarSlotEnabled','adsterraBanner300SlotEnabled','adsterraNativeSlotEnabled','adsterraClassicPushSlotEnabled','adsterraDynamicSlotEnabled','adsterraBanner468SlotEnabled'])">💾 Save Ad Codes &amp; Slot Toggles</button>
       <div class="result" id="adsterraSettingsResult"></div>
     </div>
 
@@ -1096,6 +1105,9 @@
       setChk('cfg-adsterraNativeSlotEnabled', slotDefault(cfg.adsterraNativeSlotEnabled));
       setChk('cfg-adsterraClassicPushSlotEnabled', slotDefault(cfg.adsterraClassicPushSlotEnabled));
       setChk('cfg-adsterraDynamicSlotEnabled', slotDefault(cfg.adsterraDynamicSlotEnabled));
+      const b468El = document.getElementById('cfg-adsterraBanner468Code');
+      if (b468El) b468El.value = cfg.adsterraBanner468Code || '';
+      setChk('cfg-adsterraBanner468SlotEnabled', slotDefault(cfg.adsterraBanner468SlotEnabled));
       setChk('cfg-adblockBlockEnabled', slotDefault(cfg.adblockBlockEnabled));
       const ccr = Number(cfg.companyCoinRate || 100);
       const preview = document.getElementById('legacyOffsetPreview');
@@ -1137,6 +1149,8 @@
     adsterraNativeSlotEnabled: 'adsterraSettingsResult',
     adsterraClassicPushSlotEnabled: 'adsterraSettingsResult',
     adsterraDynamicSlotEnabled: 'adsterraSettingsResult',
+    adsterraBanner468Code: 'adsterraSettingsResult',
+    adsterraBanner468SlotEnabled: 'adsterraSettingsResult',
     adblockBlockEnabled: 'adblockBlockResult',
   };
 

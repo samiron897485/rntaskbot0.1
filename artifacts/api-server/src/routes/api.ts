@@ -108,6 +108,7 @@ router.post("/admin/config", adminAuthMiddleware, (req: Request, res: Response) 
     "legacyTaskCoinOffset",
     "adsterraAdsEnabled", "adsterraSocialBarCode", "adsterraBanner320Code", "adsterraBanner300Code",
     "adsterraNativeCode", "adsterraClassicPushCode", "adsterraDynamicCode",
+    "adsterraBanner468Code", "adsterraBanner468SlotEnabled",
     "adsterraSocialBarSlotEnabled", "adsterraBanner320SlotEnabled", "adsterraBanner300SlotEnabled",
     "adsterraNativeSlotEnabled", "adsterraClassicPushSlotEnabled", "adsterraDynamicSlotEnabled",
     "adblockBlockEnabled",

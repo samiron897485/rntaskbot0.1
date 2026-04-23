@@ -83,12 +83,15 @@ app.get("/task", (_req, res) => {
     const nativeAd  = pick("adsterraNativeSlotEnabled", cfg.adsterraNativeCode);
     const classicPush = pick("adsterraClassicPushSlotEnabled", cfg.adsterraClassicPushCode);
     const dynamicAd = pick("adsterraDynamicSlotEnabled", cfg.adsterraDynamicCode);
+    const banner468 = pick("adsterraBanner468SlotEnabled", cfg.adsterraBanner468Code);
     const hasAnyAd =
       socialBar.trim() !== "" || banner320.trim() !== "" || banner300.trim() !== "" ||
-      nativeAd.trim() !== "" || classicPush.trim() !== "" || dynamicAd.trim() !== "";
+      nativeAd.trim() !== "" || classicPush.trim() !== "" || dynamicAd.trim() !== "" ||
+      banner468.trim() !== "";
     html = html.replace("<!-- ADSTERRA_SOCIAL_BAR -->", socialBar);
     html = html.replace("<!-- ADSTERRA_BANNER_320 -->", banner320);
     html = html.replace("<!-- ADSTERRA_BANNER_300 -->", banner300);
+    html = html.replace("<!-- ADSTERRA_BANNER_468 -->", banner468);
     html = html.replace("<!-- ADSTERRA_NATIVE -->", nativeAd);
     html = html.replace("<!-- ADSTERRA_CLASSIC_PUSH -->", classicPush);
     html = html.replace("<!-- ADSTERRA_DYNAMIC -->", dynamicAd);

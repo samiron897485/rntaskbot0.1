@@ -28,6 +28,8 @@ export interface AdminConfig {
   adsterraNativeCode?: string;
   adsterraClassicPushCode?: string;
   adsterraDynamicCode?: string;
+  adsterraBanner468Code?: string;
+  adsterraBanner468SlotEnabled?: boolean;
   adsterraSocialBarSlotEnabled?: boolean;
   adsterraBanner320SlotEnabled?: boolean;
   adsterraBanner300SlotEnabled?: boolean;
