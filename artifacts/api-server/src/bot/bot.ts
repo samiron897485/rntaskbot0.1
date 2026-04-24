@@ -115,12 +115,14 @@ const T = {
     help_btn: "💬 Help",
     referral_btn: "👥 Referral",
     no_task: (avail: number, done: number) =>
-      `😔 No tasks available right now.\n\n📊 Available: ${avail} | ✅ Completed Today: ${done}\n\nCheck back later.`,
+      `😔 No tasks available right now.\n\n📊 Available: ${avail}
+✅ Completed Today: ${done}\n\nCheck back later.`,
     task_title: "📋 *Current Task*",
     task_link: "🆔 Task ID",
     task_expire: "⏰ Expires in",
     task_reward: "💰 Reward: 1 Coin",
-    task_counter: (avail: number, done: number) => `📊 Available: ${avail} | ✅ Completed Today: ${done}`,
+    task_counter: (avail: number, done: number) => `📊 Available: ${avail}
+✅ Completed Today: ${done}`,
     start_task_btn: "✅ Start Task",
     skip_task_btn: "⏭️ Skip Task",
     next_task_btn: "⏭️ Next Task",
@@ -158,7 +160,8 @@ const T = {
         : `💬 *Help*\n\n📋 Tasks - View and complete tasks\n💰 Balance - View coins & withdraw\n⚙️ Settings - Change language`,
     help_btn_contact: "📩 Contact Support",
     task_complete: (coins: number, avail: number, done: number) =>
-      `🎉 Task completed! +1 Coin!\n\n💰 Total coins: ${coins}\n📊 Available: ${avail} | ✅ Completed Today: ${done}`,
+      `🎉 Task completed! +1 Coin!\n\n💰 Total coins: ${coins}\n📊 Available: ${avail}
+✅ Completed Today: ${done}`,
     min_time: "seconds left",
     withdraw_cancelled: "❌ Withdrawal cancelled.",
     withdraw_approved: (amount: number) => `✅ Your withdrawal of ${amount} coins has been approved!`,
@@ -207,12 +210,14 @@ const T = {
     help_btn: "💬 Help",
     referral_btn: "👥 Referral",
     no_task: (avail: number, done: number) =>
-      `😔 No tasks available right now.\n\n📊 Available: ${avail} | ✅ Completed Today: ${done}\n\nCheck back later.`,
+      `😔 No tasks available right now.\n\n📊 Available: ${avail}
+✅ Completed Today: ${done}\n\nCheck back later.`,
     task_title: "📋 *Current Task*",
     task_link: "🆔 Task ID",
     task_expire: "⏰ Expires in",
     task_reward: "💰 Reward: 1 Coin",
-    task_counter: (avail: number, done: number) => `📊 Available: ${avail} | ✅ Completed Today: ${done}`,
+    task_counter: (avail: number, done: number) => `📊 Available: ${avail}
+✅ Completed Today: ${done}`,
     start_task_btn: "✅ Start Task",
     skip_task_btn: "⏭️ Skip Task",
     next_task_btn: "⏭️ Next Task",
@@ -250,7 +255,8 @@ const T = {
         : `💬 *Help*\n\n📋 Tasks - View and complete tasks\n💰 Balance - View coins & withdraw\n⚙️ Settings - Change language`,
     help_btn_contact: "📩 Contact Support",
     task_complete: (coins: number, avail: number, done: number) =>
-      `🎉 Task completed! +1 Coin!\n\n💰 Total coins: ${coins}\n📊 Available: ${avail} | ✅ Completed Today: ${done}`,
+      `🎉 Task completed! +1 Coin!\n\n💰 Total coins: ${coins}\n📊 Available: ${avail}
+✅ Completed Today: ${done}`,
     min_time: "seconds left",
     withdraw_cancelled: "❌ Withdrawal cancelled.",
     withdraw_approved: (amount: number) => `✅ Your withdrawal of ${amount} coins has been approved!`,
