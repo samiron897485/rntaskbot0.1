@@ -371,8 +371,12 @@
 
       <div class="settings-field" style="margin-bottom:12px">
         <label style="font-weight:600">📜 Interstitial Ad Code</label>
-        <p style="font-size:0.78rem;color:#94a3b8;margin:4px 0 6px 0">Adsterra/Mondiad/অন্য network থেকে interstitial ad-এর script + div code একসাথে পেস্ট করুন।</p>
-        <textarea id="cfg-interstitialAdCode" rows="5" placeholder="&lt;script src=&quot;...&quot;&gt;&lt;/script&gt;&#10;&lt;div&gt;...&lt;/div&gt;" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+        <p style="font-size:0.78rem;color:#94a3b8;margin:4px 0 6px 0;line-height:1.6">
+          Adsterra/Mondiad ইত্যাদি network থেকে ad-এর script + div code একসাথে পেস্ট করুন।<br>
+          ✅ <b>সবচেয়ে ভালো কাজ করবে:</b> Banner (300×250 / 250×250 / 320×50) অথবা Native Banner code।<br>
+          ⚠️ <b>এড়িয়ে চলুন:</b> Social Bar / Popunder / Direct Link / In-Page Push — এগুলো ছোট container-এ ঠিকঠাক দেখায় না (যদিও আমরা sandbox দিয়েছি যাতে আপনার page break না হয়)।
+        </p>
+        <textarea id="cfg-interstitialAdCode" rows="5" placeholder="&lt;script type=&quot;text/javascript&quot;&gt;&#10;  atOptions = { 'key': '...', 'format': 'iframe', 'height': 250, 'width': 300 };&#10;&lt;/script&gt;&#10;&lt;script src=&quot;//.../invoke.js&quot;&gt;&lt;/script&gt;" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
       <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">

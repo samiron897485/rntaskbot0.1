@@ -103,8 +103,15 @@ app.get("/task", (_req, res) => {
     const interstitialCode = interstitialEnabled ? (cfg.interstitialAdCode || "") : "";
     const interstitialDur = Math.max(1, Math.min(60, Number(cfg.interstitialAdDurationSec ?? 7) || 7));
     const interstitialMin = Math.max(0, Math.min(interstitialDur, Number(cfg.interstitialAdMinWaitSec ?? 3) || 3));
-    html = html.replace("<!-- ADSTERRA_INTERSTITIAL -->", interstitialCode);
-    const flagsScript = `<script>window.__AD_FLAGS__={adsEnabled:${adsEnabledFlag},adblockBlockEnabled:${adblockBlockFlag},interstitialEnabled:${interstitialEnabled ? "true" : "false"},interstitialDurationSec:${interstitialDur},interstitialMinWaitSec:${interstitialMin}};</script>`;
+    // Pass the ad HTML as a safely escaped JS string so we can inject it
+    // into a sandboxed iframe at runtime. We do NOT inline the ad code into
+    // the page — that allowed Social Bar / Popunder type ads to escape the
+    // overlay container and render at the top of the page or as popups.
+    // `<` is escaped to \u003c so any `</script>` inside the ad code cannot
+    // break out of our wrapper <script> tag.
+    html = html.replace("<!-- ADSTERRA_INTERSTITIAL -->", "");
+    const interstitialJsString = JSON.stringify(interstitialCode).replace(/</g, "\\u003c");
+    const flagsScript = `<script>window.__AD_FLAGS__={adsEnabled:${adsEnabledFlag},adblockBlockEnabled:${adblockBlockFlag},interstitialEnabled:${interstitialEnabled ? "true" : "false"},interstitialDurationSec:${interstitialDur},interstitialMinWaitSec:${interstitialMin}};window.__INTERSTITIAL_AD_HTML__=${interstitialJsString};</script>`;
     html = html.replace("<!-- AD_FLAGS_INIT -->", flagsScript);
     // Backwards-compat: if any old `__ADS_ENABLED__`/`__ADBLOCK_BLOCK_ENABLED__`
     // tokens still exist anywhere in the file they get replaced too so they

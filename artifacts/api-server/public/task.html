@@ -317,16 +317,23 @@
       font-weight: 400; margin-top: 4px;
     }
     .interstitial-ad-box {
-      flex: 1; min-height: 250px;
+      flex: 1; min-height: 280px;
       background: rgba(255,255,255,0.04);
       border: 1px dashed rgba(255,255,255,0.12);
       border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
+      position: relative;
       padding: 8px; margin-bottom: 14px; overflow: hidden;
     }
     .interstitial-ad-box .placeholder {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
       color: #64748b; font-size: 0.85rem; text-align: center;
-      padding: 30px 16px;
+      padding: 30px 16px; pointer-events: none;
+    }
+    #interstitialAdSlot { width: 100%; height: 100%; min-height: 264px; }
+    #interstitialAdSlot iframe.interstitial-ad-frame {
+      width: 100%; height: 100%; min-height: 264px; border: 0;
+      display: block; background: transparent; position: relative; z-index: 1;
     }
     .interstitial-actions {
       display: flex; flex-direction: column; gap: 10px;
@@ -361,9 +368,7 @@
     </div>
     <div class="interstitial-ad-box" id="interstitialAdBox">
       <div class="placeholder" id="interstitialPlaceholder">Loading ad...</div>
-      <div id="interstitialAdSlot" style="width:100%;display:flex;align-items:center;justify-content:center">
-        <!-- ADSTERRA_INTERSTITIAL -->
-      </div>
+      <div id="interstitialAdSlot" style="width:100%;height:100%;min-height:280px;position:relative"></div>
     </div>
     <div class="interstitial-actions">
       <div class="interstitial-countdown" id="interstitialCountdown">⏳ Continue in 7s...</div>
@@ -1180,14 +1185,30 @@
     function isInterstitialAdRendered(slot) {
       if (!slot) return false;
       try {
-        const iframes = slot.querySelectorAll('iframe');
-        for (const f of iframes) {
-          if (f.offsetWidth > 0 && f.offsetHeight > 0) return true;
-        }
-        const all = slot.querySelectorAll('*');
-        for (const el of all) {
-          if (el.tagName === 'SCRIPT') continue;
-          if (el.offsetWidth >= 100 && el.offsetHeight >= 50) return true;
+        // Our outer iframe wrapper that sandboxes the ad
+        const wrap = slot.querySelector('iframe.interstitial-ad-frame');
+        if (!wrap) return false;
+        // Try to inspect inside (allow-same-origin makes this possible)
+        try {
+          const doc = wrap.contentDocument;
+          if (doc && doc.body) {
+            // Any nested iframe (typical Adsterra banner) that's actually shown?
+            const innerFrames = doc.querySelectorAll('iframe');
+            for (const f of innerFrames) {
+              if (f.offsetWidth > 0 && f.offsetHeight > 0) return true;
+            }
+            // Or any sized non-script element rendered by the ad code?
+            const all = doc.body.querySelectorAll('*');
+            for (const el of all) {
+              if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') continue;
+              if (el.offsetWidth >= 100 && el.offsetHeight >= 50) return true;
+            }
+          }
+        } catch (e) {
+          // Cross-origin (e.g. ad redirected the iframe to its own domain) —
+          // we can't peek inside, but the wrapper iframe itself being sized
+          // means *something* is in there. Treat as loaded.
+          if (wrap.offsetWidth > 0 && wrap.offsetHeight > 0) return true;
         }
       } catch (e) {}
       return false;
@@ -1204,22 +1225,48 @@
       openInDefaultBrowser(taskLink);
     }
 
-    // Run any inline <script> tags inside the slot — innerHTML alone does not
-    // execute scripts, so we re-create them so the ad network code actually
-    // runs when the overlay first becomes visible.
+    // Create a sandboxed iframe and write the ad HTML into it. This isolates
+    // the ad code from the host page so:
+    //   • position:fixed banners (Social Bar) cannot pin to the top of OUR page
+    //   • Popunders / window.open cannot trigger (no `allow-popups`)
+    //   • The ad cannot navigate our top-level page (no `allow-top-navigation`)
+    //   • Forms, redirects-on-click within the iframe still work
+    // We keep `allow-same-origin` so we can still inspect the iframe's body
+    // for ad-rendered detection (used by the Hybrid wait logic).
     function activateInterstitialScripts() {
       const slot = document.getElementById('interstitialAdSlot');
       if (!slot || slot.dataset.activated === '1') return;
       slot.dataset.activated = '1';
-      const scripts = slot.querySelectorAll('script');
-      scripts.forEach((oldScript) => {
-        const s = document.createElement('script');
-        for (const attr of oldScript.attributes) {
-          s.setAttribute(attr.name, attr.value);
-        }
-        if (oldScript.textContent) s.textContent = oldScript.textContent;
-        oldScript.parentNode.replaceChild(s, oldScript);
-      });
+      const adHtml = (window.__INTERSTITIAL_AD_HTML__ || '').trim();
+      if (!adHtml) return;
+      const iframe = document.createElement('iframe');
+      iframe.className = 'interstitial-ad-frame';
+      iframe.setAttribute('scrolling', 'no');
+      iframe.setAttribute('allowtransparency', 'true');
+      // Sandbox: scripts run + same-origin (for detection) + forms.
+      // Deliberately omit allow-popups, allow-top-navigation, allow-modals.
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
+      iframe.style.cssText = 'width:100%;height:100%;min-height:280px;border:0;display:block;background:transparent;';
+      slot.appendChild(iframe);
+      // Wait one tick so the iframe is in the DOM, then write the ad HTML.
+      setTimeout(() => {
+        try {
+          const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+          if (!doc) return;
+          doc.open();
+          doc.write(
+            '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+            '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+            '<style>html,body{margin:0;padding:0;background:transparent;color:#e2e8f0;' +
+            'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
+            'min-height:100%;display:flex;align-items:center;justify-content:center;' +
+            'overflow:hidden;}img{max-width:100%;height:auto;}</style></head><body>' +
+            adHtml +
+            '</body></html>'
+          );
+          doc.close();
+        } catch (e) {}
+      }, 30);
     }
 
     let interstitialShown = false;
