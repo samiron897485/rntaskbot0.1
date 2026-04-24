@@ -112,6 +112,8 @@ router.post("/admin/config", adminAuthMiddleware, (req: Request, res: Response) 
     "adsterraSocialBarSlotEnabled", "adsterraBanner320SlotEnabled", "adsterraBanner300SlotEnabled",
     "adsterraNativeSlotEnabled", "adsterraClassicPushSlotEnabled", "adsterraDynamicSlotEnabled",
     "adblockBlockEnabled",
+    "interstitialAdEnabled", "interstitialAdCode",
+    "interstitialAdDurationSec", "interstitialAdMinWaitSec",
   ];
   const update: Record<string, unknown> = {};
   for (const key of allowed) {

@@ -37,6 +37,10 @@ export interface AdminConfig {
   adsterraClassicPushSlotEnabled?: boolean;
   adsterraDynamicSlotEnabled?: boolean;
   adblockBlockEnabled?: boolean;
+  interstitialAdEnabled?: boolean;
+  interstitialAdCode?: string;
+  interstitialAdDurationSec?: number;
+  interstitialAdMinWaitSec?: number;
 }
 
 export interface Task {

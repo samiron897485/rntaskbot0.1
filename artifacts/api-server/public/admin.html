@@ -353,6 +353,45 @@
       <div class="result" id="adsterraSettingsResult"></div>
     </div>
 
+    <div class="card">
+      <h3>🎬 Interstitial Ad (Open News Page)</h3>
+      <p style="font-size:0.82rem;color:#94a3b8;margin-bottom:14px;line-height:1.6">
+        ইউজার যখন <b>"Open News"</b> বাটনে ক্লিক করবে, তখন সরাসরি news না খুলে আগে এই full-screen ad overlay দেখাবে। Countdown শেষে <b>"Continue to News"</b> বাটন enable হবে এবং তারপর আসল news URL খুলবে।<br>
+        💡 যদি ad load না হয় তাহলে user-কে full countdown wait করতে হবে না — minimum wait শেষে অটোমেটিক Continue button enable হয়ে যাবে।<br>
+        🔒 Off রাখলে website বর্তমানের মতো normal flow-এ চলবে — কোনো overlay দেখাবে না।
+      </p>
+
+      <div class="toggle-row" style="margin-bottom:14px;padding:12px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:8px">
+        <label style="font-weight:600;color:#c084fc">🟣 Interstitial Ad On/Off</label>
+        <label class="toggle">
+          <input type="checkbox" id="cfg-interstitialAdEnabled" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-field" style="margin-bottom:12px">
+        <label style="font-weight:600">📜 Interstitial Ad Code</label>
+        <p style="font-size:0.78rem;color:#94a3b8;margin:4px 0 6px 0">Adsterra/Mondiad/অন্য network থেকে interstitial ad-এর script + div code একসাথে পেস্ট করুন।</p>
+        <textarea id="cfg-interstitialAdCode" rows="5" placeholder="&lt;script src=&quot;...&quot;&gt;&lt;/script&gt;&#10;&lt;div&gt;...&lt;/div&gt;" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:140px">
+          <label style="font-weight:600;font-size:0.85rem">⏱️ Total Wait (seconds)</label>
+          <p style="font-size:0.74rem;color:#94a3b8;margin:2px 0 4px 0">Ad দেখার মোট সময় (1–60s)</p>
+          <input type="number" id="cfg-interstitialAdDurationSec" min="1" max="60" placeholder="7" style="width:100%" />
+        </div>
+        <div style="flex:1;min-width:140px">
+          <label style="font-weight:600;font-size:0.85rem">🔍 Min Wait Check (seconds)</label>
+          <p style="font-size:0.74rem;color:#94a3b8;margin:2px 0 4px 0">Ad load হয়েছে কিনা চেক করার মিনিমাম সময়</p>
+          <input type="number" id="cfg-interstitialAdMinWaitSec" min="0" max="60" placeholder="3" style="width:100%" />
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="saveConfig(['interstitialAdEnabled','interstitialAdCode','interstitialAdDurationSec','interstitialAdMinWaitSec'])" style="background:linear-gradient(135deg,#a855f7,#7c3aed)">💾 Save Interstitial Settings</button>
+      <div class="result" id="interstitialSettingsResult"></div>
+    </div>
+
   </div>
 
   <div class="panel" id="panel-wallet">
@@ -1109,6 +1148,13 @@
       if (b468El) b468El.value = cfg.adsterraBanner468Code || '';
       setChk('cfg-adsterraBanner468SlotEnabled', slotDefault(cfg.adsterraBanner468SlotEnabled));
       setChk('cfg-adblockBlockEnabled', slotDefault(cfg.adblockBlockEnabled));
+      setChk('cfg-interstitialAdEnabled', cfg.interstitialAdEnabled === true);
+      const interEl = document.getElementById('cfg-interstitialAdCode');
+      if (interEl) interEl.value = cfg.interstitialAdCode || '';
+      const interDurEl = document.getElementById('cfg-interstitialAdDurationSec');
+      if (interDurEl) interDurEl.value = Number(cfg.interstitialAdDurationSec ?? 7);
+      const interMinEl = document.getElementById('cfg-interstitialAdMinWaitSec');
+      if (interMinEl) interMinEl.value = Number(cfg.interstitialAdMinWaitSec ?? 3);
       const ccr = Number(cfg.companyCoinRate || 100);
       const preview = document.getElementById('legacyOffsetPreview');
       if (offset === 0) {
@@ -1152,6 +1198,10 @@
     adsterraBanner468Code: 'adsterraSettingsResult',
     adsterraBanner468SlotEnabled: 'adsterraSettingsResult',
     adblockBlockEnabled: 'adblockBlockResult',
+    interstitialAdEnabled: 'interstitialSettingsResult',
+    interstitialAdCode: 'interstitialSettingsResult',
+    interstitialAdDurationSec: 'interstitialSettingsResult',
+    interstitialAdMinWaitSec: 'interstitialSettingsResult',
   };
 
   async function saveConfig(keys) {

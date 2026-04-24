@@ -99,7 +99,12 @@ app.get("/task", (_req, res) => {
     html = html.replace("<!-- ADSTERRA_DYNAMIC -->", dynamicAd);
     const adsEnabledFlag = hasAnyAd ? "true" : "false";
     const adblockBlockFlag = cfg.adblockBlockEnabled !== false ? "true" : "false";
-    const flagsScript = `<script>window.__AD_FLAGS__={adsEnabled:${adsEnabledFlag},adblockBlockEnabled:${adblockBlockFlag}};</script>`;
+    const interstitialEnabled = cfg.interstitialAdEnabled === true && (cfg.interstitialAdCode || "").trim() !== "";
+    const interstitialCode = interstitialEnabled ? (cfg.interstitialAdCode || "") : "";
+    const interstitialDur = Math.max(1, Math.min(60, Number(cfg.interstitialAdDurationSec ?? 7) || 7));
+    const interstitialMin = Math.max(0, Math.min(interstitialDur, Number(cfg.interstitialAdMinWaitSec ?? 3) || 3));
+    html = html.replace("<!-- ADSTERRA_INTERSTITIAL -->", interstitialCode);
+    const flagsScript = `<script>window.__AD_FLAGS__={adsEnabled:${adsEnabledFlag},adblockBlockEnabled:${adblockBlockFlag},interstitialEnabled:${interstitialEnabled ? "true" : "false"},interstitialDurationSec:${interstitialDur},interstitialMinWaitSec:${interstitialMin}};</script>`;
     html = html.replace("<!-- AD_FLAGS_INIT -->", flagsScript);
     // Backwards-compat: if any old `__ADS_ENABLED__`/`__ADBLOCK_BLOCK_ENABLED__`
     // tokens still exist anywhere in the file they get replaced too so they
