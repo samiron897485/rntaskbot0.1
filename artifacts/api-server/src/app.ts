@@ -97,8 +97,15 @@ app.get("/task", (_req, res) => {
     html = html.replace("<!-- ADSTERRA_NATIVE_INTRO -->", nativeAd);
     html = html.replace("<!-- ADSTERRA_CLASSIC_PUSH -->", classicPush);
     html = html.replace("<!-- ADSTERRA_DYNAMIC -->", dynamicAd);
-    html = html.replace("__ADS_ENABLED__", hasAnyAd ? "true" : "false");
-    html = html.replace("__ADBLOCK_BLOCK_ENABLED__", cfg.adblockBlockEnabled !== false ? "true" : "false");
+    const adsEnabledFlag = hasAnyAd ? "true" : "false";
+    const adblockBlockFlag = cfg.adblockBlockEnabled !== false ? "true" : "false";
+    const flagsScript = `<script>window.__AD_FLAGS__={adsEnabled:${adsEnabledFlag},adblockBlockEnabled:${adblockBlockFlag}};</script>`;
+    html = html.replace("<!-- AD_FLAGS_INIT -->", flagsScript);
+    // Backwards-compat: if any old `__ADS_ENABLED__`/`__ADBLOCK_BLOCK_ENABLED__`
+    // tokens still exist anywhere in the file they get replaced too so they
+    // never leak into the JS as syntax errors.
+    html = html.split("__ADS_ENABLED__").join(adsEnabledFlag);
+    html = html.split("__ADBLOCK_BLOCK_ENABLED__").join(adblockBlockFlag);
     res.setHeader("Content-Type", "text/html");
     res.send(html);
   } catch {
