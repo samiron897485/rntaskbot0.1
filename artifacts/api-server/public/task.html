@@ -601,8 +601,34 @@
       const clickHint = document.getElementById('tgClickHint');
       const finger    = document.getElementById('tgFinger');
 
+      // Hold the "Open in browser" button disabled for a few seconds so any
+      // ad scripts on this intro page have time to render before the user
+      // leaves. Skip the wait entirely when ads are turned off in admin.
+      const OPEN_BTN_DELAY_SEC = (__ADS_ENABLED__) ? 3 : 0;
+      const openBtnLabel = openBtn.textContent;
+      if (OPEN_BTN_DELAY_SEC > 0) {
+        openBtn.disabled = true;
+        openBtn.style.opacity = '0.55';
+        openBtn.style.cursor = 'not-allowed';
+        let secsLeft = OPEN_BTN_DELAY_SEC;
+        openBtn.textContent = 'Please wait ' + secsLeft + 's...';
+        const tick = setInterval(() => {
+          secsLeft -= 1;
+          if (secsLeft <= 0) {
+            clearInterval(tick);
+            openBtn.disabled = false;
+            openBtn.style.opacity = '';
+            openBtn.style.cursor = '';
+            openBtn.textContent = openBtnLabel;
+          } else {
+            openBtn.textContent = 'Please wait ' + secsLeft + 's...';
+          }
+        }, 1000);
+      }
+
       let openClicked = false;
-      openBtn.addEventListener('click', () => {
+      openBtn.addEventListener('click', (e) => {
+        if (openBtn.disabled) { e.preventDefault(); return; }
         openClicked = true;
         // Show "Please wait..." right away so the user does not see the
         // Open-in-browser button anymore once the launch has been triggered.
