@@ -912,7 +912,16 @@
     }
 
     if (ADS_ENABLED) {
-      adLoadHint.textContent = '⏳ Loading sponsor… please wait';
+      let adSecsLeft = Math.ceil(AD_LOAD_DELAY / 1000);
+      adLoadHint.textContent = '⏳ Loading sponsor… please wait ' + adSecsLeft + 's';
+      const adTick = setInterval(() => {
+        adSecsLeft -= 1;
+        if (adSecsLeft <= 0) {
+          clearInterval(adTick);
+        } else {
+          adLoadHint.textContent = '⏳ Loading sponsor… please wait ' + adSecsLeft + 's';
+        }
+      }, 1000);
       setTimeout(() => {
         adsLoaded = true;
         tryEnableOpenBtn();
