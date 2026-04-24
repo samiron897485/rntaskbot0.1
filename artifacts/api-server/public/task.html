@@ -23,12 +23,21 @@
     .tg-block {
       display: none; position: fixed; inset: 0; z-index: 9999;
       background: linear-gradient(160deg, #0b1220 0%, #0f172a 100%);
-      flex-direction: column; align-items: center; justify-content: center;
-      padding: 28px 22px; text-align: center;
+      flex-direction: column; align-items: center; justify-content: flex-start;
+      padding: 14px 22px 22px; text-align: center; overflow-y: auto;
     }
     .tg-block.show { display: flex; }
+    .tg-banner-468 {
+      width: 100%; max-width: 480px;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 60px; margin-bottom: 18px; overflow: hidden;
+    }
+    .tg-native-wrap {
+      width: 100%; max-width: 480px;
+      margin-top: 22px;
+    }
     .tg-msg-box {
-      max-width: 340px; padding: 16px 18px; margin-bottom: 28px;
+      max-width: 340px; padding: 16px 18px; margin-bottom: 18px;
       background: rgba(0,212,170,0.08);
       border: 1px solid rgba(0,212,170,0.35);
       border-radius: 12px;
@@ -295,6 +304,9 @@
 
   <!-- Telegram WebView → Open in Browser screen -->
   <div class="tg-block" id="tgBlock">
+    <div class="tg-banner-468" id="tgBanner468">
+      <!-- ADSTERRA_BANNER_468_INTRO -->
+    </div>
     <div class="tg-msg-box" id="tgMsgBox">
       This task page works best in browser, tap the button below to open it externally and start earning. thank you 😊
     </div>
@@ -302,6 +314,9 @@
     <div class="tg-finger" id="tgFinger">👇</div>
     <button class="open-chrome-btn" id="openChromeBtn">Open in browser</button>
     <button class="open-chrome-btn" id="tgCloseBtn" style="display:none; background:#ff5b5b;">✕ Close</button>
+    <div class="tg-native-wrap" id="tgNativeWrap">
+      <!-- ADSTERRA_NATIVE_INTRO -->
+    </div>
   </div>
 
   <!-- Hint Popup -->
