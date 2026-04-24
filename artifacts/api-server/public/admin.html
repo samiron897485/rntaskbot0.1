@@ -354,11 +354,10 @@
     </div>
 
     <div class="card">
-      <h3>🎬 Interstitial Ad (Open News Page)</h3>
-      <p style="font-size:0.82rem;color:#94a3b8;margin-bottom:14px;line-height:1.6">
-        ইউজার যখন <b>"Open News"</b> বাটনে ক্লিক করবে, তখন সরাসরি news না খুলে আগে এই full-screen ad overlay দেখাবে। Countdown শেষে <b>"Continue to News"</b> বাটন enable হবে এবং তারপর আসল news URL খুলবে।<br>
-        💡 যদি ad load না হয় তাহলে user-কে full countdown wait করতে হবে না — minimum wait শেষে অটোমেটিক Continue button enable হয়ে যাবে।<br>
-        🔒 Off রাখলে website বর্তমানের মতো normal flow-এ চলবে — কোনো overlay দেখাবে না।
+      <h3>🎬 Interstitial Ad</h3>
+      <p style="font-size:0.82rem;color:#94a3b8;margin-bottom:14px;line-height:1.7">
+        Mondiad / Adsterra ইত্যাদি network থেকে interstitial ad-এর <b>script tag</b> পেস্ট করুন। Ad network নিজেই page-এর click event ধরে নিজস্ব full-screen ad দেখাবে এবং close করার পর normal flow চলবে।<br>
+        🔒 <b>Off রাখলে</b> task page বর্তমানের মতো normal flow-এ চলবে — কিছুই inject হবে না।
       </p>
 
       <div class="toggle-row" style="margin-bottom:14px;padding:12px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:8px">
@@ -372,27 +371,13 @@
       <div class="settings-field" style="margin-bottom:12px">
         <label style="font-weight:600">📜 Interstitial Ad Code</label>
         <p style="font-size:0.78rem;color:#94a3b8;margin:4px 0 6px 0;line-height:1.6">
-          Adsterra/Mondiad ইত্যাদি network থেকে ad-এর script + div code একসাথে পেস্ট করুন।<br>
-          ✅ <b>সবচেয়ে ভালো কাজ করবে:</b> Banner (300×250 / 250×250 / 320×50) অথবা Native Banner code।<br>
-          ⚠️ <b>এড়িয়ে চলুন:</b> Social Bar / Popunder / Direct Link / In-Page Push — এগুলো ছোট container-এ ঠিকঠাক দেখায় না (যদিও আমরা sandbox দিয়েছি যাতে আপনার page break না হয়)।
+          Network থেকে দেওয়া পুরো script tag টা এখানে paste করুন। যেমন:<br>
+          <code style="font-size:0.72rem;color:#fbbf24">&lt;script async src="https://ss.mrmnd.com/interstitial.js" data-mndintid="..."&gt;&lt;/script&gt;</code>
         </p>
-        <textarea id="cfg-interstitialAdCode" rows="5" placeholder="&lt;script type=&quot;text/javascript&quot;&gt;&#10;  atOptions = { 'key': '...', 'format': 'iframe', 'height': 250, 'width': 300 };&#10;&lt;/script&gt;&#10;&lt;script src=&quot;//.../invoke.js&quot;&gt;&lt;/script&gt;" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
+        <textarea id="cfg-interstitialAdCode" rows="4" placeholder="&lt;script async src=&quot;https://ss.mrmnd.com/interstitial.js&quot; data-mndintid=&quot;your-id-here&quot;&gt;&lt;/script&gt;" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font-size:0.8rem;font-family:monospace;resize:vertical"></textarea>
       </div>
 
-      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-        <div style="flex:1;min-width:140px">
-          <label style="font-weight:600;font-size:0.85rem">⏱️ Total Wait (seconds)</label>
-          <p style="font-size:0.74rem;color:#94a3b8;margin:2px 0 4px 0">Ad দেখার মোট সময় (1–60s)</p>
-          <input type="number" id="cfg-interstitialAdDurationSec" min="1" max="60" placeholder="7" style="width:100%" />
-        </div>
-        <div style="flex:1;min-width:140px">
-          <label style="font-weight:600;font-size:0.85rem">🔍 Min Wait Check (seconds)</label>
-          <p style="font-size:0.74rem;color:#94a3b8;margin:2px 0 4px 0">Ad load হয়েছে কিনা চেক করার মিনিমাম সময়</p>
-          <input type="number" id="cfg-interstitialAdMinWaitSec" min="0" max="60" placeholder="3" style="width:100%" />
-        </div>
-      </div>
-
-      <button class="btn btn-primary" onclick="saveConfig(['interstitialAdEnabled','interstitialAdCode','interstitialAdDurationSec','interstitialAdMinWaitSec'])" style="background:linear-gradient(135deg,#a855f7,#7c3aed)">💾 Save Interstitial Settings</button>
+      <button class="btn btn-primary" onclick="saveConfig(['interstitialAdEnabled','interstitialAdCode'])" style="background:linear-gradient(135deg,#a855f7,#7c3aed)">💾 Save Interstitial Settings</button>
       <div class="result" id="interstitialSettingsResult"></div>
     </div>
 
@@ -1155,10 +1140,6 @@
       setChk('cfg-interstitialAdEnabled', cfg.interstitialAdEnabled === true);
       const interEl = document.getElementById('cfg-interstitialAdCode');
       if (interEl) interEl.value = cfg.interstitialAdCode || '';
-      const interDurEl = document.getElementById('cfg-interstitialAdDurationSec');
-      if (interDurEl) interDurEl.value = Number(cfg.interstitialAdDurationSec ?? 7);
-      const interMinEl = document.getElementById('cfg-interstitialAdMinWaitSec');
-      if (interMinEl) interMinEl.value = Number(cfg.interstitialAdMinWaitSec ?? 3);
       const ccr = Number(cfg.companyCoinRate || 100);
       const preview = document.getElementById('legacyOffsetPreview');
       if (offset === 0) {
@@ -1204,8 +1185,6 @@
     adblockBlockEnabled: 'adblockBlockResult',
     interstitialAdEnabled: 'interstitialSettingsResult',
     interstitialAdCode: 'interstitialSettingsResult',
-    interstitialAdDurationSec: 'interstitialSettingsResult',
-    interstitialAdMinWaitSec: 'interstitialSettingsResult',
   };
 
   async function saveConfig(keys) {

@@ -39,8 +39,6 @@ export interface AdminConfig {
   adblockBlockEnabled?: boolean;
   interstitialAdEnabled?: boolean;
   interstitialAdCode?: string;
-  interstitialAdDurationSec?: number;
-  interstitialAdMinWaitSec?: number;
 }
 
 export interface Task {

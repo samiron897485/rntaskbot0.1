@@ -9,9 +9,10 @@
     // Server-side injected ad/feature flags. Falls back to safe defaults if
     // the page is somehow served without template processing — that way the
     // page does not crash and buttons stay functional.
-    window.__AD_FLAGS__ = window.__AD_FLAGS__ || { adsEnabled: false, adblockBlockEnabled: false, interstitialEnabled: false, interstitialDurationSec: 7, interstitialMinWaitSec: 3 };
+    window.__AD_FLAGS__ = window.__AD_FLAGS__ || { adsEnabled: false, adblockBlockEnabled: false };
   </script>
   <!-- AD_FLAGS_INIT -->
+  <!-- INTERSTITIAL_AD_SCRIPT -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -299,84 +300,9 @@
 
     .progress-bar-wrap { background: rgba(255,255,255,0.08); border-radius: 8px; height: 8px; overflow: hidden; }
     .progress-bar { height: 100%; border-radius: 8px; background: linear-gradient(90deg, #00d4aa, #ffd700); width: 0%; transition: width 0.5s linear; }
-
-    /* ── Interstitial Ad Overlay ─────────────────────────────────────────── */
-    .interstitial-overlay {
-      position: fixed; inset: 0; z-index: 9999;
-      background: rgba(8, 12, 22, 0.97);
-      display: none; flex-direction: column;
-      padding: 16px; overflow-y: auto;
-    }
-    .interstitial-overlay.show { display: flex; }
-    .interstitial-header {
-      text-align: center; padding: 10px 6px 14px;
-      color: #e2e8f0; font-size: 0.95rem; font-weight: 600;
-    }
-    .interstitial-header .sub {
-      display: block; font-size: 0.78rem; color: #94a3b8;
-      font-weight: 400; margin-top: 4px;
-    }
-    .interstitial-ad-box {
-      flex: 1; min-height: 280px;
-      background: rgba(255,255,255,0.04);
-      border: 1px dashed rgba(255,255,255,0.12);
-      border-radius: 10px;
-      position: relative;
-      padding: 8px; margin-bottom: 14px; overflow: hidden;
-    }
-    .interstitial-ad-box .placeholder {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: #64748b; font-size: 0.85rem; text-align: center;
-      padding: 30px 16px; pointer-events: none;
-    }
-    #interstitialAdSlot { width: 100%; height: 100%; min-height: 264px; }
-    #interstitialAdSlot iframe.interstitial-ad-frame {
-      width: 100%; height: 100%; min-height: 264px; border: 0;
-      display: block; background: transparent; position: relative; z-index: 1;
-    }
-    .interstitial-actions {
-      display: flex; flex-direction: column; gap: 10px;
-      padding-bottom: env(safe-area-inset-bottom, 0);
-    }
-    .interstitial-continue-btn {
-      width: 100%; padding: 14px;
-      border: none; border-radius: 10px;
-      font-size: 1rem; font-weight: 700;
-      background: linear-gradient(135deg, #00d4aa, #00a07c);
-      color: #fff; cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-    .interstitial-continue-btn:disabled {
-      background: #334155; color: #94a3b8;
-      cursor: not-allowed; opacity: 0.7;
-    }
-    .interstitial-continue-btn:not(:disabled):active { transform: scale(0.98); }
-    .interstitial-countdown {
-      text-align: center; color: #ffd700;
-      font-size: 0.88rem; font-weight: 600;
-    }
   </style>
 </head>
 <body>
-
-  <!-- Interstitial Ad Overlay (shown after Open News click when enabled) -->
-  <div class="interstitial-overlay" id="interstitialOverlay" aria-hidden="true">
-    <div class="interstitial-header">
-      📢 Sponsored Message
-      <span class="sub">Please wait while we load the ad...</span>
-    </div>
-    <div class="interstitial-ad-box" id="interstitialAdBox">
-      <div class="placeholder" id="interstitialPlaceholder">Loading ad...</div>
-      <div id="interstitialAdSlot" style="width:100%;height:100%;min-height:280px;position:relative"></div>
-    </div>
-    <div class="interstitial-actions">
-      <div class="interstitial-countdown" id="interstitialCountdown">⏳ Continue in 7s...</div>
-      <button id="interstitialContinueBtn" class="interstitial-continue-btn" disabled>
-        Continue to News →
-      </button>
-    </div>
-  </div>
 
   <div class="mobile-block" id="mobileBlock">
     <div class="mobile-block-icon">📱</div>
@@ -1172,50 +1098,9 @@
     window.addEventListener('focus', () => { if (!document.hidden) onPageVisible(); });
     window.addEventListener('pagehide', () => { onPageHidden(); });
 
-    // ── Interstitial Ad Overlay ────────────────────────────────────────────
-    // Shows a controlled ad screen with a countdown before redirecting to
-    // the actual news URL. Behavior is "Hybrid" (Option C):
-    //   - Wait at least `minWait` seconds so the ad has a chance to render
-    //   - After minWait, check if the ad container has actually rendered
-    //     content (iframe / sized child elements). If yes → wait until full
-    //     `duration` then enable Continue. If no → enable Continue immediately
-    //     so the user is never stuck waiting on a broken/blocked ad.
-    //   - The Continue button always redirects to the real news URL via
-    //     code we control, regardless of what the ad network does.
-    function isInterstitialAdRendered(slot) {
-      if (!slot) return false;
-      try {
-        // Our outer iframe wrapper that sandboxes the ad
-        const wrap = slot.querySelector('iframe.interstitial-ad-frame');
-        if (!wrap) return false;
-        // Try to inspect inside (allow-same-origin makes this possible)
-        try {
-          const doc = wrap.contentDocument;
-          if (doc && doc.body) {
-            // Any nested iframe (typical Adsterra banner) that's actually shown?
-            const innerFrames = doc.querySelectorAll('iframe');
-            for (const f of innerFrames) {
-              if (f.offsetWidth > 0 && f.offsetHeight > 0) return true;
-            }
-            // Or any sized non-script element rendered by the ad code?
-            const all = doc.body.querySelectorAll('*');
-            for (const el of all) {
-              if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') continue;
-              if (el.offsetWidth >= 100 && el.offsetHeight >= 50) return true;
-            }
-          }
-        } catch (e) {
-          // Cross-origin (e.g. ad redirected the iframe to its own domain) —
-          // we can't peek inside, but the wrapper iframe itself being sized
-          // means *something* is in there. Treat as loaded.
-          if (wrap.offsetWidth > 0 && wrap.offsetHeight > 0) return true;
-        }
-      } catch (e) {}
-      return false;
-    }
-
-    function openTaskNow() {
-      if (completed || !taskLink) return;
+    // ── Open Link button ──────────────────────────────────────────────────────
+    openLinkBtn.addEventListener('click', () => {
+      if (openLinkBtn.disabled || completed || !taskLink) return;
       ensureAudioCtx();
       taskOpened = true;
       openLinkBtn.disabled = true;
@@ -1223,124 +1108,6 @@
       infoBox.innerHTML = '⏳ Stay on the news page. Timer runs while you are there.<br>Return here and press <strong>Claim Reward</strong> when done.';
       progressBarWrap.style.display = 'block';
       openInDefaultBrowser(taskLink);
-    }
-
-    // Create a sandboxed iframe and write the ad HTML into it. This isolates
-    // the ad code from the host page so:
-    //   • position:fixed banners (Social Bar) cannot pin to the top of OUR page
-    //   • Popunders / window.open cannot trigger (no `allow-popups`)
-    //   • The ad cannot navigate our top-level page (no `allow-top-navigation`)
-    //   • Forms, redirects-on-click within the iframe still work
-    // We keep `allow-same-origin` so we can still inspect the iframe's body
-    // for ad-rendered detection (used by the Hybrid wait logic).
-    function activateInterstitialScripts() {
-      const slot = document.getElementById('interstitialAdSlot');
-      if (!slot || slot.dataset.activated === '1') return;
-      slot.dataset.activated = '1';
-      const adHtml = (window.__INTERSTITIAL_AD_HTML__ || '').trim();
-      if (!adHtml) return;
-      const iframe = document.createElement('iframe');
-      iframe.className = 'interstitial-ad-frame';
-      iframe.setAttribute('scrolling', 'no');
-      iframe.setAttribute('allowtransparency', 'true');
-      // Sandbox: scripts run + same-origin (for detection) + forms.
-      // Deliberately omit allow-popups, allow-top-navigation, allow-modals.
-      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms');
-      iframe.style.cssText = 'width:100%;height:100%;min-height:280px;border:0;display:block;background:transparent;';
-      slot.appendChild(iframe);
-      // Wait one tick so the iframe is in the DOM, then write the ad HTML.
-      setTimeout(() => {
-        try {
-          const doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
-          if (!doc) return;
-          doc.open();
-          doc.write(
-            '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-            '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-            '<style>html,body{margin:0;padding:0;background:transparent;color:#e2e8f0;' +
-            'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;' +
-            'min-height:100%;display:flex;align-items:center;justify-content:center;' +
-            'overflow:hidden;}img{max-width:100%;height:auto;}</style></head><body>' +
-            adHtml +
-            '</body></html>'
-          );
-          doc.close();
-        } catch (e) {}
-      }, 30);
-    }
-
-    let interstitialShown = false;
-    function showInterstitialThen(onContinue) {
-      if (interstitialShown) return;
-      interstitialShown = true;
-      const flags = window.__AD_FLAGS__ || {};
-      const totalSec = Math.max(1, Number(flags.interstitialDurationSec) || 7);
-      const minWaitSec = Math.max(0, Math.min(totalSec, Number(flags.interstitialMinWaitSec) || 3));
-      const overlay = document.getElementById('interstitialOverlay');
-      const countdownEl = document.getElementById('interstitialCountdown');
-      const continueBtn = document.getElementById('interstitialContinueBtn');
-      const placeholder = document.getElementById('interstitialPlaceholder');
-      const slot = document.getElementById('interstitialAdSlot');
-      if (!overlay || !continueBtn) { onContinue(); return; }
-
-      overlay.classList.add('show');
-      overlay.setAttribute('aria-hidden', 'false');
-      continueBtn.disabled = true;
-      countdownEl.textContent = '⏳ Continue in ' + totalSec + 's...';
-
-      // Kick off the ad scripts now that the overlay is visible
-      activateInterstitialScripts();
-
-      let secsLeft = totalSec;
-      let done = false;
-      let adLoaded = false;
-
-      const finish = () => {
-        if (done) return;
-        done = true;
-        clearInterval(tick);
-        continueBtn.disabled = false;
-        countdownEl.textContent = adLoaded
-          ? '✅ Ready! Tap continue to read the news.'
-          : 'ℹ️ Ad unavailable — tap continue to read the news.';
-      };
-
-      const tick = setInterval(() => {
-        secsLeft -= 1;
-        if (placeholder && isInterstitialAdRendered(slot)) {
-          placeholder.style.display = 'none';
-          adLoaded = true;
-        }
-        // After minWait — if no ad has rendered, skip the rest of the wait
-        const elapsed = totalSec - secsLeft;
-        if (elapsed >= minWaitSec && !adLoaded && !isInterstitialAdRendered(slot)) {
-          finish();
-          return;
-        }
-        if (secsLeft <= 0) { finish(); return; }
-        countdownEl.textContent = '⏳ Continue in ' + secsLeft + 's...';
-      }, 1000);
-
-      // Safety: never let the user be stuck longer than totalSec + 2
-      setTimeout(finish, (totalSec + 2) * 1000);
-
-      continueBtn.onclick = () => {
-        if (continueBtn.disabled) return;
-        overlay.classList.remove('show');
-        overlay.setAttribute('aria-hidden', 'true');
-        onContinue();
-      };
-    }
-
-    // ── Open Link button ──────────────────────────────────────────────────────
-    openLinkBtn.addEventListener('click', () => {
-      if (openLinkBtn.disabled || completed || !taskLink) return;
-      const flags = window.__AD_FLAGS__ || {};
-      if (flags.interstitialEnabled && !interstitialShown) {
-        showInterstitialThen(openTaskNow);
-        return;
-      }
-      openTaskNow();
     });
 
     // ── Claim button ──────────────────────────────────────────────────────────

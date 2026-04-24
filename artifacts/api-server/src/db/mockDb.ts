@@ -64,8 +64,6 @@ export const adminConfig: AdminConfig = {
   taskRewardCoins: 1,
   interstitialAdEnabled: false,
   interstitialAdCode: "",
-  interstitialAdDurationSec: 7,
-  interstitialAdMinWaitSec: 3,
 };
 
 export function addWithdrawOption(amount: number): boolean {
