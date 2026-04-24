@@ -3226,9 +3226,8 @@ export function initBot(token: string, baseUrl: string): void {
         const link = urls[0];
         if (isLinkDuplicate(link)) {
           await bot!.sendMessage(chatId,
-            "❌ *Duplicate Link*\nThis task already exists. Please add a new link.",
+            "❌ Already added! Add another link 🔗",
             {
-              parse_mode: "Markdown",
               reply_markup: { inline_keyboard: [[{ text: "❌ Cancel", callback_data: "admin_cancel" }]] },
             }
           );
@@ -3373,6 +3372,10 @@ export function initBot(token: string, baseUrl: string): void {
       const urls = text.match(urlRegex);
       if (urls && urls.length > 0) {
         const link = urls[0];
+        if (isLinkDuplicate(link)) {
+          await bot!.sendMessage(chatId, "❌ Already added! Add another link 🔗");
+          return;
+        }
         const task = addTask(link);
         logger.info({ taskId: task.id, link }, "Task added by admin shortcut");
         await bot!.sendMessage(chatId, `✅ Task added!\n🆔 \`${task.id}\``, { parse_mode: "Markdown" });
